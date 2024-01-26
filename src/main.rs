@@ -10,6 +10,7 @@ pub enum Token {
     LeftParen,
     RightParen,
     Number,
+    Identifier,
 }
 
 type TokenRange = (usize, usize);
@@ -61,6 +62,16 @@ impl<'a> Tokenizer<'a> {
         true
     }
 
+    fn accept_identifier(&mut self) -> bool {
+        let is_ident_char =
+            |char: char| !char.is_whitespace() && char != '.' && char != '(' && char != ')';
+        if !self.accept(|char: char| !char.is_numeric() && is_ident_char(char)) {
+            return false;
+        }
+        self.chomp_while(is_ident_char);
+        true
+    }
+
     fn chomp_whitespace(&mut self) {
         self.chomp_while(|char| char.is_whitespace());
     }
@@ -83,6 +94,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             Token::RightParen
         } else if self.accept_number() {
             Token::Number
+        } else if self.accept_identifier() {
+            Token::Identifier
         } else {
             todo!("Add support for more token types");
         };
@@ -118,6 +131,14 @@ mod tests {
         test_tokenize_success(
             ".3 5.2 1",
             &[(Number, (0, 2)), (Number, (3, 6)), (Number, (7, 8))],
+        )
+    }
+
+    #[test]
+    fn identifier_works() {
+        test_tokenize_success(
+            "hi there? ",
+            &[(Identifier, (0, 2)), (Identifier, (3, 9))],
         )
     }
 }
