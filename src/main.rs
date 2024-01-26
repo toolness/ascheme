@@ -13,6 +13,12 @@ pub enum Token {
     Identifier,
 }
 
+#[derive(Debug)]
+pub enum TokenizeError {
+    InvalidNumber,
+    UnexpectedCharacter,
+}
+
 type TokenRange = (usize, usize);
 
 impl<'a> Tokenizer<'a> {
@@ -53,13 +59,26 @@ impl<'a> Tokenizer<'a> {
         self.accept(|next_char| next_char == char)
     }
 
-    fn accept_number(&mut self) -> bool {
-        let predicate = |char: char| char.is_numeric() || char == '.';
-        if !self.accept(predicate) {
-            return false;
+    fn try_accept_number(&mut self) -> Option<Result<Token, TokenizeError>> {
+        let mut found_decimal = false;
+        let mut found_digit = false;
+        loop {
+            if self.accept_char('.') {
+                if found_decimal {
+                    return Some(Err(TokenizeError::InvalidNumber));
+                }
+                found_decimal = true;
+            } else if self.accept(|char| char.is_numeric()) {
+                found_digit = true;
+            } else {
+                break;
+            }
         }
-        self.chomp_while(predicate);
-        true
+        if found_digit {
+            Some(Ok(Token::Number))
+        } else {
+            None
+        }
     }
 
     fn accept_identifier(&mut self) -> bool {
@@ -77,7 +96,7 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-pub type TokenWithRange = (Token, TokenRange);
+pub type TokenWithRange = (Result<Token, TokenizeError>, TokenRange);
 
 impl<'a> Iterator for Tokenizer<'a> {
     type Item = TokenWithRange;
@@ -88,16 +107,16 @@ impl<'a> Iterator for Tokenizer<'a> {
             return None;
         }
         let token_start = self.curr_pos;
-        let token: Token = if self.accept_char('(') {
-            Token::LeftParen
+        let token: Result<Token, TokenizeError> = if self.accept_char('(') {
+            Ok(Token::LeftParen)
         } else if self.accept_char(')') {
-            Token::RightParen
-        } else if self.accept_number() {
-            Token::Number
+            Ok(Token::RightParen)
+        } else if let Some(result) = self.try_accept_number() {
+            result
         } else if self.accept_identifier() {
-            Token::Identifier
+            Ok(Token::Identifier)
         } else {
-            todo!("Add support for more token types");
+            Err(TokenizeError::UnexpectedCharacter)
         };
         Some((token, (token_start, self.curr_pos)))
     }
@@ -119,9 +138,14 @@ mod tests {
         let tokenizer = Tokenizer::new(&string);
         let tokens = tokenizer
             .into_iter()
-            .map(|(token, range)| (token, &string[range.0..range.1]))
+            .map(|(token, range)| {
+                (
+                    token.unwrap_or_else(|err| panic!("Got {err:?} when tokenizing '{string}'")),
+                    &string[range.0..range.1],
+                )
+            })
             .collect::<Vec<_>>();
-        assert_eq!(&tokens, expect, "Tokenization of '{}'", string);
+        assert_eq!(&tokens, expect, "Tokenization of '{string}'");
     }
 
     #[test]
