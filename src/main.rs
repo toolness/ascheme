@@ -9,6 +9,7 @@ pub struct Tokenizer<'a> {
 pub enum Token {
     LeftParen,
     RightParen,
+    Number,
 }
 
 type TokenRange = (usize, usize);
@@ -28,7 +29,7 @@ impl<'a> Tokenizer<'a> {
     fn chomp_while<F: Fn(char) -> bool>(&mut self, predicate: F) {
         loop {
             if !self.accept(&predicate) {
-                return
+                return;
             }
         }
     }
@@ -51,6 +52,15 @@ impl<'a> Tokenizer<'a> {
         self.accept(|next_char| next_char == char)
     }
 
+    fn accept_number(&mut self) -> bool {
+        let predicate = |char: char| char.is_numeric() || char == '.';
+        if !self.accept(predicate) {
+            return false;
+        }
+        self.chomp_while(predicate);
+        true
+    }
+
     fn chomp_whitespace(&mut self) {
         self.chomp_while(|char| char.is_whitespace());
     }
@@ -71,6 +81,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             Token::LeftParen
         } else if self.accept_char(')') {
             Token::RightParen
+        } else if self.accept_number() {
+            Token::Number
         } else {
             todo!("Add support for more token types");
         };
@@ -99,5 +111,13 @@ mod tests {
     #[test]
     fn parens_and_whitespace_works() {
         test_tokenize_success("  (  ) ", &[(LeftParen, (2, 3)), (RightParen, (5, 6))])
+    }
+
+    #[test]
+    fn number_works() {
+        test_tokenize_success(
+            ".3 5.2 1",
+            &[(Number, (0, 2)), (Number, (3, 6)), (Number, (7, 8))],
+        )
     }
 }
