@@ -67,13 +67,14 @@ impl<'a> Iterator for Tokenizer<'a> {
             return None;
         }
         let token_start = self.curr_pos;
-        if self.accept_char('(') {
-            Some((Token::LeftParen, (token_start, self.curr_pos)))
+        let token: Token = if self.accept_char('(') {
+            Token::LeftParen
         } else if self.accept_char(')') {
-            Some((Token::RightParen, (token_start, self.curr_pos)))
+            Token::RightParen
         } else {
             todo!("Add support for more token types");
-        }
+        };
+        Some((token, (token_start, self.curr_pos)))
     }
 }
 
