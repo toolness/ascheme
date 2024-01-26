@@ -13,7 +13,7 @@ pub enum Token {
     Identifier,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenizeError {
     InvalidNumber,
     UnexpectedCharacter,
@@ -60,21 +60,20 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn try_accept_number(&mut self) -> Option<Result<Token, TokenizeError>> {
-        let mut found_decimal = false;
+        let mut found_decimals = 0;
         let mut found_digit = false;
         loop {
             if self.accept_char('.') {
-                if found_decimal {
-                    return Some(Err(TokenizeError::InvalidNumber));
-                }
-                found_decimal = true;
+                found_decimals += 1;
             } else if self.accept(|char| char.is_numeric()) {
                 found_digit = true;
             } else {
                 break;
             }
         }
-        if found_digit {
+        if found_decimals > 1 {
+            Some(Err(TokenizeError::InvalidNumber))
+        } else if found_digit {
             Some(Ok(Token::Number))
         } else {
             None
@@ -132,37 +131,44 @@ fn main() {
 mod tests {
     use crate::Token;
     use crate::Token::*;
+    use crate::TokenizeError;
     use crate::Tokenizer;
 
-    fn test_tokenize_success(string: &'static str, expect: &[(Token, &'static str)]) {
+    fn test_tokenize(
+        string: &'static str,
+        expect: &[(Result<Token, TokenizeError>, &'static str)],
+    ) {
         let tokenizer = Tokenizer::new(&string);
         let tokens = tokenizer
             .into_iter()
-            .map(|(token, range)| {
-                (
-                    token.unwrap_or_else(|err| panic!("Got {err:?} when tokenizing '{string}'")),
-                    &string[range.0..range.1],
-                )
-            })
+            .map(|(token, range)| (token, &string[range.0..range.1]))
             .collect::<Vec<_>>();
         assert_eq!(&tokens, expect, "Tokenization of '{string}'");
     }
 
     #[test]
     fn parens_and_whitespace_works() {
-        test_tokenize_success("  (  ) ", &[(LeftParen, "("), (RightParen, ")")])
+        test_tokenize("  (  ) ", &[(Ok(LeftParen), "("), (Ok(RightParen), ")")])
     }
 
     #[test]
     fn number_works() {
-        test_tokenize_success(
-            ".3 5.2 1",
-            &[(Number, ".3"), (Number, "5.2"), (Number, "1")],
+        test_tokenize(
+            ".3 5.2 1 ..5",
+            &[
+                (Ok(Number), ".3"),
+                (Ok(Number), "5.2"),
+                (Ok(Number), "1"),
+                (Err(TokenizeError::InvalidNumber), "..5"),
+            ],
         )
     }
 
     #[test]
     fn identifier_works() {
-        test_tokenize_success("hi there? ", &[(Identifier, "hi"), (Identifier, "there?")])
+        test_tokenize(
+            "hi there? ",
+            &[(Ok(Identifier), "hi"), (Ok(Identifier), "there?")],
+        )
     }
 }
