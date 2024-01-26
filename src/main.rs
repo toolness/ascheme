@@ -39,9 +39,9 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn accept_char(&mut self, char: char) -> bool {
+    fn accept<F: Fn(char) -> bool>(&mut self, predicate: F) -> bool {
         if let Some(&(pos, next_char)) = self.chars.peek() {
-            if next_char == char {
+            if predicate(next_char) {
                 self.chars.next();
                 self.curr_pos = pos + next_char.len_utf8();
                 true
@@ -51,6 +51,10 @@ impl<'a> Tokenizer<'a> {
         } else {
             false
         }
+    }
+
+    fn accept_char(&mut self, char: char) -> bool {
+        self.accept(|next_char| next_char == char)
     }
 
     fn chomp_whitespace(&mut self) {
