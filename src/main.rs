@@ -111,34 +111,34 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use crate::Token;
     use crate::Token::*;
-    use crate::TokenWithRange;
     use crate::Tokenizer;
 
-    fn test_tokenize_success(string: &'static str, expect: &[TokenWithRange]) {
+    fn test_tokenize_success(string: &'static str, expect: &[(Token, &'static str)]) {
         let tokenizer = Tokenizer::new(&string);
-        let tokens = tokenizer.into_iter().collect::<Vec<_>>();
+        let tokens = tokenizer
+            .into_iter()
+            .map(|(token, range)| (token, &string[range.0..range.1]))
+            .collect::<Vec<_>>();
         assert_eq!(&tokens, expect, "Tokenization of '{}'", string);
     }
 
     #[test]
     fn parens_and_whitespace_works() {
-        test_tokenize_success("  (  ) ", &[(LeftParen, (2, 3)), (RightParen, (5, 6))])
+        test_tokenize_success("  (  ) ", &[(LeftParen, "("), (RightParen, ")")])
     }
 
     #[test]
     fn number_works() {
         test_tokenize_success(
             ".3 5.2 1",
-            &[(Number, (0, 2)), (Number, (3, 6)), (Number, (7, 8))],
+            &[(Number, ".3"), (Number, "5.2"), (Number, "1")],
         )
     }
 
     #[test]
     fn identifier_works() {
-        test_tokenize_success(
-            "hi there? ",
-            &[(Identifier, (0, 2)), (Identifier, (3, 9))],
-        )
+        test_tokenize_success("hi there? ", &[(Identifier, "hi"), (Identifier, "there?")])
     }
 }
