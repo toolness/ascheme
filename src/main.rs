@@ -27,14 +27,8 @@ impl<'a> Tokenizer<'a> {
 
     fn chomp_while<F: Fn(char) -> bool>(&mut self, predicate: F) {
         loop {
-            if let Some(&(pos, next_char)) = self.chars.peek() {
-                if !predicate(next_char) {
-                    return;
-                }
-                self.chars.next();
-                self.curr_pos = pos + next_char.len_utf8();
-            } else {
-                return;
+            if !self.accept(&predicate) {
+                return
             }
         }
     }
