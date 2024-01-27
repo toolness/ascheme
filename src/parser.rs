@@ -101,3 +101,8 @@ impl<'a> Iterator for Parser<'a> {
         }
     }
 }
+
+pub fn parse(code: &str, interner: &mut StringInterner) -> Result<Vec<Expression>, ParseError> {
+    let parser = Parser::new(code, Tokenizer::new(&code), interner);
+    parser.parse_all()
+}

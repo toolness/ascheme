@@ -1,8 +1,9 @@
 use parser::Expression;
 
-use crate::{parser::Parser, string_interner::StringInterner, tokenizer::Tokenizer};
-
-use crate::parser::ExpressionValue;
+use crate::{
+    parser::{parse, ExpressionValue},
+    string_interner::StringInterner,
+};
 
 mod parser;
 mod source_mapped;
@@ -27,8 +28,7 @@ fn stringify_expressions(expressions: &Vec<Expression>, interner: &StringInterne
 fn main() {
     let code = "  (+ 1 2 (* 3 4)) ";
     let mut interner = StringInterner::default();
-    let parser = Parser::new(code, Tokenizer::new(&code), &mut interner);
-    let parsed = parser.parse_all();
+    let parsed = parse(code, &mut interner);
 
     println!("{}", stringify_expressions(&parsed.unwrap(), &interner));
 }
