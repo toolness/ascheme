@@ -24,7 +24,7 @@ impl From<TokenizeError> for ParseError {
 pub enum ExpressionValue {
     Number(f64),
     Symbol(InternedString),
-    Combination(Box<Vec<Expression>>),
+    Combination(Vec<Expression>),
 }
 
 pub type Expression = SourceMapped<ExpressionValue>;
@@ -58,7 +58,7 @@ impl<'a> Parser<'a> {
                     match self.tokenizer.next() {
                         Some(Ok(nested_token)) => {
                             if nested_token.0 == TokenType::RightParen {
-                                return Ok(ExpressionValue::Combination(Box::new(expressions))
+                                return Ok(ExpressionValue::Combination(expressions)
                                     .source_mapped(token.extend_range(&nested_token)));
                             } else {
                                 expressions.push(self.parse_token(nested_token)?);
