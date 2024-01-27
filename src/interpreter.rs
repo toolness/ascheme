@@ -1,4 +1,21 @@
-use crate::{parser::Expression, string_interner::StringInterner};
+use crate::{
+    parser::{Expression, ExpressionValue},
+    source_mapped::{SourceMappable, SourceMapped},
+    string_interner::StringInterner,
+};
+
+#[derive(Debug)]
+pub enum RuntimeErrorType {
+    UnknownIdentifier,
+}
+
+pub type RuntimeError = SourceMapped<RuntimeErrorType>;
+
+#[derive(Debug)]
+pub enum Value {
+    Undefined,
+    Number(f64),
+}
 
 pub struct Interpreter<'a> {
     expressions: &'a Vec<Expression>,
@@ -6,17 +23,26 @@ pub struct Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
-    fn eval(&mut self) -> Option<f64> {
+    fn eval(&mut self) -> Result<Value, RuntimeError> {
         for expression in self.expressions {
-            // TODO
+            let value = match &expression.0 {
+                ExpressionValue::Number(number) => Value::Number(*number),
+                ExpressionValue::Symbol(_) => {
+                    // TODO: Look up the symbol in the environment and return its value, if possible.
+                    return Err(RuntimeErrorType::UnknownIdentifier.source_mapped(expression.1));
+                }
+                ExpressionValue::Combination(expressions) => {
+                    todo!("Implement combinations")
+                }
+            };
         }
-        None
+        Ok(Value::Undefined)
     }
 
     pub fn evaluate(
         expressions: &Vec<Expression>,
         interner: &'a mut StringInterner,
-    ) -> Option<f64> {
+    ) -> Result<Value, RuntimeError> {
         let mut interpreter = Interpreter {
             expressions,
             interner,
