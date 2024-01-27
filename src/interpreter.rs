@@ -17,14 +17,14 @@ pub enum RuntimeErrorType {
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Value {
     Undefined,
     Number(f64),
     Procedure(Procedure),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Procedure {
     Builtin(InternedString),
 }
@@ -130,4 +130,25 @@ fn multiply(interpreter: &Interpreter, operands: &[Expression]) -> Result<Value,
         result *= number
     }
     Ok(Value::Number(result))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        interpreter::{Interpreter, Value},
+        parser::parse,
+        string_interner::StringInterner,
+    };
+
+    #[test]
+    fn it_works() {
+        let code = "  (+ 1 2 (* 3 4)) ";
+        let mut interner = StringInterner::default();
+        let parsed = parse(code, &mut interner).unwrap();
+
+        assert_eq!(
+            Interpreter::evaluate(&parsed, &mut interner).unwrap(),
+            Value::Number(15.0)
+        );
+    }
 }
