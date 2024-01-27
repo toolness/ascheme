@@ -7,6 +7,7 @@ use crate::{
 mod parser;
 mod string_interner;
 mod tokenizer;
+mod source_mapped;
 
 fn main() {
     let code = "  (+ 1 2 (* 3 4)) ";
@@ -20,7 +21,7 @@ fn main() {
     let bap = interner.intern("bap");
 
     println!(
-        "Hello, world! {:?} {:?} {boop1:?} {boop2:?} {bap:?} {} {parsed:?}",
+        "Hello, world! {:#?} {:#?} {boop1:?} {boop2:?} {bap:?} {} {parsed:#?}",
         k.next(),
         k.next(),
         interner.get(boop1)

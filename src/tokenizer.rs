@@ -1,25 +1,29 @@
 use std::{iter::Peekable, str::CharIndices};
 
+use crate::source_mapped::SourceMapped;
+
 pub struct Tokenizer<'a> {
     chars: Peekable<CharIndices<'a>>,
     curr_pos: usize,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Token {
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum TokenType {
     LeftParen,
     RightParen,
     Number,
     Identifier,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum TokenizeError {
+pub type Token = SourceMapped<TokenType>;
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum TokenizeErrorType {
     InvalidNumber,
     UnexpectedCharacter,
 }
 
-type TokenRange = (usize, usize);
+pub type TokenizeError = SourceMapped<TokenizeErrorType>;
 
 impl<'a> Tokenizer<'a> {
     pub fn new<T: AsRef<str>>(string: &'a T) -> Self {
@@ -59,7 +63,7 @@ impl<'a> Tokenizer<'a> {
         self.accept(|next_char| next_char == char)
     }
 
-    fn try_accept_number(&mut self) -> Option<Result<Token, TokenizeError>> {
+    fn try_accept_number(&mut self) -> Option<Result<TokenType, TokenizeErrorType>> {
         let mut found_decimals = 0;
         let mut found_digit = false;
         loop {
@@ -72,9 +76,9 @@ impl<'a> Tokenizer<'a> {
             }
         }
         if found_decimals > 1 {
-            Some(Err(TokenizeError::InvalidNumber))
+            Some(Err(TokenizeErrorType::InvalidNumber))
         } else if found_digit {
-            Some(Ok(Token::Number))
+            Some(Ok(TokenType::Number))
         } else {
             None
         }
@@ -95,10 +99,8 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-pub type TokenWithRange = (Result<Token, TokenizeError>, TokenRange);
-
 impl<'a> Iterator for Tokenizer<'a> {
-    type Item = TokenWithRange;
+    type Item = Result<Token, TokenizeError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.chomp_whitespace();
@@ -106,18 +108,22 @@ impl<'a> Iterator for Tokenizer<'a> {
             return None;
         }
         let token_start = self.curr_pos;
-        let token: Result<Token, TokenizeError> = if self.accept_char('(') {
-            Ok(Token::LeftParen)
+        let token: Result<TokenType, TokenizeErrorType> = if self.accept_char('(') {
+            Ok(TokenType::LeftParen)
         } else if self.accept_char(')') {
-            Ok(Token::RightParen)
+            Ok(TokenType::RightParen)
         } else if let Some(result) = self.try_accept_number() {
             result
         } else if self.accept_identifier() {
-            Ok(Token::Identifier)
+            Ok(TokenType::Identifier)
         } else {
-            Err(TokenizeError::UnexpectedCharacter)
+            Err(TokenizeErrorType::UnexpectedCharacter)
         };
-        Some((token, (token_start, self.curr_pos)))
+        let source = (token_start, self.curr_pos);
+        Some(match token {
+            Ok(token) => Ok(SourceMapped(token, source)),
+            Err(error) => Err(SourceMapped(error, source)),
+        })
     }
 }
 
@@ -125,17 +131,20 @@ impl<'a> Iterator for Tokenizer<'a> {
 mod tests {
     use crate::tokenizer::Tokenizer;
 
-    use super::{Token, TokenizeError};
-    use super::Token::*;
+    use super::TokenType::{self, *};
+    use super::TokenizeErrorType;
 
     fn test_tokenize(
         string: &'static str,
-        expect: &[(Result<Token, TokenizeError>, &'static str)],
+        expect: &[(Result<TokenType, TokenizeErrorType>, &'static str)],
     ) {
         let tokenizer = Tokenizer::new(&string);
         let tokens = tokenizer
             .into_iter()
-            .map(|(token, range)| (token, &string[range.0..range.1]))
+            .map(|token| match token {
+                Ok(token) => (Ok(token.0), token.source(string)),
+                Err(err) => (Err(err.0), err.source(string)),
+            })
             .collect::<Vec<_>>();
         assert_eq!(&tokens, expect, "Tokenization of '{string}'");
     }
@@ -153,7 +162,7 @@ mod tests {
                 (Ok(Number), ".3"),
                 (Ok(Number), "5.2"),
                 (Ok(Number), "1"),
-                (Err(TokenizeError::InvalidNumber), "..5"),
+                (Err(TokenizeErrorType::InvalidNumber), "..5"),
             ],
         )
     }

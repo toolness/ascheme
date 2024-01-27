@@ -1,28 +1,33 @@
 use crate::{
+    source_mapped::SourceMapped,
     string_interner::{InternedString, StringInterner},
-    tokenizer::{Token, TokenizeError, Tokenizer},
+    tokenizer::{Token, TokenType, TokenizeError, TokenizeErrorType, Tokenizer},
 };
 
 #[derive(Debug)]
-pub enum ParseError {
-    Tokenize(TokenizeError),
+pub enum ParseErrorType {
+    Tokenize(TokenizeErrorType),
     InvalidNumber,
     MissingRightParen,
     UnexpectedRightParen,
 }
 
+type ParseError = SourceMapped<ParseErrorType>;
+
 impl From<TokenizeError> for ParseError {
     fn from(value: TokenizeError) -> Self {
-        ParseError::Tokenize(value)
+        SourceMapped(ParseErrorType::Tokenize(value.0), value.1)
     }
 }
 
 #[derive(Debug)]
-pub enum Expression {
+pub enum ExpressionType {
     Number(f64),
     Symbol(InternedString),
     Combination(Box<Vec<Expression>>),
 }
+
+pub type Expression = SourceMapped<ExpressionType>;
 
 pub struct Parser<'a> {
     string: &'a str,
@@ -45,40 +50,43 @@ impl<'a> Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn parse_token(
-        &mut self,
-        token: Token,
-        start: usize,
-        end: usize,
-    ) -> Result<Expression, ParseError> {
-        match token {
-            Token::LeftParen => {
+    fn parse_token(&mut self, token: Token) -> Result<Expression, ParseError> {
+        match token.0 {
+            TokenType::LeftParen => {
                 let mut expressions = vec![];
                 loop {
                     match self.tokenizer.next() {
-                        Some((Ok(token), (start, end))) => {
-                            if token == Token::RightParen {
-                                return Ok(Expression::Combination(Box::new(expressions)));
+                        Some(Ok(nested_token)) => {
+                            if nested_token.0 == TokenType::RightParen {
+                                let expression = ExpressionType::Combination(Box::new(expressions));
+                                let left_paren_begin = token.1.0;
+                                let right_paren_end = nested_token.1.1;
+                                return Ok(SourceMapped(
+                                    expression,
+                                    (left_paren_begin, right_paren_end),
+                                ));
                             } else {
-                                let expression = self.parse_token(token, start, end)?;
+                                let expression = self.parse_token(nested_token)?;
                                 expressions.push(expression);
                             }
                         }
-                        Some((Err(tokenize_error), _range)) => return Err(tokenize_error.into()),
+                        Some(Err(tokenize_error)) => return Err(tokenize_error.into()),
                         None => {
-                            return Err(ParseError::MissingRightParen);
+                            return Err(SourceMapped(ParseErrorType::MissingRightParen, token.1));
                         }
                     }
                 }
             }
-            Token::RightParen => Err(ParseError::UnexpectedRightParen),
-            Token::Number => match &self.string[start..end].parse::<f64>() {
-                Ok(number) => Ok(Expression::Number(*number)),
-                Err(_) => Err(ParseError::InvalidNumber),
+            TokenType::RightParen => {
+                Err(SourceMapped(ParseErrorType::UnexpectedRightParen, token.1))
+            }
+            TokenType::Number => match token.source(&self.string).parse::<f64>() {
+                Ok(number) => Ok(SourceMapped(ExpressionType::Number(number), token.1)),
+                Err(_) => Err(SourceMapped(ParseErrorType::InvalidNumber, token.1)),
             },
-            Token::Identifier => {
-                let string = self.interner.intern(&self.string[start..end]);
-                Ok(Expression::Symbol(string))
+            TokenType::Identifier => {
+                let string = self.interner.intern(token.source(&self.string));
+                Ok(SourceMapped(ExpressionType::Symbol(string), token.1))
             }
         }
     }
@@ -89,8 +97,8 @@ impl<'a> Iterator for Parser<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokenizer.next() {
-            Some((Ok(token), (start, end))) => Some(self.parse_token(token, start, end)),
-            Some((Err(tokenize_error), _range)) => Some(Err(tokenize_error.into())),
+            Some(Ok(token)) => Some(self.parse_token(token)),
+            Some(Err(tokenize_error)) => Some(Err(tokenize_error.into())),
             None => None,
         }
     }
