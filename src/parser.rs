@@ -1,5 +1,5 @@
 use crate::{
-    source_mapped::SourceMapped,
+    source_mapped::{SourceMappable, SourceMapped},
     string_interner::{InternedString, StringInterner},
     tokenizer::{Token, TokenType, TokenizeError, TokenizeErrorType, Tokenizer},
 };
@@ -16,7 +16,7 @@ type ParseError = SourceMapped<ParseErrorType>;
 
 impl From<TokenizeError> for ParseError {
     fn from(value: TokenizeError) -> Self {
-        SourceMapped(ParseErrorType::Tokenize(value.0), value.1)
+        ParseErrorType::Tokenize(value.0).source_mapped(value.1)
     }
 }
 
@@ -58,34 +58,29 @@ impl<'a> Parser<'a> {
                     match self.tokenizer.next() {
                         Some(Ok(nested_token)) => {
                             if nested_token.0 == TokenType::RightParen {
-                                let expression =
-                                    ExpressionValue::Combination(Box::new(expressions));
-                                return Ok(SourceMapped(
-                                    expression,
-                                    token.extend_range(&nested_token),
-                                ));
+                                return Ok(ExpressionValue::Combination(Box::new(expressions))
+                                    .source_mapped(token.extend_range(&nested_token)));
                             } else {
-                                let expression = self.parse_token(nested_token)?;
-                                expressions.push(expression);
+                                expressions.push(self.parse_token(nested_token)?);
                             }
                         }
                         Some(Err(tokenize_error)) => return Err(tokenize_error.into()),
                         None => {
-                            return Err(SourceMapped(ParseErrorType::MissingRightParen, token.1));
+                            return Err(ParseErrorType::MissingRightParen.source_mapped(token.1));
                         }
                     }
                 }
             }
             TokenType::RightParen => {
-                Err(SourceMapped(ParseErrorType::UnexpectedRightParen, token.1))
+                Err(ParseErrorType::UnexpectedRightParen.source_mapped(token.1))
             }
             TokenType::Number => match token.source(&self.string).parse::<f64>() {
-                Ok(number) => Ok(SourceMapped(ExpressionValue::Number(number), token.1)),
-                Err(_) => Err(SourceMapped(ParseErrorType::InvalidNumber, token.1)),
+                Ok(number) => Ok(ExpressionValue::Number(number).source_mapped(token.1)),
+                Err(_) => Err(ParseErrorType::InvalidNumber.source_mapped(token.1)),
             },
             TokenType::Identifier => {
                 let string = self.interner.intern(token.source(&self.string));
-                Ok(SourceMapped(ExpressionValue::Symbol(string), token.1))
+                Ok(ExpressionValue::Symbol(string).source_mapped(token.1))
             }
         }
     }

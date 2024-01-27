@@ -13,3 +13,12 @@ impl<T> SourceMapped<T> {
         (self.1.0, other.1.1)
     }
 }
+
+pub trait SourceMappable {
+    fn source_mapped(self, range: (usize, usize)) -> SourceMapped<Self> where Self: Sized {
+        SourceMapped(self, range)
+    }
+}
+
+impl<T: Sized> SourceMappable for T {
+}
