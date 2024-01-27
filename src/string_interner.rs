@@ -21,7 +21,7 @@ impl StringInterner {
         }
     }
 
-    pub fn get(&self, id: InternedString) -> &str {
+    pub fn get(&self, id: &InternedString) -> &str {
         self.ids_to_strings.get(id.0 as usize).unwrap().as_str()
     }
 }
@@ -40,7 +40,7 @@ mod tests {
 
         assert_eq!(boop1, boop2);
         assert_ne!(boop1, bap);
-        assert_eq!(interner.get(boop1), "boop");
-        assert_eq!(interner.get(bap), "bap");
+        assert_eq!(interner.get(&boop1), "boop");
+        assert_eq!(interner.get(&bap), "bap");
     }
 }
