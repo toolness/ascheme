@@ -6,4 +6,10 @@ impl<T> SourceMapped<T> {
         let (start, end) = self.1;
         &source[start..end]
     }
+
+    /// Returns a range extending from the beginning of this item's
+    /// range to the end of the given item's range.
+    pub fn extend_range(&self, other: &SourceMapped<T>) -> (usize, usize) {
+        (self.1.0, other.1.1)
+    }
 }

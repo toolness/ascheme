@@ -58,12 +58,11 @@ impl<'a> Parser<'a> {
                     match self.tokenizer.next() {
                         Some(Ok(nested_token)) => {
                             if nested_token.0 == TokenType::RightParen {
-                                let expression = ExpressionValue::Combination(Box::new(expressions));
-                                let left_paren_begin = token.1.0;
-                                let right_paren_end = nested_token.1.1;
+                                let expression =
+                                    ExpressionValue::Combination(Box::new(expressions));
                                 return Ok(SourceMapped(
                                     expression,
-                                    (left_paren_begin, right_paren_end),
+                                    token.extend_range(&nested_token),
                                 ));
                             } else {
                                 let expression = self.parse_token(nested_token)?;
