@@ -9,6 +9,7 @@ pub enum RuntimeErrorType {
     UnboundVariable,
     IllFormedExpression,
     InvalidOperator,
+    ExpectedNumber,
     Unimplemented(&'static str),
 }
 
@@ -26,6 +27,14 @@ pub struct Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
+    fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
+        if let Value::Number(number) = self.eval_expression(&expression)? {
+            Ok(number)
+        } else {
+            Err(RuntimeErrorType::ExpectedNumber.source_mapped(expression.1))
+        }
+    }
+
     fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
         match &expression.0 {
             ExpressionValue::Number(number) => Ok(Value::Number(*number)),
@@ -45,11 +54,19 @@ impl<'a> Interpreter<'a> {
                         let add = self.interner.intern("+");
                         let multiply = self.interner.intern("*");
                         if symbol == add {
-                            // TODO: Implement addition!
-                            Ok(Value::Undefined)
+                            let mut result = 0.0;
+                            for expr in expressions[1..].iter() {
+                                let number = self.expect_number(expr)?;
+                                result += number
+                            }
+                            Ok(Value::Number(result))
                         } else if symbol == multiply {
-                            // TODO: Implement multiplication!
-                            Ok(Value::Undefined)
+                            let mut result = 1.0;
+                            for expr in expressions[1..].iter() {
+                                let number = self.expect_number(expr)?;
+                                result *= number
+                            }
+                            Ok(Value::Number(result))
                         } else {
                             // TODO: Look up the symbol in the environment.
                             return Err(RuntimeErrorType::UnboundVariable.source_mapped(operator.1));
