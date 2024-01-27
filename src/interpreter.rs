@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
+    builtins::make_builtins,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::{InternedString, StringInterner},
@@ -29,7 +30,7 @@ pub enum Procedure {
     Builtin(InternedString),
 }
 
-type ProcedureFn = fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
+pub type ProcedureFn = fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter<'a> {
     builtins: HashMap<InternedString, ProcedureFn>,
@@ -37,7 +38,7 @@ pub struct Interpreter<'a> {
 }
 
 impl<'a> Interpreter<'a> {
-    fn expect_number(&self, expression: &Expression) -> Result<f64, RuntimeError> {
+    pub fn expect_number(&self, expression: &Expression) -> Result<f64, RuntimeError> {
         if let Value::Number(number) = self.eval_expression(&expression)? {
             Ok(number)
         } else {
@@ -105,31 +106,6 @@ impl<'a> Interpreter<'a> {
         };
         interpreter.eval()
     }
-}
-
-fn make_builtins(interner: &mut StringInterner) -> HashMap<InternedString, ProcedureFn> {
-    let mut builtins: HashMap<InternedString, ProcedureFn> = HashMap::new();
-    builtins.insert(interner.intern("+"), add);
-    builtins.insert(interner.intern("*"), multiply);
-    builtins
-}
-
-fn add(interpreter: &Interpreter, operands: &[Expression]) -> Result<Value, RuntimeError> {
-    let mut result = 0.0;
-    for expr in operands.iter() {
-        let number = interpreter.expect_number(expr)?;
-        result += number
-    }
-    Ok(Value::Number(result))
-}
-
-fn multiply(interpreter: &Interpreter, operands: &[Expression]) -> Result<Value, RuntimeError> {
-    let mut result = 1.0;
-    for expr in operands.iter() {
-        let number = interpreter.expect_number(expr)?;
-        result *= number
-    }
-    Ok(Value::Number(result))
 }
 
 #[cfg(test)]

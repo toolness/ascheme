@@ -6,6 +6,7 @@ use crate::{
     string_interner::StringInterner,
 };
 
+mod builtins;
 mod interpreter;
 mod parser;
 mod source_mapped;
