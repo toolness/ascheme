@@ -29,10 +29,10 @@ pub enum Procedure {
     Builtin(InternedString),
 }
 
-type ProcedureFn = dyn Fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
+type ProcedureFn = fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter<'a> {
-    builtins: HashMap<InternedString, Box<ProcedureFn>>,
+    builtins: HashMap<InternedString, ProcedureFn>,
     expressions: &'a Vec<Expression>,
 }
 
@@ -107,10 +107,10 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-fn make_builtins(interner: &mut StringInterner) -> HashMap<InternedString, Box<ProcedureFn>> {
-    let mut builtins: HashMap<InternedString, Box<ProcedureFn>> = HashMap::new();
-    builtins.insert(interner.intern("+"), Box::new(add));
-    builtins.insert(interner.intern("*"), Box::new(multiply));
+fn make_builtins(interner: &mut StringInterner) -> HashMap<InternedString, ProcedureFn> {
+    let mut builtins: HashMap<InternedString, ProcedureFn> = HashMap::new();
+    builtins.insert(interner.intern("+"), add);
+    builtins.insert(interner.intern("*"), multiply);
     builtins
 }
 
