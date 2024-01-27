@@ -51,22 +51,10 @@ impl<'a> Interpreter<'a> {
                         return Err(RuntimeErrorType::InvalidOperator.source_mapped(operator.1))
                     }
                     ExpressionValue::Symbol(symbol) => {
-                        let add = self.interner.intern("+");
-                        let multiply = self.interner.intern("*");
-                        if symbol == add {
-                            let mut result = 0.0;
-                            for expr in expressions[1..].iter() {
-                                let number = self.expect_number(expr)?;
-                                result += number
-                            }
-                            Ok(Value::Number(result))
-                        } else if symbol == multiply {
-                            let mut result = 1.0;
-                            for expr in expressions[1..].iter() {
-                                let number = self.expect_number(expr)?;
-                                result *= number
-                            }
-                            Ok(Value::Number(result))
+                        if symbol == self.interner.intern("+") {
+                            add(self, &expressions[1..])
+                        } else if symbol == self.interner.intern("*") {
+                            multiply(self, &expressions[1..])
                         } else {
                             // TODO: Look up the symbol in the environment.
                             return Err(RuntimeErrorType::UnboundVariable.source_mapped(operator.1));
@@ -101,4 +89,22 @@ impl<'a> Interpreter<'a> {
         };
         interpreter.eval()
     }
+}
+
+fn add(interpreter: &mut Interpreter, operands: &[Expression]) -> Result<Value, RuntimeError> {
+    let mut result = 0.0;
+    for expr in operands.iter() {
+        let number = interpreter.expect_number(expr)?;
+        result += number
+    }
+    Ok(Value::Number(result))
+}
+
+fn multiply(interpreter: &mut Interpreter, operands: &[Expression]) -> Result<Value, RuntimeError> {
+    let mut result = 1.0;
+    for expr in operands.iter() {
+        let number = interpreter.expect_number(expr)?;
+        result *= number
+    }
+    Ok(Value::Number(result))
 }
