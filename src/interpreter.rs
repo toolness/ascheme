@@ -23,10 +23,10 @@ pub enum Value {
     Number(f64),
 }
 
-type Operator = dyn Fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
+type Procedure = dyn Fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter<'a> {
-    builtins: HashMap<InternedString, Box<Operator>>,
+    builtins: HashMap<InternedString, Box<Procedure>>,
     expressions: &'a Vec<Expression>,
 }
 
@@ -93,8 +93,8 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-fn make_builtins(interner: &mut StringInterner) -> HashMap<InternedString, Box<Operator>> {
-    let mut builtins: HashMap<InternedString, Box<Operator>> = HashMap::new();
+fn make_builtins(interner: &mut StringInterner) -> HashMap<InternedString, Box<Procedure>> {
+    let mut builtins: HashMap<InternedString, Box<Procedure>> = HashMap::new();
     builtins.insert(interner.intern("+"), Box::new(add));
     builtins.insert(interner.intern("*"), Box::new(multiply));
     builtins
