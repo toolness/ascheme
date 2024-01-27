@@ -84,6 +84,10 @@ impl<'a> Parser<'a> {
             }
         }
     }
+
+    pub fn parse_all(self) -> Result<Vec<Expression>, ParseError> {
+        self.into_iter().collect()
+    }
 }
 
 impl<'a> Iterator for Parser<'a> {

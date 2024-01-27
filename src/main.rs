@@ -1,5 +1,5 @@
 use crate::{
-    parser::{Expression, Parser},
+    parser::Parser,
     string_interner::StringInterner,
     tokenizer::Tokenizer,
 };
@@ -14,7 +14,7 @@ fn main() {
     let mut k = Tokenizer::new(&code);
     let mut interner = StringInterner::default();
     let parser = Parser::new(code, Tokenizer::new(&code), &mut interner);
-    let parsed = parser.collect::<Result<Vec<Expression>, _>>();
+    let parsed = parser.parse_all();
 
     let boop1 = interner.intern("boop");
     let boop2 = interner.intern("boop");
