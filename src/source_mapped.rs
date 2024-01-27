@@ -10,15 +10,17 @@ impl<T> SourceMapped<T> {
     /// Returns a range extending from the beginning of this item's
     /// range to the end of the given item's range.
     pub fn extend_range(&self, other: &SourceMapped<T>) -> (usize, usize) {
-        (self.1.0, other.1.1)
+        (self.1 .0, other.1 .1)
     }
 }
 
 pub trait SourceMappable {
-    fn source_mapped(self, range: (usize, usize)) -> SourceMapped<Self> where Self: Sized {
+    fn source_mapped(self, range: (usize, usize)) -> SourceMapped<Self>
+    where
+        Self: Sized,
+    {
         SourceMapped(self, range)
     }
 }
 
-impl<T: Sized> SourceMappable for T {
-}
+impl<T: Sized> SourceMappable for T {}

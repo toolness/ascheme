@@ -1,13 +1,9 @@
-use crate::{
-    parser::Parser,
-    string_interner::StringInterner,
-    tokenizer::Tokenizer,
-};
+use crate::{parser::Parser, string_interner::StringInterner, tokenizer::Tokenizer};
 
 mod parser;
+mod source_mapped;
 mod string_interner;
 mod tokenizer;
-mod source_mapped;
 
 fn main() {
     let code = "  (+ 1 2 (* 3 4)) ";
