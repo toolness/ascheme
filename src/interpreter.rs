@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug)]
 pub enum RuntimeErrorType {
     UnboundVariable,
-    IllFormedExpression,
+    MalformedExpression,
     ExpectedNumber,
     ExpectedProcedure,
     // Unimplemented(&'static str),
@@ -79,7 +79,7 @@ impl<'a> Interpreter<'a> {
             }
             ExpressionValue::Combination(expressions) => {
                 let Some(operator) = expressions.get(0) else {
-                    return Err(RuntimeErrorType::IllFormedExpression.source_mapped(expression.1));
+                    return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
                 let procedure = self.expect_procedure(operator)?;
                 self.eval_procedure(procedure, &expressions[1..])
