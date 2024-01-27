@@ -140,15 +140,31 @@ mod tests {
         string_interner::StringInterner,
     };
 
+    fn test_eval_success(code: &'static str, expected_value: &'static str) {
+        let mut interner = StringInterner::default();
+        match parse(code, &mut interner) {
+            Ok(expressions) => match Interpreter::evaluate(&expressions, &mut interner) {
+                Ok(value) => {
+                    let string = match value {
+                        Value::Undefined => "".to_string(),
+                        Value::Number(num) => num.to_string(),
+                        Value::Procedure(_) => unimplemented!(),
+                    };
+                    assert_eq!(string.as_str(), expected_value, "Evaluating code '{code}'");
+                }
+                Err(err) => {
+                    panic!("Evaluating code '{code}' raised error {err:?}");
+                }
+            },
+            Err(err) => {
+                panic!("Parsing code '{code}' raised error {err:?}");
+            }
+        }
+    }
+
     #[test]
     fn it_works() {
-        let code = "  (+ 1 2 (* 3 4)) ";
-        let mut interner = StringInterner::default();
-        let parsed = parse(code, &mut interner).unwrap();
-
-        assert_eq!(
-            Interpreter::evaluate(&parsed, &mut interner).unwrap(),
-            Value::Number(15.0)
-        );
+        test_eval_success("5", "5");
+        test_eval_success("  (+ 1 2 (* 3 4)) ", "15");
     }
 }
