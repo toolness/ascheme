@@ -21,13 +21,13 @@ impl From<TokenizeError> for ParseError {
 }
 
 #[derive(Debug)]
-pub enum ExpressionType {
+pub enum ExpressionValue {
     Number(f64),
     Symbol(InternedString),
     Combination(Box<Vec<Expression>>),
 }
 
-pub type Expression = SourceMapped<ExpressionType>;
+pub type Expression = SourceMapped<ExpressionValue>;
 
 pub struct Parser<'a> {
     string: &'a str,
@@ -58,7 +58,7 @@ impl<'a> Parser<'a> {
                     match self.tokenizer.next() {
                         Some(Ok(nested_token)) => {
                             if nested_token.0 == TokenType::RightParen {
-                                let expression = ExpressionType::Combination(Box::new(expressions));
+                                let expression = ExpressionValue::Combination(Box::new(expressions));
                                 let left_paren_begin = token.1.0;
                                 let right_paren_end = nested_token.1.1;
                                 return Ok(SourceMapped(
@@ -81,12 +81,12 @@ impl<'a> Parser<'a> {
                 Err(SourceMapped(ParseErrorType::UnexpectedRightParen, token.1))
             }
             TokenType::Number => match token.source(&self.string).parse::<f64>() {
-                Ok(number) => Ok(SourceMapped(ExpressionType::Number(number), token.1)),
+                Ok(number) => Ok(SourceMapped(ExpressionValue::Number(number), token.1)),
                 Err(_) => Err(SourceMapped(ParseErrorType::InvalidNumber, token.1)),
             },
             TokenType::Identifier => {
                 let string = self.interner.intern(token.source(&self.string));
-                Ok(SourceMapped(ExpressionType::Symbol(string), token.1))
+                Ok(SourceMapped(ExpressionValue::Symbol(string), token.1))
             }
         }
     }
