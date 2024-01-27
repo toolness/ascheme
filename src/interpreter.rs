@@ -10,9 +10,9 @@ use crate::{
 pub enum RuntimeErrorType {
     UnboundVariable,
     IllFormedExpression,
-    InvalidOperator,
     ExpectedNumber,
-    Unimplemented(&'static str),
+    ExpectedProcedure,
+    // Unimplemented(&'static str),
 }
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
@@ -21,12 +21,18 @@ pub type RuntimeError = SourceMapped<RuntimeErrorType>;
 pub enum Value {
     Undefined,
     Number(f64),
+    Procedure(Procedure),
 }
 
-type Procedure = dyn Fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
+#[derive(Debug)]
+pub enum Procedure {
+    Builtin(InternedString),
+}
+
+type ProcedureFn = dyn Fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter<'a> {
-    builtins: HashMap<InternedString, Box<Procedure>>,
+    builtins: HashMap<InternedString, Box<ProcedureFn>>,
     expressions: &'a Vec<Expression>,
 }
 
@@ -39,36 +45,44 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn expect_procedure(&self, expression: &Expression) -> Result<Procedure, RuntimeError> {
+        if let Value::Procedure(procedure) = self.eval_expression(&expression)? {
+            Ok(procedure)
+        } else {
+            Err(RuntimeErrorType::ExpectedProcedure.source_mapped(expression.1))
+        }
+    }
+
+    fn eval_procedure(
+        &self,
+        procedure: Procedure,
+        operands: &[Expression],
+    ) -> Result<Value, RuntimeError> {
+        match procedure {
+            Procedure::Builtin(name) => {
+                let builtin = self.builtins.get(&name).expect("Builtin should exist");
+                builtin(self, operands)
+            }
+        }
+    }
+
     fn eval_expression(&self, expression: &Expression) -> Result<Value, RuntimeError> {
         match &expression.0 {
             ExpressionValue::Number(number) => Ok(Value::Number(*number)),
-            ExpressionValue::Symbol(_) => {
-                // TODO: Look up the symbol in the environment and return its value, if possible.
-                return Err(RuntimeErrorType::UnboundVariable.source_mapped(expression.1));
+            ExpressionValue::Symbol(identifier) => {
+                if self.builtins.contains_key(&identifier) {
+                    Ok(Value::Procedure(Procedure::Builtin(*identifier)))
+                } else {
+                    // TODO: Look up the symbol in the environment and return its value, if possible.
+                    Err(RuntimeErrorType::UnboundVariable.source_mapped(expression.1))
+                }
             }
             ExpressionValue::Combination(expressions) => {
                 let Some(operator) = expressions.get(0) else {
                     return Err(RuntimeErrorType::IllFormedExpression.source_mapped(expression.1));
                 };
-                match operator.0 {
-                    ExpressionValue::Number(_) => {
-                        return Err(RuntimeErrorType::InvalidOperator.source_mapped(operator.1))
-                    }
-                    ExpressionValue::Symbol(symbol) => {
-                        if let Some(builtin) = self.builtins.get(&symbol) {
-                            builtin(self, &expressions[1..])
-                        } else {
-                            // TODO: Look up the symbol in the environment.
-                            return Err(RuntimeErrorType::UnboundVariable.source_mapped(operator.1));
-                        }
-                    }
-                    ExpressionValue::Combination(_) => {
-                        return Err(RuntimeErrorType::Unimplemented(
-                            "TODO: Implement combinations for operators",
-                        )
-                        .source_mapped(operator.1))
-                    }
-                }
+                let procedure = self.expect_procedure(operator)?;
+                self.eval_procedure(procedure, &expressions[1..])
             }
         }
     }
@@ -93,8 +107,8 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-fn make_builtins(interner: &mut StringInterner) -> HashMap<InternedString, Box<Procedure>> {
-    let mut builtins: HashMap<InternedString, Box<Procedure>> = HashMap::new();
+fn make_builtins(interner: &mut StringInterner) -> HashMap<InternedString, Box<ProcedureFn>> {
+    let mut builtins: HashMap<InternedString, Box<ProcedureFn>> = HashMap::new();
     builtins.insert(interner.intern("+"), Box::new(add));
     builtins.insert(interner.intern("*"), Box::new(multiply));
     builtins
