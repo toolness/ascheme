@@ -19,6 +19,16 @@ pub enum RuntimeErrorType {
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
 
+impl SourceMapped<ExpressionValue> {
+    pub fn expect_identifier(&self) -> Result<InternedString, RuntimeError> {
+        if let ExpressionValue::Symbol(symbol) = self.0 {
+            Ok(symbol)
+        } else {
+            Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(self.1))
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Value {
     Undefined,
@@ -35,16 +45,6 @@ pub struct ProcedureContext<'a> {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Procedure {
     Builtin(ProcedureFn),
-}
-
-impl SourceMapped<ExpressionValue> {
-    pub fn expect_identifier(&self) -> Result<InternedString, RuntimeError> {
-        if let ExpressionValue::Symbol(symbol) = self.0 {
-            Ok(symbol)
-        } else {
-            Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(self.1))
-        }
-    }
 }
 
 pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
