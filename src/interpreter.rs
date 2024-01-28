@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    builtins::make_builtins,
+    builtins::get_builtins,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::{InternedString, StringInterner},
@@ -18,22 +18,24 @@ pub enum RuntimeErrorType {
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Value {
     Undefined,
     Number(f64),
     Procedure(Procedure),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Procedure {
-    Builtin(InternedString),
+    Builtin(ProcedureFn),
 }
 
 pub type ProcedureFn = fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
 
+pub type Environment = HashMap<InternedString, Value>;
+
 pub struct Interpreter<'a> {
-    builtins: HashMap<InternedString, ProcedureFn>,
+    environment: Environment,
     expressions: &'a Vec<Expression>,
 }
 
@@ -60,10 +62,7 @@ impl<'a> Interpreter<'a> {
         operands: &[Expression],
     ) -> Result<Value, RuntimeError> {
         match procedure {
-            Procedure::Builtin(name) => {
-                let builtin = self.builtins.get(&name).expect("Builtin should exist");
-                builtin(self, operands)
-            }
+            Procedure::Builtin(builtin) => builtin(self, operands),
         }
     }
 
@@ -71,10 +70,9 @@ impl<'a> Interpreter<'a> {
         match &expression.0 {
             ExpressionValue::Number(number) => Ok(Value::Number(*number)),
             ExpressionValue::Symbol(identifier) => {
-                if self.builtins.contains_key(&identifier) {
-                    Ok(Value::Procedure(Procedure::Builtin(*identifier)))
+                if let Some(value) = self.environment.get(identifier) {
+                    Ok(*value)
                 } else {
-                    // TODO: Look up the symbol in the environment and return its value, if possible.
                     Err(RuntimeErrorType::UnboundVariable.source_mapped(expression.1))
                 }
             }
@@ -100,8 +98,15 @@ impl<'a> Interpreter<'a> {
         expressions: &Vec<Expression>,
         interner: &'a mut StringInterner,
     ) -> Result<Value, RuntimeError> {
+        let mut environment: Environment = Default::default();
+        for (name, builtin) in get_builtins() {
+            environment.insert(
+                interner.intern(name),
+                Value::Procedure(Procedure::Builtin(builtin)),
+            );
+        }
         let mut interpreter = Interpreter {
-            builtins: make_builtins(interner),
+            environment,
             expressions,
         };
         interpreter.eval()
