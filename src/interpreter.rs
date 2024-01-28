@@ -3,7 +3,7 @@ use crate::{
     environment::Environment,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
-    string_interner::{InternedString, StringInterner},
+    string_interner::StringInterner,
 };
 
 #[derive(Debug)]
@@ -38,14 +38,10 @@ pub enum Procedure {
 pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter {
-    environment: Environment,
+    pub environment: Environment,
 }
 
 impl Interpreter {
-    pub fn define_environment_value(&mut self, name: InternedString, value: Value) {
-        self.environment.set(name, value);
-    }
-
     pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
         if let Value::Number(number) = self.eval_expression(&expression)? {
             Ok(number)
