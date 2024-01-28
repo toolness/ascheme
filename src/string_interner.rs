@@ -5,6 +5,11 @@ pub struct InternedString(u32);
 
 #[derive(Default)]
 pub struct StringInterner {
+    // TODO: This isn't great, we're allocating 2x more strings than we need to,
+    // but it makes the borrow checker happy and it's good enough for now.
+    //
+    // This is largely taken from:
+    // https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html
     strings_to_ids: HashMap<String, InternedString>,
     ids_to_strings: Vec<String>,
 }
