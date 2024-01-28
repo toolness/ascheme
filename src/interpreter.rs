@@ -174,6 +174,10 @@ mod tests {
 
     #[test]
     fn basic_arithmetic_works() {
+        // This is how try.scheme.org works, at least.
+        test_eval_success("(+)", "0");
+        test_eval_success("(*)", "1");
+
         test_eval_success("(+ 1 2)", "3");
         test_eval_success("  (+ 1 2 (* 3 4)) ", "15");
     }
