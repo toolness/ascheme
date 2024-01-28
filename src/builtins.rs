@@ -37,7 +37,6 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
             RuntimeErrorType::Unimplemented("TODO implement compound procedure definitions")
                 .source_mapped(*range),
         ),
-        // TODO: Source map to the 'define' call somehow
-        _ => Err(RuntimeErrorType::MalformedExpression.empty_source_map()),
+        _ => Err(RuntimeErrorType::MalformedExpression.source_mapped(ctx.combination.1)),
     }
 }

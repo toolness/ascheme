@@ -27,6 +27,7 @@ pub enum Value {
 
 pub struct ProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
+    pub combination: &'a Expression,
     pub operands: &'a [Expression],
 }
 
@@ -67,11 +68,13 @@ impl Interpreter {
     fn eval_procedure(
         &mut self,
         procedure: Procedure,
+        combination: &Expression,
         operands: &[Expression],
     ) -> Result<Value, RuntimeError> {
         match procedure {
             Procedure::Builtin(builtin) => builtin(ProcedureContext {
                 interpreter: self,
+                combination,
                 operands,
             }),
         }
@@ -92,7 +95,7 @@ impl Interpreter {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
                 let procedure = self.expect_procedure(operator)?;
-                self.eval_procedure(procedure, &expressions[1..])
+                self.eval_procedure(procedure, expression, &expressions[1..])
             }
         }
     }
