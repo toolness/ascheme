@@ -9,7 +9,6 @@ use crate::{
 
 type CombinationBody = Vec<Expression>;
 
-// TODO: This could just be a tuple struct.
 #[derive(Debug)]
 pub struct CompoundProcedure {
     // This isn't technically needed, since the signature is the second element of the definition.
