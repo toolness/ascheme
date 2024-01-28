@@ -33,7 +33,7 @@ fn stringify_expressions(expressions: &Vec<Expression>, interner: &StringInterne
 fn main() {
     let code = "  (+ 1 2 (* 3 4)) ";
     let mut interner = StringInterner::default();
-    let parsed = parse(code, &mut interner).unwrap();
+    let parsed = parse(code, &mut interner, None).unwrap();
 
     println!("{}", stringify_expressions(&parsed, &interner));
     println!(

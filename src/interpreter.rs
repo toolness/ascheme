@@ -147,7 +147,7 @@ mod tests {
 
     fn test_eval_success(code: &'static str, expected_value: &'static str) {
         let mut interner = StringInterner::default();
-        match parse(code, &mut interner) {
+        match parse(code, &mut interner, None) {
             Ok(expressions) => match Interpreter::evaluate(&expressions, &mut interner) {
                 Ok(value) => {
                     let string = match value {

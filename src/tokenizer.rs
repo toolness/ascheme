@@ -1,8 +1,9 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use crate::source_mapped::SourceMapped;
+use crate::{source_mapped::SourceMapped, string_interner::InternedString};
 
 pub struct Tokenizer<'a> {
+    filename: Option<InternedString>,
     chars: Peekable<CharIndices<'a>>,
     curr_pos: usize,
 }
@@ -26,8 +27,9 @@ pub enum TokenizeErrorType {
 pub type TokenizeError = SourceMapped<TokenizeErrorType>;
 
 impl<'a> Tokenizer<'a> {
-    pub fn new<T: AsRef<str>>(string: &'a T) -> Self {
+    pub fn new<T: AsRef<str>>(string: &'a T, filename: Option<InternedString>) -> Self {
         Tokenizer {
+            filename,
             chars: string.as_ref().char_indices().peekable(),
             curr_pos: 0,
         }
@@ -119,7 +121,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         } else {
             Err(TokenizeErrorType::UnexpectedCharacter)
         };
-        let source = (token_start, self.curr_pos);
+        let source = (token_start, self.curr_pos, self.filename);
         Some(match token {
             Ok(token) => Ok(SourceMapped(token, source)),
             Err(error) => Err(SourceMapped(error, source)),
@@ -138,7 +140,7 @@ mod tests {
         string: &'static str,
         expect: &[(Result<TokenType, TokenizeErrorType>, &'static str)],
     ) {
-        let tokenizer = Tokenizer::new(&string);
+        let tokenizer = Tokenizer::new(&string, None);
         let tokens = tokenizer
             .into_iter()
             .map(|token| match token {
