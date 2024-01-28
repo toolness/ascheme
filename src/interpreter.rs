@@ -37,6 +37,16 @@ pub enum Procedure {
     Builtin(ProcedureFn),
 }
 
+impl SourceMapped<ExpressionValue> {
+    pub fn expect_identifier(&self) -> Result<InternedString, RuntimeError> {
+        if let ExpressionValue::Symbol(symbol) = self.0 {
+            Ok(symbol)
+        } else {
+            Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(self.1))
+        }
+    }
+}
+
 pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter {
@@ -49,17 +59,6 @@ impl Interpreter {
             Ok(number)
         } else {
             Err(RuntimeErrorType::ExpectedNumber.source_mapped(expression.1))
-        }
-    }
-
-    pub fn expect_identifier(
-        &mut self,
-        expression: &Expression,
-    ) -> Result<InternedString, RuntimeError> {
-        if let ExpressionValue::Symbol(symbol) = expression.0 {
-            Ok(symbol)
-        } else {
-            Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(expression.1))
         }
     }
 

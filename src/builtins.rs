@@ -38,10 +38,10 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
             let Some(first) = expressions.get(0) else {
                 return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(*range));
             };
-            let name = ctx.interpreter.expect_identifier(first)?;
+            let name = first.expect_identifier()?;
             let mut arg_bindings: Vec<InternedString> = vec![];
             for arg_name in &expressions[1..] {
-                arg_bindings.push(ctx.interpreter.expect_identifier(arg_name)?);
+                arg_bindings.push(arg_name.expect_identifier()?);
             }
 
             // TODO: Do something with all this stuff!
