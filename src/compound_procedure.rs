@@ -1,32 +1,79 @@
 use std::rc::Rc;
 
 use crate::{
-    interpreter::{RuntimeError, RuntimeErrorType},
+    interpreter::{ProcedureContext, RuntimeError, RuntimeErrorType, Value},
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
 };
 
-type Definition = Vec<Expression>;
+type CombinationBody = Vec<Expression>;
 
 // TODO: This could just be a tuple struct.
 #[derive(Debug)]
 pub struct CompoundProcedure {
-    definition: SourceMapped<Rc<Definition>>,
+    // This isn't technically needed, since the signature is the second element of the definition.
+    signature: SourceMapped<Rc<CombinationBody>>,
+    definition: SourceMapped<Rc<CombinationBody>>,
 }
 
 impl CompoundProcedure {
     pub fn create(
-        signature: SourceMapped<&Vec<Expression>>,
-        definition: SourceMapped<Rc<Definition>>,
+        signature: SourceMapped<Rc<CombinationBody>>,
+        definition: SourceMapped<Rc<CombinationBody>>,
     ) -> Result<(InternedString, Self), RuntimeError> {
-        let (name, ..) = parse_definition(signature)?;
-        Ok((name, CompoundProcedure { definition }))
+        let (name, ..) = parse_signature(&signature)?;
+        get_body(&definition)?;
+        Ok((
+            name,
+            CompoundProcedure {
+                signature,
+                definition,
+            },
+        ))
+    }
+
+    pub fn call(&self, mut ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+        ctx.interpreter.environment.push();
+
+        let result = self.call_within_local_environment(&mut ctx);
+
+        ctx.interpreter.environment.pop();
+
+        result
+    }
+
+    fn call_within_local_environment(
+        &self,
+        ctx: &mut ProcedureContext,
+    ) -> Result<Value, RuntimeError> {
+        // We're unwrapping these because we already validated them upon construction.
+        let (.., arg_bindings) = parse_signature(&self.signature).unwrap();
+        let body = get_body(&self.definition).unwrap();
+
+        if ctx.operands.len() != arg_bindings.len() {
+            return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+        }
+
+        for (expr, name) in ctx.operands.iter().zip(arg_bindings) {
+            let value = ctx.interpreter.eval_expression(expr)?;
+            ctx.interpreter.environment.set(name, value);
+        }
+        ctx.interpreter.eval_expressions(body)
     }
 }
 
-fn parse_definition(
-    signature: SourceMapped<&Vec<Expression>>,
+fn get_body(definition: &SourceMapped<Rc<CombinationBody>>) -> Result<&[Expression], RuntimeError> {
+    let body = &definition.0[2..];
+    if body.is_empty() {
+        Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(definition.1))
+    } else {
+        Ok(body)
+    }
+}
+
+fn parse_signature(
+    signature: &SourceMapped<Rc<CombinationBody>>,
 ) -> Result<(InternedString, Vec<InternedString>), RuntimeError> {
     let Some(first) = signature.0.get(0) else {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(signature.1));
@@ -43,6 +90,7 @@ fn parse_definition(
 impl Clone for CompoundProcedure {
     fn clone(&self) -> Self {
         Self {
+            signature: SourceMapped(self.signature.0.clone(), self.signature.1.clone()),
             definition: SourceMapped(self.definition.0.clone(), self.definition.1.clone()),
         }
     }
@@ -51,6 +99,7 @@ impl Clone for CompoundProcedure {
 impl PartialEq for CompoundProcedure {
     /// Just compare pointers of the underlying value.
     fn eq(&self, other: &Self) -> bool {
-        &*self.definition.0 as *const Definition == &*other.definition.0 as *const Definition
+        &*self.definition.0 as *const CombinationBody
+            == &*other.definition.0 as *const CombinationBody
     }
 }

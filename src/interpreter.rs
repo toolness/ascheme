@@ -17,6 +17,7 @@ pub enum RuntimeErrorType {
     ExpectedNumber,
     ExpectedProcedure,
     ExpectedIdentifier,
+    WrongNumberOfArguments,
     // Unimplemented(&'static str),
 }
 
@@ -80,17 +81,18 @@ impl Interpreter {
         combination: SourceMapped<&Rc<Vec<Expression>>>,
         operands: &[Expression],
     ) -> Result<Value, RuntimeError> {
+        let ctx = ProcedureContext {
+            interpreter: self,
+            combination,
+            operands,
+        };
         match procedure {
-            Procedure::Builtin(builtin) => builtin(ProcedureContext {
-                interpreter: self,
-                combination,
-                operands,
-            }),
-            Procedure::Compound(_compound) => todo!("IMPLEMENT COMPOUND PROCEDURE CALL"),
+            Procedure::Builtin(builtin) => builtin(ctx),
+            Procedure::Compound(compound) => compound.call(ctx),
         }
     }
 
-    fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
+    pub fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
         match &expression.0 {
             ExpressionValue::Number(number) => Ok(Value::Number(*number)),
             ExpressionValue::Symbol(identifier) => {
@@ -185,5 +187,19 @@ mod tests {
     #[test]
     fn compound_procedure_definitions_work() {
         test_eval_success("(define (x) 3)", "");
+        test_eval_success("(define (x) 3) (x)", "3");
+        test_eval_success("(define (add-three n) (+ 3 n)) (add-three 1)", "4");
+    }
+
+    #[test]
+    fn compound_procedues_use_lexical_scope() {
+        test_eval_success(
+            "
+            (define n 5)
+            (define (add-three n) (+ 3 n))
+            (+ (add-three 1) n)
+        ",
+            "9",
+        );
     }
 }

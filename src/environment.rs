@@ -12,8 +12,12 @@ impl Environment {
         self.symbol_stack.push(HashMap::new());
     }
 
+    pub fn pop(&mut self) {
+        self.symbol_stack.pop();
+    }
+
     pub fn get(&self, identifier: &InternedString) -> Option<&Value> {
-        for symbol_map in &self.symbol_stack {
+        for symbol_map in self.symbol_stack.iter().rev() {
             if let Some(value) = symbol_map.get(identifier) {
                 return Some(value);
             }

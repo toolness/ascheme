@@ -38,7 +38,7 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
         }
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
             let (name, proc) = CompoundProcedure::create(
-                SourceMapped(expressions, *range),
+                SourceMapped(expressions.clone(), *range),
                 SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
             )?;
             ctx.interpreter
