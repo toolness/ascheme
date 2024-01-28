@@ -3,16 +3,18 @@ use crate::{
     environment::Environment,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
-    string_interner::StringInterner,
+    string_interner::{InternedString, StringInterner},
 };
 
 #[derive(Debug)]
 pub enum RuntimeErrorType {
     UnboundVariable,
     MalformedExpression,
+    MalformedSpecialForm,
     ExpectedNumber,
     ExpectedProcedure,
-    Unimplemented(&'static str),
+    ExpectedIdentifier,
+    // Unimplemented(&'static str),
 }
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
@@ -47,6 +49,17 @@ impl Interpreter {
             Ok(number)
         } else {
             Err(RuntimeErrorType::ExpectedNumber.source_mapped(expression.1))
+        }
+    }
+
+    pub fn expect_identifier(
+        &mut self,
+        expression: &Expression,
+    ) -> Result<InternedString, RuntimeError> {
+        if let ExpressionValue::Symbol(symbol) = expression.0 {
+            Ok(symbol)
+        } else {
+            Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(expression.1))
         }
     }
 
@@ -162,5 +175,10 @@ mod tests {
     fn variable_definitions_work() {
         test_eval_success("(define x 3) x", "3");
         test_eval_success("(define x 3) (define y (+ x 1)) (+ x y)", "7");
+    }
+
+    #[test]
+    fn compound_procedure_definitions_work() {
+        test_eval_success("(define (x) 3)", "");
     }
 }
