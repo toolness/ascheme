@@ -36,3 +36,9 @@ pub trait SourceMappable {
 }
 
 impl<T: Sized> SourceMappable for T {}
+
+impl<T: Clone> Clone for SourceMapped<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), self.1.clone())
+    }
+}

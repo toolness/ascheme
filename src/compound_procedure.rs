@@ -9,7 +9,7 @@ use crate::{
 
 type CombinationBody = Vec<Expression>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompoundProcedure {
     // This isn't technically needed, since the signature is the second element of the definition.
     signature: SourceMapped<Rc<CombinationBody>>,
@@ -83,16 +83,6 @@ fn parse_signature(
         arg_bindings.push(arg_name.expect_identifier()?);
     }
     Ok((name, arg_bindings))
-}
-
-// TODO: This should really be done for us by a generic trait.
-impl Clone for CompoundProcedure {
-    fn clone(&self) -> Self {
-        Self {
-            signature: SourceMapped(self.signature.0.clone(), self.signature.1.clone()),
-            definition: SourceMapped(self.definition.0.clone(), self.definition.1.clone()),
-        }
-    }
 }
 
 impl PartialEq for CompoundProcedure {
