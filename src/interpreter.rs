@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{
     builtins::get_builtins,
+    environment::Environment,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::{InternedString, StringInterner},
@@ -38,15 +37,13 @@ pub enum Procedure {
 
 pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
 
-pub type Environment = HashMap<InternedString, Value>;
-
 pub struct Interpreter {
     environment: Environment,
 }
 
 impl Interpreter {
     pub fn define_environment_value(&mut self, name: InternedString, value: Value) {
-        self.environment.insert(name, value);
+        self.environment.set(name, value);
     }
 
     pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
@@ -112,9 +109,9 @@ impl Interpreter {
         expressions: &Vec<Expression>,
         interner: &mut StringInterner,
     ) -> Result<Value, RuntimeError> {
-        let mut environment: Environment = Default::default();
+        let mut environment = Environment::default();
         for (name, builtin) in get_builtins() {
-            environment.insert(
+            environment.set(
                 interner.intern(name),
                 Value::Procedure(Procedure::Builtin(builtin)),
             );

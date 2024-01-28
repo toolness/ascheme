@@ -7,6 +7,7 @@ use crate::{
 };
 
 mod builtins;
+mod environment;
 mod interpreter;
 mod parser;
 mod source_mapped;
