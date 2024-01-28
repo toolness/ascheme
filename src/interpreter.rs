@@ -13,7 +13,7 @@ pub enum RuntimeErrorType {
     MalformedExpression,
     ExpectedNumber,
     ExpectedProcedure,
-    // Unimplemented(&'static str),
+    Unimplemented(&'static str),
 }
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
@@ -30,17 +30,20 @@ pub enum Procedure {
     Builtin(ProcedureFn),
 }
 
-pub type ProcedureFn = fn(&Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
+pub type ProcedureFn = fn(&mut Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
 
 pub type Environment = HashMap<InternedString, Value>;
 
-pub struct Interpreter<'a> {
+pub struct Interpreter {
     environment: Environment,
-    expressions: &'a Vec<Expression>,
 }
 
-impl<'a> Interpreter<'a> {
-    pub fn expect_number(&self, expression: &Expression) -> Result<f64, RuntimeError> {
+impl Interpreter {
+    pub fn define_environment_value(&mut self, name: InternedString, value: Value) {
+        self.environment.insert(name, value);
+    }
+
+    pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
         if let Value::Number(number) = self.eval_expression(&expression)? {
             Ok(number)
         } else {
@@ -48,7 +51,7 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn expect_procedure(&self, expression: &Expression) -> Result<Procedure, RuntimeError> {
+    fn expect_procedure(&mut self, expression: &Expression) -> Result<Procedure, RuntimeError> {
         if let Value::Procedure(procedure) = self.eval_expression(&expression)? {
             Ok(procedure)
         } else {
@@ -57,7 +60,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn eval_procedure(
-        &self,
+        &mut self,
         procedure: Procedure,
         operands: &[Expression],
     ) -> Result<Value, RuntimeError> {
@@ -66,7 +69,7 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn eval_expression(&self, expression: &Expression) -> Result<Value, RuntimeError> {
+    fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
         match &expression.0 {
             ExpressionValue::Number(number) => Ok(Value::Number(*number)),
             ExpressionValue::Symbol(identifier) => {
@@ -86,9 +89,9 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn eval(&mut self) -> Result<Value, RuntimeError> {
+    pub fn eval_expressions(&mut self, expressions: &[Expression]) -> Result<Value, RuntimeError> {
         let mut last_value: Value = Value::Undefined;
-        for expression in self.expressions {
+        for expression in expressions {
             last_value = self.eval_expression(expression)?;
         }
         Ok(last_value)
@@ -96,7 +99,7 @@ impl<'a> Interpreter<'a> {
 
     pub fn evaluate(
         expressions: &Vec<Expression>,
-        interner: &'a mut StringInterner,
+        interner: &mut StringInterner,
     ) -> Result<Value, RuntimeError> {
         let mut environment: Environment = Default::default();
         for (name, builtin) in get_builtins() {
@@ -105,11 +108,8 @@ impl<'a> Interpreter<'a> {
                 Value::Procedure(Procedure::Builtin(builtin)),
             );
         }
-        let mut interpreter = Interpreter {
-            environment,
-            expressions,
-        };
-        interpreter.eval()
+        let mut interpreter = Interpreter { environment };
+        interpreter.eval_expressions(expressions)
     }
 }
 
@@ -144,8 +144,19 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
+    fn trivial_expressions_work() {
         test_eval_success("5", "5");
+    }
+
+    #[test]
+    fn basic_arithmetic_works() {
+        test_eval_success("(+ 1 2)", "3");
         test_eval_success("  (+ 1 2 (* 3 4)) ", "15");
+    }
+
+    #[test]
+    fn variable_definitions_work() {
+        test_eval_success("(define x 3) x", "3");
+        test_eval_success("(define x 3) (define y (+ x 1)) (+ x y)", "7");
     }
 }

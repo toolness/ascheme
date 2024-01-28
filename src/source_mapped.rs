@@ -21,6 +21,15 @@ pub trait SourceMappable {
     {
         SourceMapped(self, range)
     }
+
+    /// Use of this is to be avoided if possible. Only use it when we don't have
+    /// access to the source map or it's not applicable for some reason.
+    fn empty_source_map(self) -> SourceMapped<Self>
+    where
+        Self: Sized,
+    {
+        SourceMapped(self, (0, 0))
+    }
 }
 
 impl<T: Sized> SourceMappable for T {}
