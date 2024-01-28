@@ -1,5 +1,8 @@
+use std::rc::Rc;
+
 use crate::{
     builtins::get_builtins,
+    compound_procedure::CompoundProcedure,
     environment::Environment,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
@@ -29,7 +32,7 @@ impl SourceMapped<ExpressionValue> {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Undefined,
     Number(f64),
@@ -38,13 +41,14 @@ pub enum Value {
 
 pub struct ProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
-    pub combination: &'a Expression,
+    pub combination: SourceMapped<&'a Rc<Vec<Expression>>>,
     pub operands: &'a [Expression],
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Procedure {
     Builtin(ProcedureFn),
+    Compound(CompoundProcedure),
 }
 
 pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
@@ -73,7 +77,7 @@ impl Interpreter {
     fn eval_procedure(
         &mut self,
         procedure: Procedure,
-        combination: &Expression,
+        combination: SourceMapped<&Rc<Vec<Expression>>>,
         operands: &[Expression],
     ) -> Result<Value, RuntimeError> {
         match procedure {
@@ -82,6 +86,7 @@ impl Interpreter {
                 combination,
                 operands,
             }),
+            Procedure::Compound(_compound) => todo!("IMPLEMENT COMPOUND PROCEDURE CALL"),
         }
     }
 
@@ -90,7 +95,7 @@ impl Interpreter {
             ExpressionValue::Number(number) => Ok(Value::Number(*number)),
             ExpressionValue::Symbol(identifier) => {
                 if let Some(value) = self.environment.get(identifier) {
-                    Ok(*value)
+                    Ok(value.clone())
                 } else {
                     Err(RuntimeErrorType::UnboundVariable.source_mapped(expression.1))
                 }
@@ -100,7 +105,8 @@ impl Interpreter {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
                 let procedure = self.expect_procedure(operator)?;
-                self.eval_procedure(procedure, expression, &expressions[1..])
+                let combination = SourceMapped(expressions, expression.1);
+                self.eval_procedure(procedure, combination, &expressions[1..])
             }
         }
     }

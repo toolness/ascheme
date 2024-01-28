@@ -7,6 +7,7 @@ use crate::{
 };
 
 mod builtins;
+mod compound_procedure;
 mod environment;
 mod interpreter;
 mod parser;

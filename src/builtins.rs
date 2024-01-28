@@ -1,8 +1,10 @@
 use crate::{
-    interpreter::{ProcedureContext, ProcedureFn, RuntimeError, RuntimeErrorType, Value},
+    compound_procedure::CompoundProcedure,
+    interpreter::{
+        Procedure, ProcedureContext, ProcedureFn, RuntimeError, RuntimeErrorType, Value,
+    },
     parser::ExpressionValue,
     source_mapped::{SourceMappable, SourceMapped},
-    string_interner::InternedString,
 };
 
 pub fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
@@ -35,18 +37,13 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
             Ok(Value::Undefined)
         }
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
-            let Some(first) = expressions.get(0) else {
-                return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(*range));
-            };
-            let name = first.expect_identifier()?;
-            let mut arg_bindings: Vec<InternedString> = vec![];
-            for arg_name in &expressions[1..] {
-                arg_bindings.push(arg_name.expect_identifier()?);
-            }
-
-            // TODO: Do something with all this stuff!
-            let _unused = name;
-
+            let (name, proc) = CompoundProcedure::create(
+                SourceMapped(expressions, *range),
+                SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
+            )?;
+            ctx.interpreter
+                .environment
+                .set(name, Value::Procedure(Procedure::Compound(proc)));
             Ok(Value::Undefined)
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
