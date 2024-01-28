@@ -25,12 +25,17 @@ pub enum Value {
     Procedure(Procedure),
 }
 
+pub struct ProcedureContext<'a> {
+    pub interpreter: &'a mut Interpreter,
+    pub operands: &'a [Expression],
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Procedure {
     Builtin(ProcedureFn),
 }
 
-pub type ProcedureFn = fn(&mut Interpreter, &[Expression]) -> Result<Value, RuntimeError>;
+pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
 
 pub type Environment = HashMap<InternedString, Value>;
 
@@ -65,7 +70,10 @@ impl Interpreter {
         operands: &[Expression],
     ) -> Result<Value, RuntimeError> {
         match procedure {
-            Procedure::Builtin(builtin) => builtin(self, operands),
+            Procedure::Builtin(builtin) => builtin(ProcedureContext {
+                interpreter: self,
+                operands,
+            }),
         }
     }
 

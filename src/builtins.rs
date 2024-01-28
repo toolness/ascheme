@@ -1,6 +1,6 @@
 use crate::{
-    interpreter::{Interpreter, ProcedureFn, RuntimeError, RuntimeErrorType, Value},
-    parser::{Expression, ExpressionValue},
+    interpreter::{ProcedureContext, ProcedureFn, RuntimeError, RuntimeErrorType, Value},
+    parser::ExpressionValue,
     source_mapped::{SourceMappable, SourceMapped},
 };
 
@@ -8,29 +8,29 @@ pub fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     vec![("+", add), ("*", multiply), ("define", define)]
 }
 
-fn add(interpreter: &mut Interpreter, operands: &[Expression]) -> Result<Value, RuntimeError> {
+fn add(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
     let mut result = 0.0;
-    for expr in operands.iter() {
-        let number = interpreter.expect_number(expr)?;
+    for expr in ctx.operands.iter() {
+        let number = ctx.interpreter.expect_number(expr)?;
         result += number
     }
     Ok(Value::Number(result))
 }
 
-fn multiply(interpreter: &mut Interpreter, operands: &[Expression]) -> Result<Value, RuntimeError> {
+fn multiply(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
     let mut result = 1.0;
-    for expr in operands.iter() {
-        let number = interpreter.expect_number(expr)?;
+    for expr in ctx.operands.iter() {
+        let number = ctx.interpreter.expect_number(expr)?;
         result *= number
     }
     Ok(Value::Number(result))
 }
 
-fn define(interpreter: &mut Interpreter, operands: &[Expression]) -> Result<Value, RuntimeError> {
-    match operands.get(0) {
+fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+    match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
-            let value = interpreter.eval_expressions(&operands[1..])?;
-            interpreter.define_environment_value(*name, value);
+            let value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
+            ctx.interpreter.define_environment_value(*name, value);
             Ok(Value::Undefined)
         }
         Some(SourceMapped(ExpressionValue::Combination(_), range)) => Err(
