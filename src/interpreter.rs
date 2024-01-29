@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug)]
 pub enum RuntimeErrorType {
-    UnboundVariable,
+    UnboundVariable(InternedString),
     MalformedExpression,
     MalformedSpecialForm,
     ExpectedNumber,
@@ -99,7 +99,7 @@ impl Interpreter {
                 if let Some(value) = self.environment.get(identifier) {
                     Ok(value)
                 } else {
-                    Err(RuntimeErrorType::UnboundVariable.source_mapped(expression.1))
+                    Err(RuntimeErrorType::UnboundVariable(*identifier).source_mapped(expression.1))
                 }
             }
             ExpressionValue::Combination(expressions) => {
@@ -196,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn compound_procedues_use_lexical_scope() {
+    fn compound_procedues_prefer_argument_values_to_globals() {
         test_eval_success(
             "
             (define n 5)
@@ -204,6 +204,21 @@ mod tests {
             (+ (add-three 1) n)
         ",
             "9",
+        );
+    }
+
+    #[test]
+    fn compound_procedues_use_lexical_scope() {
+        test_eval_success(
+            "
+            (define (make-adder n)
+              (define (add-n x) (+ x n))
+              add-n
+            )
+            (define add-three (make-adder 3))
+            (add-three 1)
+        ",
+            "4",
         );
     }
 }
