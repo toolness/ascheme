@@ -1,7 +1,9 @@
 use crate::string_interner::InternedString;
 
+pub type SourceRange = (usize, usize, Option<InternedString>);
+
 #[derive(Debug)]
-pub struct SourceMapped<T>(pub T, pub (usize, usize, Option<InternedString>));
+pub struct SourceMapped<T>(pub T, pub SourceRange);
 
 impl<T> SourceMapped<T> {
     pub fn source<'a>(&self, source: &'a str) -> &'a str {
@@ -11,14 +13,14 @@ impl<T> SourceMapped<T> {
 
     /// Returns a range extending from the beginning of this item's
     /// range to the end of the given item's range.
-    pub fn extend_range(&self, other: &SourceMapped<T>) -> (usize, usize, Option<InternedString>) {
+    pub fn extend_range(&self, other: &SourceMapped<T>) -> SourceRange {
         assert_eq!(self.1 .2, other.1 .2, "Ranges must be from the same file");
         (self.1 .0, other.1 .1, self.1 .2)
     }
 }
 
 pub trait SourceMappable {
-    fn source_mapped(self, range: (usize, usize, Option<InternedString>)) -> SourceMapped<Self>
+    fn source_mapped(self, range: SourceRange) -> SourceMapped<Self>
     where
         Self: Sized,
     {

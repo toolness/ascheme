@@ -39,7 +39,7 @@ impl CompoundProcedure {
     pub fn call(&self, mut ctx: ProcedureContext) -> Result<Value, RuntimeError> {
         ctx.interpreter
             .environment
-            .push(self.captured_lexical_scope.clone());
+            .push(self.captured_lexical_scope.clone(), self.signature.1);
 
         let result = self.call_within_local_environment(&mut ctx);
 
