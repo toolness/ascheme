@@ -19,13 +19,13 @@ impl Environment {
         self.lexical_scope_stack.pop();
     }
 
-    pub fn get(&self, identifier: &InternedString) -> Option<&Value> {
+    pub fn get(&self, identifier: &InternedString) -> Option<Value> {
         for bindings in self.lexical_scope_stack.iter().rev() {
             if let Some(value) = bindings.get(identifier) {
-                return Some(value);
+                return Some(value.clone());
             }
         }
-        self.globals.get(identifier)
+        self.globals.get(identifier).map(|value| value.clone())
     }
 
     pub fn set(&mut self, identifier: InternedString, value: Value) {

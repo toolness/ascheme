@@ -97,7 +97,7 @@ impl Interpreter {
             ExpressionValue::Number(number) => Ok(Value::Number(*number)),
             ExpressionValue::Symbol(identifier) => {
                 if let Some(value) = self.environment.get(identifier) {
-                    Ok(value.clone())
+                    Ok(value)
                 } else {
                     Err(RuntimeErrorType::UnboundVariable.source_mapped(expression.1))
                 }
