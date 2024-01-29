@@ -40,6 +40,7 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
             let (name, proc) = CompoundProcedure::create(
                 SourceMapped(expressions.clone(), *range),
                 SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
+                ctx.interpreter.environment.capture_lexical_scope(),
             )?;
             ctx.interpreter
                 .environment

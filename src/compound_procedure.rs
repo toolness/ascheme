@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
+    environment::CapturedLexicalScope,
     interpreter::{ProcedureContext, RuntimeError, RuntimeErrorType, Value},
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
@@ -14,12 +15,14 @@ pub struct CompoundProcedure {
     // This isn't technically needed, since the signature is the second element of the definition.
     signature: SourceMapped<Rc<CombinationBody>>,
     definition: SourceMapped<Rc<CombinationBody>>,
+    captured_lexical_scope: CapturedLexicalScope,
 }
 
 impl CompoundProcedure {
     pub fn create(
         signature: SourceMapped<Rc<CombinationBody>>,
         definition: SourceMapped<Rc<CombinationBody>>,
+        captured_lexical_scope: CapturedLexicalScope,
     ) -> Result<(InternedString, Self), RuntimeError> {
         let (name, ..) = parse_signature(&signature)?;
         get_body(&definition)?;
@@ -28,12 +31,15 @@ impl CompoundProcedure {
             CompoundProcedure {
                 signature,
                 definition,
+                captured_lexical_scope,
             },
         ))
     }
 
     pub fn call(&self, mut ctx: ProcedureContext) -> Result<Value, RuntimeError> {
-        ctx.interpreter.environment.push();
+        ctx.interpreter
+            .environment
+            .push(self.captured_lexical_scope.clone());
 
         let result = self.call_within_local_environment(&mut ctx);
 

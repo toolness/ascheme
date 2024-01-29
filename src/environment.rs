@@ -4,6 +4,9 @@ use crate::{interpreter::Value, string_interner::InternedString};
 
 type Bindings = HashMap<InternedString, Value>;
 
+#[derive(Debug, Clone)]
+pub struct CapturedLexicalScope(/* TODO: FILL THIS OUT */);
+
 #[derive(Default)]
 pub struct Environment {
     globals: Bindings,
@@ -11,7 +14,11 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn push(&mut self) {
+    pub fn capture_lexical_scope(&self) -> CapturedLexicalScope {
+        CapturedLexicalScope()
+    }
+
+    pub fn push(&mut self, _scope: CapturedLexicalScope) {
         self.lexical_scope_stack.push(HashMap::new());
     }
 
