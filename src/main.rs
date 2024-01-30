@@ -12,6 +12,7 @@ mod environment;
 mod interpreter;
 mod parser;
 mod source_mapped;
+mod source_mapper;
 mod string_interner;
 mod tokenizer;
 

@@ -1,6 +1,6 @@
-use crate::string_interner::InternedString;
+use crate::source_mapper::SourceId;
 
-pub type SourceRange = (usize, usize, Option<InternedString>);
+pub type SourceRange = (usize, usize, Option<SourceId>);
 
 #[derive(Debug)]
 pub struct SourceMapped<T>(pub T, pub SourceRange);

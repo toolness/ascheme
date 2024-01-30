@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     source_mapped::{SourceMappable, SourceMapped},
+    source_mapper::SourceId,
     string_interner::{InternedString, StringInterner},
     tokenizer::{Token, TokenType, TokenizeError, TokenizeErrorType, Tokenizer},
 };
@@ -107,8 +108,8 @@ impl<'a> Iterator for Parser<'a> {
 pub fn parse(
     code: &str,
     interner: &mut StringInterner,
-    filename: Option<InternedString>,
+    source: Option<SourceId>,
 ) -> Result<Vec<Expression>, ParseError> {
-    let parser = Parser::new(code, Tokenizer::new(&code, filename), interner);
+    let parser = Parser::new(code, Tokenizer::new(&code, source), interner);
     parser.parse_all()
 }
