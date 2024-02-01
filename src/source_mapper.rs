@@ -11,25 +11,27 @@ pub struct MappedLine<'a> {
     start: usize,
     end: usize,
     line: &'a str,
+    filename: &'a str,
 }
 
 impl<'a> MappedLine<'a> {
-    fn new(line_number: usize, start: usize, end: usize, line: &'a str) -> Self {
+    fn new(line_number: usize, start: usize, end: usize, line: &'a str, filename: &'a str) -> Self {
         MappedLine {
             line_number,
             start,
             end,
             line,
+            filename,
         }
     }
 
-    fn from_source(contents: &'a str, start: usize, end: usize) -> Option<Self> {
+    fn from_source(filename: &'a str, contents: &'a str, start: usize, end: usize) -> Option<Self> {
         let mut latest_char = 0;
         for (i, line) in contents.lines().enumerate() {
             if latest_char + line.len() > start {
                 let rel_start = start - latest_char;
                 let rel_end = min(rel_start + (end - start), line.len());
-                return Some(MappedLine::new(i, rel_start, rel_end, line));
+                return Some(MappedLine::new(i, rel_start, rel_end, line, filename));
             }
             // Add 1 for the newline character at the end.
             latest_char += line.len() + 1;
@@ -41,8 +43,12 @@ impl<'a> MappedLine<'a> {
         self.end - self.start
     }
 
-    fn underline_with_carets(&self) -> String {
-        format!("{}{}", " ".repeat(self.start), "^".repeat(self.len()))
+    fn trace(&self) -> Vec<String> {
+        vec![
+            format!("\"{}\", line {}:", self.filename, self.line_number + 1),
+            format!("| {}", self.line),
+            format!("| {}{}", " ".repeat(self.start), "^".repeat(self.len())),
+        ]
     }
 }
 
@@ -69,6 +75,10 @@ impl SourceMapper {
         &self.sources.get(&id.0).unwrap().contents
     }
 
+    pub fn get_filename(&self, id: SourceId) -> &str {
+        &self.sources.get(&id.0).unwrap().filename
+    }
+
     /// Given a source range, return the line number it's on, the start position of
     /// the range within the line, and the end position of the range within the line.
     /// If the range extends past the line, the end position will be the end of the line.
@@ -76,8 +86,9 @@ impl SourceMapper {
         let &(start, end, Some(source_id)) = source_range else {
             return None;
         };
+        let filename = self.get_filename(source_id);
         let contents = self.get_contents(source_id);
-        MappedLine::from_source(contents, start, end)
+        MappedLine::from_source(filename, contents, start, end)
     }
 }
 
@@ -99,29 +110,28 @@ mod tests {
         assert_eq!(mapper.get_contents(id), "hi\nthere");
         assert_eq!(
             mapper.get_first_line(&(0, 1, Some(id))),
-            Some(MappedLine::new(0, 0, 1, "hi"))
+            Some(MappedLine::new(0, 0, 1, "hi", "boop.txt"))
         );
         assert_eq!(
             mapper.get_first_line(&(3, 4, Some(id))),
-            Some(MappedLine::new(1, 0, 1, "there"))
+            Some(MappedLine::new(1, 0, 1, "there", "boop.txt"))
         );
         assert_eq!(
             mapper.get_first_line(&(0, 4, Some(id))),
-            Some(MappedLine::new(0, 0, 2, "hi"))
+            Some(MappedLine::new(0, 0, 2, "hi", "boop.txt"))
         );
     }
 
     #[test]
-    fn underline_with_carets_works() {
+    fn trace_works() {
         let (mapper, id) = make_mapper_with_source("hi\nthere");
-        let mapped = mapper.get_first_line(&(4, 6, Some(id))).unwrap();
         assert_eq!(
-            (mapped.line, mapped.underline_with_carets()),
-            (
-                "there",
-                //
-                " ^^".to_string()
-            )
+            mapper.get_first_line(&(4, 6, Some(id))).unwrap().trace(),
+            vec![
+                "\"boop.txt\", line 2:".to_string(), //
+                "| there".to_string(),               //
+                "|  ^^".to_string()
+            ]
         );
     }
 }
