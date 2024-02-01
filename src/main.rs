@@ -4,6 +4,7 @@ use crate::{
     environment::Environment,
     interpreter::Interpreter,
     parser::{parse, ExpressionValue},
+    source_mapper::SourceMapper,
     string_interner::StringInterner,
 };
 
@@ -33,12 +34,18 @@ fn stringify_expressions(expressions: &Vec<Expression>, interner: &StringInterne
 }
 
 fn main() {
-    let code = "  (+ 1 2 (* 3 4)) ";
+    let mut mapper = SourceMapper::default();
+    let source_id = mapper.add("<String>".into(), "  (+ 1 2 (* 3 4)) ".into());
     let mut interner = StringInterner::default();
     let mut environment = Environment::default();
     builtins::populate_environment(&mut environment, &mut interner);
-    let mut interpreter = Interpreter::new(environment);
-    let parsed = parse(code, &mut interner, None).unwrap();
+    let parsed = parse(
+        mapper.get_contents(source_id),
+        &mut interner,
+        Some(source_id),
+    )
+    .unwrap();
+    let mut interpreter = Interpreter::new(environment).with_source_mapper(mapper);
 
     println!("{}", stringify_expressions(&parsed, &interner));
     println!(

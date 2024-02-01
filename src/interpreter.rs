@@ -5,6 +5,7 @@ use crate::{
     environment::Environment,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
+    source_mapper::SourceMapper,
     string_interner::InternedString,
 };
 
@@ -55,11 +56,20 @@ pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter {
     pub environment: Environment,
+    source_mapper: Option<SourceMapper>,
 }
 
 impl Interpreter {
     pub fn new(environment: Environment) -> Self {
-        Interpreter { environment }
+        Interpreter {
+            environment,
+            source_mapper: None,
+        }
+    }
+
+    pub fn with_source_mapper(mut self, source_mapper: SourceMapper) -> Self {
+        self.source_mapper = Some(source_mapper);
+        self
     }
 
     pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
@@ -111,6 +121,11 @@ impl Interpreter {
                 };
                 let procedure = self.expect_procedure(operator)?;
                 let combination = SourceMapped(expressions, expression.1);
+                if let Some(source_mapper) = &self.source_mapper {
+                    if let Some(lines) = source_mapper.trace(&combination.1) {
+                        println!("Evaluating {}", lines.join("\n"));
+                    }
+                }
                 self.eval_procedure(procedure, combination, &expressions[1..])
             }
         }
