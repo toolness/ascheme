@@ -22,6 +22,20 @@ impl<'a> MappedLine<'a> {
             line,
         }
     }
+
+    fn from_source(contents: &'a str, start: usize, end: usize) -> Option<Self> {
+        let mut latest_char = 0;
+        for (i, line) in contents.lines().enumerate() {
+            if latest_char + line.len() > start {
+                let rel_start = start - latest_char;
+                let rel_end = min(rel_start + (end - start), line.len());
+                return Some(MappedLine::new(i, rel_start, rel_end, line));
+            }
+            // Add 1 for the newline character at the end.
+            latest_char += line.len() + 1;
+        }
+        None
+    }
 }
 
 pub struct Source {
@@ -55,17 +69,7 @@ impl SourceMapper {
             return None;
         };
         let contents = self.get_contents(source_id);
-        let mut latest_char = 0;
-        for (i, line) in contents.lines().enumerate() {
-            if latest_char + line.len() > start {
-                let rel_start = start - latest_char;
-                let rel_end = min(rel_start + (end - start), line.len());
-                return Some(MappedLine::new(i, rel_start, rel_end, line));
-            }
-            // Add 1 for the newline character at the end.
-            latest_char += line.len() + 1;
-        }
-        None
+        MappedLine::from_source(contents, start, end)
     }
 }
 
