@@ -36,6 +36,14 @@ impl<'a> MappedLine<'a> {
         }
         None
     }
+
+    fn len(&self) -> usize {
+        self.end - self.start
+    }
+
+    fn underline_with_carets(&self) -> String {
+        format!("{}{}", " ".repeat(self.start), "^".repeat(self.len()))
+    }
 }
 
 pub struct Source {
@@ -77,12 +85,17 @@ impl SourceMapper {
 mod tests {
     use crate::source_mapper::MappedLine;
 
-    use super::SourceMapper;
+    use super::{SourceId, SourceMapper};
+
+    fn make_mapper_with_source(contents: &'static str) -> (SourceMapper, SourceId) {
+        let mut mapper = SourceMapper::default();
+        let id = mapper.add("boop.txt".into(), contents.into());
+        (mapper, id)
+    }
 
     #[test]
     fn it_works() {
-        let mut mapper = SourceMapper::default();
-        let id = mapper.add("boop.txt".into(), "hi\nthere".into());
+        let (mapper, id) = make_mapper_with_source("hi\nthere");
         assert_eq!(mapper.get_contents(id), "hi\nthere");
         assert_eq!(
             mapper.get_first_line(&(0, 1, Some(id))),
@@ -95,6 +108,20 @@ mod tests {
         assert_eq!(
             mapper.get_first_line(&(0, 4, Some(id))),
             Some(MappedLine::new(0, 0, 2, "hi"))
+        );
+    }
+
+    #[test]
+    fn underline_with_carets_works() {
+        let (mapper, id) = make_mapper_with_source("hi\nthere");
+        let mapped = mapper.get_first_line(&(4, 6, Some(id))).unwrap();
+        assert_eq!(
+            (mapped.line, mapped.underline_with_carets()),
+            (
+                "there",
+                //
+                " ^^".to_string()
+            )
         );
     }
 }
