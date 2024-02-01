@@ -1,13 +1,24 @@
 use crate::{
     compound_procedure::CompoundProcedure,
+    environment::Environment,
     interpreter::{
         Procedure, ProcedureContext, ProcedureFn, RuntimeError, RuntimeErrorType, Value,
     },
     parser::ExpressionValue,
     source_mapped::{SourceMappable, SourceMapped},
+    string_interner::StringInterner,
 };
 
-pub fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
+pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {
+    for (name, builtin) in get_builtins() {
+        environment.set(
+            interner.intern(name),
+            Value::Procedure(Procedure::Builtin(builtin)),
+        );
+    }
+}
+
+fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     vec![("+", add), ("*", multiply), ("define", define)]
 }
 

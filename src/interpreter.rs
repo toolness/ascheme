@@ -1,12 +1,11 @@
 use std::rc::Rc;
 
 use crate::{
-    builtins::get_builtins,
     compound_procedure::CompoundProcedure,
     environment::Environment,
     parser::{Expression, ExpressionValue},
     source_mapped::{SourceMappable, SourceMapped},
-    string_interner::{InternedString, StringInterner},
+    string_interner::InternedString,
 };
 
 #[derive(Debug)]
@@ -59,6 +58,10 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+    pub fn new(environment: Environment) -> Self {
+        Interpreter { environment }
+    }
+
     pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
         if let Value::Number(number) = self.eval_expression(&expression)? {
             Ok(number)
@@ -120,26 +123,13 @@ impl Interpreter {
         }
         Ok(last_value)
     }
-
-    pub fn evaluate(
-        expressions: &Vec<Expression>,
-        interner: &mut StringInterner,
-    ) -> Result<Value, RuntimeError> {
-        let mut environment = Environment::default();
-        for (name, builtin) in get_builtins() {
-            environment.set(
-                interner.intern(name),
-                Value::Procedure(Procedure::Builtin(builtin)),
-            );
-        }
-        let mut interpreter = Interpreter { environment };
-        interpreter.eval_expressions(expressions)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
+        builtins,
+        environment::Environment,
         interpreter::{Interpreter, Value},
         parser::parse,
         string_interner::StringInterner,
@@ -147,8 +137,11 @@ mod tests {
 
     fn test_eval_success(code: &'static str, expected_value: &'static str) {
         let mut interner = StringInterner::default();
+        let mut environment = Environment::default();
+        builtins::populate_environment(&mut environment, &mut interner);
+        let mut interpreter = Interpreter::new(environment);
         match parse(code, &mut interner, None) {
-            Ok(expressions) => match Interpreter::evaluate(&expressions, &mut interner) {
+            Ok(expressions) => match interpreter.eval_expressions(&expressions) {
                 Ok(value) => {
                     let string = match value {
                         Value::Undefined => "".to_string(),

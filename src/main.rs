@@ -1,6 +1,7 @@
 use parser::Expression;
 
 use crate::{
+    environment::Environment,
     interpreter::Interpreter,
     parser::{parse, ExpressionValue},
     string_interner::StringInterner,
@@ -34,11 +35,14 @@ fn stringify_expressions(expressions: &Vec<Expression>, interner: &StringInterne
 fn main() {
     let code = "  (+ 1 2 (* 3 4)) ";
     let mut interner = StringInterner::default();
+    let mut environment = Environment::default();
+    builtins::populate_environment(&mut environment, &mut interner);
+    let mut interpreter = Interpreter::new(environment);
     let parsed = parse(code, &mut interner, None).unwrap();
 
     println!("{}", stringify_expressions(&parsed, &interner));
     println!(
         "Evaluation result: {:?}",
-        Interpreter::evaluate(&parsed, &mut interner)
+        interpreter.eval_expressions(&parsed)
     );
 }
