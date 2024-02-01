@@ -147,15 +147,18 @@ mod tests {
         environment::Environment,
         interpreter::{Interpreter, Value},
         parser::parse,
+        source_mapper::SourceMapper,
         string_interner::StringInterner,
     };
 
     fn test_eval_success(code: &'static str, expected_value: &'static str) {
+        let mut mapper = SourceMapper::default();
+        let source_id = mapper.add("<String>".into(), code.into());
         let mut interner = StringInterner::default();
         let mut environment = Environment::default();
         builtins::populate_environment(&mut environment, &mut interner);
-        let mut interpreter = Interpreter::new(environment);
-        match parse(code, &mut interner, None) {
+        let mut interpreter = Interpreter::new(environment).with_source_mapper(mapper);
+        match parse(code, &mut interner, Some(source_id)) {
             Ok(expressions) => match interpreter.eval_expressions(&expressions) {
                 Ok(value) => {
                     let string = match value {
