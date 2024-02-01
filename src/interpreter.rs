@@ -146,7 +146,9 @@ mod tests {
                     let string = match value {
                         Value::Undefined => "".to_string(),
                         Value::Number(num) => num.to_string(),
-                        Value::Procedure(_) => unimplemented!(),
+                        Value::Procedure(_) => {
+                            unimplemented!("Converting procedure to string is unimplemented")
+                        }
                     };
                     assert_eq!(string.as_str(), expected_value, "Evaluating code '{code}'");
                 }
