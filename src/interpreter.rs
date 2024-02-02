@@ -56,7 +56,7 @@ pub struct ProcedureContext<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Procedure {
-    Builtin(ProcedureFn),
+    Builtin(ProcedureFn, InternedString),
     Compound(CompoundProcedure),
 }
 
@@ -109,7 +109,7 @@ impl Interpreter {
             operands,
         };
         match procedure {
-            Procedure::Builtin(builtin) => builtin(ctx),
+            Procedure::Builtin(builtin, _name) => builtin(ctx),
             Procedure::Compound(compound) => compound.call(ctx),
         }
     }

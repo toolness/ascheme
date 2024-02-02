@@ -11,9 +11,10 @@ use crate::{
 
 pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {
     for (name, builtin) in get_builtins() {
+        let interned_name = interner.intern(name);
         environment.set(
-            interner.intern(name),
-            Value::Procedure(Procedure::Builtin(builtin)),
+            interned_name.clone(),
+            Value::Procedure(Procedure::Builtin(builtin, interned_name)),
         );
     }
 }
