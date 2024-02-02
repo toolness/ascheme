@@ -15,7 +15,7 @@ pub enum ParseErrorType {
     UnexpectedRightParen,
 }
 
-type ParseError = SourceMapped<ParseErrorType>;
+pub type ParseError = SourceMapped<ParseErrorType>;
 
 impl From<TokenizeError> for ParseError {
     fn from(value: TokenizeError) -> Self {

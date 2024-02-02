@@ -1,16 +1,18 @@
 use std::rc::Rc;
 
 use crate::{
+    builtins,
     compound_procedure::CompoundProcedure,
     environment::Environment,
-    parser::{Expression, ExpressionValue},
+    parser::{parse, Expression, ExpressionValue, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped},
-    source_mapper::SourceMapper,
-    string_interner::InternedString,
+    source_mapper::{SourceId, SourceMapper},
+    string_interner::{InternedString, StringInterner},
 };
 
 #[derive(Debug)]
 pub enum RuntimeErrorType {
+    Parse(ParseErrorType),
     UnboundVariable(InternedString),
     MalformedExpression,
     MalformedSpecialForm,
@@ -22,6 +24,12 @@ pub enum RuntimeErrorType {
 }
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
+
+impl From<ParseError> for RuntimeError {
+    fn from(value: ParseError) -> Self {
+        RuntimeErrorType::Parse(value.0).source_mapped(value.1)
+    }
+}
 
 impl SourceMapped<ExpressionValue> {
     pub fn expect_identifier(&self) -> Result<InternedString, RuntimeError> {
@@ -56,20 +64,21 @@ pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
 
 pub struct Interpreter {
     pub environment: Environment,
-    source_mapper: Option<SourceMapper>,
+    pub string_interner: StringInterner,
+    pub source_mapper: SourceMapper,
 }
 
 impl Interpreter {
-    pub fn new(environment: Environment) -> Self {
+    pub fn new() -> Self {
+        let source_mapper = SourceMapper::default();
+        let mut string_interner = StringInterner::default();
+        let mut environment = Environment::default();
+        builtins::populate_environment(&mut environment, &mut string_interner);
         Interpreter {
             environment,
-            source_mapper: None,
+            string_interner,
+            source_mapper,
         }
-    }
-
-    pub fn with_source_mapper(mut self, source_mapper: SourceMapper) -> Self {
-        self.source_mapper = Some(source_mapper);
-        self
     }
 
     pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
@@ -121,10 +130,8 @@ impl Interpreter {
                 };
                 let procedure = self.expect_procedure(operator)?;
                 let combination = SourceMapped(expressions, expression.1);
-                if let Some(source_mapper) = &self.source_mapper {
-                    if let Some(lines) = source_mapper.trace(&combination.1) {
-                        println!("Evaluating {}", lines.join("\n"));
-                    }
+                if let Some(lines) = self.source_mapper.trace(&combination.1) {
+                    println!("Evaluating {}", lines.join("\n"));
                 }
                 self.eval_procedure(procedure, combination, &expressions[1..])
             }
@@ -138,44 +145,42 @@ impl Interpreter {
         }
         Ok(last_value)
     }
+
+    pub fn parse(&mut self, source_id: SourceId) -> Result<Vec<Expression>, ParseError> {
+        let code = self.source_mapper.get_contents(source_id);
+        parse(code, &mut self.string_interner, Some(source_id))
+    }
+
+    pub fn evaluate(&mut self, source_id: SourceId) -> Result<Value, RuntimeError> {
+        match self.parse(source_id) {
+            Ok(expressions) => self.eval_expressions(&expressions),
+            Err(err) => Err(err.into()),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        builtins,
-        environment::Environment,
-        interpreter::{Interpreter, Value},
-        parser::parse,
-        source_mapper::SourceMapper,
-        string_interner::StringInterner,
-    };
+    use crate::interpreter::{Interpreter, Value};
 
     fn test_eval_success(code: &'static str, expected_value: &'static str) {
-        let mut mapper = SourceMapper::default();
-        let source_id = mapper.add("<String>".into(), code.into());
-        let mut interner = StringInterner::default();
-        let mut environment = Environment::default();
-        builtins::populate_environment(&mut environment, &mut interner);
-        let mut interpreter = Interpreter::new(environment).with_source_mapper(mapper);
-        match parse(code, &mut interner, Some(source_id)) {
-            Ok(expressions) => match interpreter.eval_expressions(&expressions) {
-                Ok(value) => {
-                    let string = match value {
-                        Value::Undefined => "".to_string(),
-                        Value::Number(num) => num.to_string(),
-                        Value::Procedure(_) => {
-                            unimplemented!("Converting procedure to string is unimplemented")
-                        }
-                    };
-                    assert_eq!(string.as_str(), expected_value, "Evaluating code '{code}'");
-                }
-                Err(err) => {
-                    panic!("Evaluating code '{code}' raised error {err:?}");
-                }
-            },
+        let mut interpreter = Interpreter::new();
+        let source_id = interpreter
+            .source_mapper
+            .add("<String>".into(), code.into());
+        match interpreter.evaluate(source_id) {
+            Ok(value) => {
+                let string = match value {
+                    Value::Undefined => "".to_string(),
+                    Value::Number(num) => num.to_string(),
+                    Value::Procedure(_) => {
+                        unimplemented!("Converting procedure to string is unimplemented")
+                    }
+                };
+                assert_eq!(string.as_str(), expected_value, "Evaluating code '{code}'");
+            }
             Err(err) => {
-                panic!("Parsing code '{code}' raised error {err:?}");
+                panic!("Evaluating code '{code}' raised error {err:?}");
             }
         }
     }
