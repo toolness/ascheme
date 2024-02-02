@@ -33,8 +33,8 @@ impl From<ParseError> for RuntimeError {
 
 impl SourceMapped<ExpressionValue> {
     pub fn expect_identifier(&self) -> Result<InternedString, RuntimeError> {
-        if let ExpressionValue::Symbol(symbol) = self.0 {
-            Ok(symbol)
+        if let ExpressionValue::Symbol(symbol) = &self.0 {
+            Ok(symbol.clone())
         } else {
             Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(self.1))
         }
@@ -121,7 +121,8 @@ impl Interpreter {
                 if let Some(value) = self.environment.get(identifier) {
                     Ok(value)
                 } else {
-                    Err(RuntimeErrorType::UnboundVariable(*identifier).source_mapped(expression.1))
+                    Err(RuntimeErrorType::UnboundVariable(identifier.clone())
+                        .source_mapped(expression.1))
                 }
             }
             ExpressionValue::Combination(expressions) => {

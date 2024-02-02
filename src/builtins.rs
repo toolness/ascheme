@@ -44,7 +44,7 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
             let value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
-            ctx.interpreter.environment.set(*name, value);
+            ctx.interpreter.environment.set(name.clone(), value);
             Ok(Value::Undefined)
         }
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
