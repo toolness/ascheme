@@ -26,6 +26,8 @@ impl StringInterner {
         }
     }
 
+    // TODO: Remove cfg(test) when we start using this in code.
+    #[cfg(test)]
     pub fn get(&self, id: &InternedString) -> &str {
         self.ids_to_strings.get(id.0 as usize).unwrap().as_str()
     }
