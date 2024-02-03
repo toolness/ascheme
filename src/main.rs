@@ -42,6 +42,7 @@ fn main() {
             } else {
                 println!("Error: {:?}", err.0);
             }
+            println!("{}", interpreter.traceback());
             process::exit(1)
         }
     }

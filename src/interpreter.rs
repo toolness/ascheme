@@ -5,7 +5,7 @@ use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
     parser::{parse, Expression, ExpressionValue, ParseError, ParseErrorType},
-    source_mapped::{SourceMappable, SourceMapped},
+    source_mapped::{SourceMappable, SourceMapped, SourceRange},
     source_mapper::{SourceId, SourceMapper},
     string_interner::{InternedString, StringInterner},
 };
@@ -70,7 +70,7 @@ pub struct Interpreter {
     pub string_interner: StringInterner,
     pub source_mapper: SourceMapper,
     pub tracing: bool,
-    stack: Vec<Procedure>,
+    stack: Vec<SourceRange>,
 }
 
 impl Interpreter {
@@ -109,11 +109,12 @@ impl Interpreter {
         procedure: Procedure,
         combination: SourceMapped<&Rc<Vec<Expression>>>,
         operands: &[Expression],
+        source_range: SourceRange,
     ) -> Result<Value, RuntimeError> {
         if self.stack.len() == MAX_STACK_SIZE {
             return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
         }
-        self.stack.push(procedure.clone());
+        self.stack.push(source_range);
         let ctx = ProcedureContext {
             interpreter: self,
             combination,
@@ -149,7 +150,7 @@ impl Interpreter {
                         println!("Evaluating {}", lines.join("\n"));
                     }
                 }
-                self.eval_procedure(procedure, combination, &expressions[1..])
+                self.eval_procedure(procedure, combination, &expressions[1..], operator.1)
             }
         }
     }
@@ -172,6 +173,26 @@ impl Interpreter {
             Ok(expressions) => self.eval_expressions(&expressions),
             Err(err) => Err(err.into()),
         }
+    }
+
+    pub fn traceback(&self) -> String {
+        if self.stack.is_empty() {
+            return "".to_string();
+        }
+
+        let mut lines = vec!["Traceback (most recent call last):".to_string()];
+
+        for source_range in self.stack.iter() {
+            if let Some(trace) = self.source_mapper.trace(source_range) {
+                for line in trace {
+                    lines.push(format!("  {}", line));
+                }
+            } else {
+                lines.push("  <Unknown>".into());
+            };
+        }
+
+        lines.join("\n")
     }
 }
 
