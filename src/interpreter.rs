@@ -66,6 +66,7 @@ pub struct Interpreter {
     pub environment: Environment,
     pub string_interner: StringInterner,
     pub source_mapper: SourceMapper,
+    pub tracing: bool,
 }
 
 impl Interpreter {
@@ -78,6 +79,7 @@ impl Interpreter {
             environment,
             string_interner,
             source_mapper,
+            tracing: false,
         }
     }
 
@@ -131,8 +133,10 @@ impl Interpreter {
                 };
                 let procedure = self.expect_procedure(operator)?;
                 let combination = SourceMapped(expressions, expression.1);
-                if let Some(lines) = self.source_mapper.trace(&combination.1) {
-                    println!("Evaluating {}", lines.join("\n"));
+                if self.tracing {
+                    if let Some(lines) = self.source_mapper.trace(&combination.1) {
+                        println!("Evaluating {}", lines.join("\n"));
+                    }
                 }
                 self.eval_procedure(procedure, combination, &expressions[1..])
             }

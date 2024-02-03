@@ -1,4 +1,6 @@
-use std::{env::args, fs::read_to_string, process};
+use std::fs::read_to_string;
+
+use clap::Parser;
 
 use crate::interpreter::Interpreter;
 
@@ -12,14 +14,25 @@ mod source_mapper;
 mod string_interner;
 mod tokenizer;
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+pub struct CliArgs {
+    /// Source file to execute.
+    pub source_filename: String,
+
+    /// Enable source code tracing
+    #[arg(short, long)]
+    pub tracing: bool,
+}
+
 fn main() {
-    if let Some(filename) = args().nth(1) {
-        let contents = read_to_string(&filename).unwrap();
-        let mut interpreter = Interpreter::new();
-        let source_id = interpreter.source_mapper.add(filename, contents);
-        println!("{:?}", interpreter.evaluate(source_id));
-    } else {
-        eprintln!("Please specify a filename.");
-        process::exit(1);
-    }
+    let args = CliArgs::parse();
+
+    let contents = read_to_string(&args.source_filename).unwrap();
+    let mut interpreter = Interpreter::new();
+    interpreter.tracing = args.tracing;
+    let source_id = interpreter
+        .source_mapper
+        .add(args.source_filename.clone(), contents);
+    println!("{:?}", interpreter.evaluate(source_id));
 }
