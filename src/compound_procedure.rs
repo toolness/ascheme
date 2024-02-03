@@ -43,11 +43,13 @@ impl CompoundProcedure {
             .environment
             .push(self.captured_lexical_scope.clone(), self.signature.1);
 
-        let result = self.call_within_local_environment(&mut ctx);
+        // Note that the environment won't be popped if an error occurs--this is so we can examine
+        // it afterwards, if needed. It's up to the caller to clean things up after an error.
+        let result = self.call_within_local_environment(&mut ctx)?;
 
         ctx.interpreter.environment.pop();
 
-        result
+        Ok(result)
     }
 
     fn call_within_local_environment(

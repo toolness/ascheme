@@ -120,6 +120,8 @@ impl Interpreter {
             combination,
             operands,
         };
+        // Note that the stack won't unwind if an error occurs--this is so we can get a stack trace
+        // afterwards. It's up to the caller to clean things up after an error.
         let result = match procedure {
             Procedure::Builtin(builtin, _name) => builtin(ctx),
             Procedure::Compound(compound) => compound.call(ctx),
