@@ -20,7 +20,12 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
 }
 
 fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
-    vec![("+", add), ("*", multiply), ("define", define)]
+    vec![
+        ("+", add),
+        ("*", multiply),
+        ("define", define),
+        ("lambda", lambda),
+    ]
 }
 
 fn add(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
@@ -44,7 +49,12 @@ fn multiply(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
 fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
-            let value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
+            let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
+            if let Value::Procedure(Procedure::Compound(compound)) = &mut value {
+                if compound.name.is_none() {
+                    compound.name = Some(name.clone());
+                }
+            }
             ctx.interpreter.environment.set(name.clone(), value);
             Ok(Value::Undefined)
         }
@@ -65,6 +75,22 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
                 .environment
                 .set(name, Value::Procedure(Procedure::Compound(proc)));
             Ok(Value::Undefined)
+        }
+        _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
+    }
+}
+
+fn lambda(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+    match ctx.operands.get(0) {
+        Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
+            let signature = SourceMapped(expressions.clone(), *range);
+            let proc = CompoundProcedure::create(
+                signature,
+                0,
+                SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
+                ctx.interpreter.environment.capture_lexical_scope(),
+            )?;
+            Ok(Value::Procedure(Procedure::Compound(proc)))
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
     }

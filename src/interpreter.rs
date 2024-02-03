@@ -251,6 +251,13 @@ mod tests {
     }
 
     #[test]
+    fn lambda_definitions_work() {
+        test_eval_success("(define x (lambda () 3))", "");
+        test_eval_success("(define x (lambda () 3)) (x)", "3");
+        test_eval_success("(define add-three (lambda (n) (+ 3 n))) (add-three 1)", "4");
+    }
+
+    #[test]
     fn compound_procedues_prefer_argument_values_to_globals() {
         test_eval_success(
             "
