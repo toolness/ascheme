@@ -10,6 +10,8 @@ use crate::{
     string_interner::{InternedString, StringInterner},
 };
 
+const MAX_STACK_SIZE: usize = 16;
+
 #[derive(Debug)]
 pub enum RuntimeErrorType {
     Parse(ParseErrorType),
@@ -20,6 +22,7 @@ pub enum RuntimeErrorType {
     ExpectedProcedure,
     ExpectedIdentifier,
     WrongNumberOfArguments,
+    StackOverflow,
     // Unimplemented(&'static str),
 }
 
@@ -67,6 +70,7 @@ pub struct Interpreter {
     pub string_interner: StringInterner,
     pub source_mapper: SourceMapper,
     pub tracing: bool,
+    stack: Vec<Procedure>,
 }
 
 impl Interpreter {
@@ -80,6 +84,7 @@ impl Interpreter {
             string_interner,
             source_mapper,
             tracing: false,
+            stack: vec![],
         }
     }
 
@@ -105,15 +110,21 @@ impl Interpreter {
         combination: SourceMapped<&Rc<Vec<Expression>>>,
         operands: &[Expression],
     ) -> Result<Value, RuntimeError> {
+        if self.stack.len() == MAX_STACK_SIZE {
+            return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
+        }
+        self.stack.push(procedure.clone());
         let ctx = ProcedureContext {
             interpreter: self,
             combination,
             operands,
         };
-        match procedure {
+        let result = match procedure {
             Procedure::Builtin(builtin, _name) => builtin(ctx),
             Procedure::Compound(compound) => compound.call(ctx),
-        }
+        }?;
+        self.stack.pop();
+        Ok(result)
     }
 
     pub fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
