@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     environment::CapturedLexicalScope,
-    interpreter::{ProcedureContext, RuntimeError, RuntimeErrorType, Value},
+    interpreter::{Interpreter, ProcedureContext, RuntimeError, RuntimeErrorType, Value},
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
@@ -38,38 +38,68 @@ impl CompoundProcedure {
         })
     }
 
-    pub fn call(&self, mut ctx: ProcedureContext) -> Result<Value, RuntimeError> {
-        ctx.interpreter
-            .environment
-            .push(self.captured_lexical_scope.clone(), self.signature.1);
-
-        // Note that the environment won't be popped if an error occurs--this is so we can examine
-        // it afterwards, if needed. It's up to the caller to clean things up after an error.
-        let result = self.call_within_local_environment(&mut ctx)?;
-
-        ctx.interpreter.environment.pop();
-
-        Ok(result)
+    pub fn call(self, mut ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+        let bound_procedure = self.bind(&mut ctx)?;
+        bound_procedure.call(&mut ctx.interpreter)
     }
 
-    fn call_within_local_environment(
-        &self,
-        ctx: &mut ProcedureContext,
-    ) -> Result<Value, RuntimeError> {
-        // We're unwrapping these because we already validated them upon construction.
-        let arg_bindings =
-            parse_signature(&self.signature, self.signature_first_arg_index).unwrap();
-        let body = get_body(&self.definition).unwrap();
-
-        if ctx.operands.len() != arg_bindings.len() {
+    fn bind(self, ctx: &mut ProcedureContext) -> Result<BoundProcedure, RuntimeError> {
+        if ctx.operands.len() != self.arity() {
             return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
         }
-
-        for (expr, name) in ctx.operands.iter().zip(arg_bindings) {
+        let mut operands = Vec::with_capacity(ctx.operands.len());
+        for expr in ctx.operands.iter() {
             let value = ctx.interpreter.eval_expression(expr)?;
-            ctx.interpreter.environment.set(name, value);
+            operands.push(value);
         }
-        ctx.interpreter.eval_expressions(body)
+        Ok(BoundProcedure {
+            procedure: self,
+            operands,
+        })
+    }
+
+    fn body(&self) -> &[Expression] {
+        // We're unwrapping these because we already validated them upon construction.
+        get_body(&self.definition).unwrap()
+    }
+
+    fn arg_bindings(&self) -> Vec<InternedString> {
+        // We're unwrapping these because we already validated them upon construction.
+        parse_signature(&self.signature, self.signature_first_arg_index).unwrap()
+    }
+
+    fn arity(&self) -> usize {
+        self.signature.0.len() - self.signature_first_arg_index
+    }
+}
+
+pub struct BoundProcedure {
+    procedure: CompoundProcedure,
+    operands: Vec<Value>,
+}
+
+impl BoundProcedure {
+    pub fn call(self, interpreter: &mut Interpreter) -> Result<Value, RuntimeError> {
+        interpreter.environment.push(
+            self.procedure.captured_lexical_scope.clone(),
+            self.procedure.signature.1,
+        );
+
+        let body = self.procedure.body();
+        let arg_bindings = self.procedure.arg_bindings();
+
+        for (name, value) in arg_bindings.into_iter().zip(self.operands) {
+            interpreter.environment.set(name, value);
+        }
+
+        let result = interpreter.eval_expressions(body)?;
+
+        // Note that the environment won't have been popped if an error occured above--this is
+        // so we can examine it afterwards, if needed. It's up to the caller to clean things
+        // up after an error.
+        interpreter.environment.pop();
+
+        Ok(result)
     }
 }
 
