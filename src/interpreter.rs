@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     builtins,
-    compound_procedure::CompoundProcedure,
+    compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
     parser::{parse, Expression, ExpressionValue, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
@@ -65,6 +65,15 @@ pub enum Procedure {
 
 pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
 
+pub struct TailCallContext {
+    bound_procedure: BoundProcedure,
+}
+
+pub enum ProcedureResult {
+    Value(Value),
+    TailCall(TailCallContext),
+}
+
 pub struct Interpreter {
     pub environment: Environment,
     pub string_interner: StringInterner,
@@ -110,8 +119,8 @@ impl Interpreter {
         combination: SourceMapped<&Rc<Vec<Expression>>>,
         operands: &[Expression],
         source_range: SourceRange,
-    ) -> Result<Value, RuntimeError> {
-        if self.stack.len() == MAX_STACK_SIZE {
+    ) -> Result<ProcedureResult, RuntimeError> {
+        if self.stack.len() >= MAX_STACK_SIZE {
             return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
         }
         self.stack.push(source_range);
@@ -120,14 +129,51 @@ impl Interpreter {
             combination,
             operands,
         };
-        // Note that the stack won't unwind if an error occurs--this is so we can get a stack trace
-        // afterwards. It's up to the caller to clean things up after an error.
         let result = match procedure {
-            Procedure::Builtin(builtin, _name) => builtin(ctx),
-            Procedure::Compound(compound) => compound.call(ctx),
-        }?;
+            Procedure::Builtin(builtin, _name) => ProcedureResult::Value(builtin(ctx)?),
+            Procedure::Compound(compound) => compound.call(ctx)?,
+        };
+        // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
+        // afterwards. It's up to the caller to clean things up after an error.
         self.stack.pop();
+
         Ok(result)
+    }
+
+    pub fn try_bind_tail_call_context(
+        &mut self,
+        expression: &Expression,
+    ) -> Result<Option<TailCallContext>, RuntimeError> {
+        match &expression.0 {
+            ExpressionValue::Combination(expressions) => {
+                // TODO: A lot of this is duplicated from eval_expression, it'd be nice to consolidate
+                // somehow.
+                let Some(operator) = expressions.get(0) else {
+                    return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
+                };
+                let procedure = self.expect_procedure(operator)?;
+                let combination = SourceMapped(expressions, expression.1);
+                let operands = &expressions[1..];
+                if self.tracing {
+                    if let Some(lines) = self.source_mapper.trace(&combination.1) {
+                        println!("Creating tail call context {}", lines.join("\n"));
+                    }
+                }
+                let mut ctx = ProcedureContext {
+                    interpreter: self,
+                    combination,
+                    operands,
+                };
+                match procedure {
+                    Procedure::Compound(compound) => {
+                        let bound_procedure = compound.bind(&mut ctx)?;
+                        Ok(Some(TailCallContext { bound_procedure }))
+                    }
+                    _ => Ok(None),
+                }
+            }
+            _ => Ok(None),
+        }
     }
 
     pub fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
@@ -147,12 +193,22 @@ impl Interpreter {
                 };
                 let procedure = self.expect_procedure(operator)?;
                 let combination = SourceMapped(expressions, expression.1);
+                let operands = &expressions[1..];
                 if self.tracing {
                     if let Some(lines) = self.source_mapper.trace(&combination.1) {
                         println!("Evaluating {}", lines.join("\n"));
                     }
                 }
-                self.eval_procedure(procedure, combination, &expressions[1..], operator.1)
+                let mut result =
+                    self.eval_procedure(procedure, combination, operands, operator.1)?;
+                loop {
+                    match result {
+                        ProcedureResult::Value(value) => return Ok(value),
+                        ProcedureResult::TailCall(tail_call_context) => {
+                            result = tail_call_context.bound_procedure.call(self)?;
+                        }
+                    }
+                }
             }
         }
     }

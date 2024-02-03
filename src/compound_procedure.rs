@@ -2,7 +2,9 @@ use std::rc::Rc;
 
 use crate::{
     environment::CapturedLexicalScope,
-    interpreter::{Interpreter, ProcedureContext, RuntimeError, RuntimeErrorType, Value},
+    interpreter::{
+        Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType, Value,
+    },
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
@@ -38,12 +40,12 @@ impl CompoundProcedure {
         })
     }
 
-    pub fn call(self, mut ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+    pub fn call(self, mut ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
         let bound_procedure = self.bind(&mut ctx)?;
         bound_procedure.call(&mut ctx.interpreter)
     }
 
-    fn bind(self, ctx: &mut ProcedureContext) -> Result<BoundProcedure, RuntimeError> {
+    pub fn bind(self, ctx: &mut ProcedureContext) -> Result<BoundProcedure, RuntimeError> {
         if ctx.operands.len() != self.arity() {
             return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
         }
@@ -79,7 +81,7 @@ pub struct BoundProcedure {
 }
 
 impl BoundProcedure {
-    pub fn call(self, interpreter: &mut Interpreter) -> Result<Value, RuntimeError> {
+    pub fn call(self, interpreter: &mut Interpreter) -> Result<ProcedureResult, RuntimeError> {
         interpreter.environment.push(
             self.procedure.captured_lexical_scope.clone(),
             self.procedure.signature.1,
@@ -92,7 +94,20 @@ impl BoundProcedure {
             interpreter.environment.set(name, value);
         }
 
-        let result = interpreter.eval_expressions(body)?;
+        // Note that we verified at construction time that the body has at least one expression.
+
+        if body.len() > 1 {
+            interpreter.eval_expressions(&body[0..body.len() - 1])?;
+        }
+
+        let result: ProcedureResult;
+
+        let last_expression = &body[body.len() - 1];
+        if let Some(tail_call_context) = interpreter.try_bind_tail_call_context(last_expression)? {
+            result = ProcedureResult::TailCall(tail_call_context);
+        } else {
+            result = ProcedureResult::Value(interpreter.eval_expression(last_expression)?);
+        }
 
         // Note that the environment won't have been popped if an error occured above--this is
         // so we can examine it afterwards, if needed. It's up to the caller to clean things
