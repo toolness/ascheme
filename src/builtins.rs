@@ -49,11 +49,18 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
             Ok(Value::Undefined)
         }
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
-            let (name, proc) = CompoundProcedure::create(
-                SourceMapped(expressions.clone(), *range),
+            let signature = SourceMapped(expressions.clone(), *range);
+            let Some(first) = signature.0.get(0) else {
+                return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(signature.1));
+            };
+            let name = first.expect_identifier()?;
+            let mut proc = CompoundProcedure::create(
+                signature,
+                1,
                 SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
                 ctx.interpreter.environment.capture_lexical_scope(),
             )?;
+            proc.name = Some(name.clone());
             ctx.interpreter
                 .environment
                 .set(name, Value::Procedure(Procedure::Compound(proc)));

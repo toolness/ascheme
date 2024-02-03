@@ -12,8 +12,10 @@ type CombinationBody = Vec<Expression>;
 
 #[derive(Debug, Clone)]
 pub struct CompoundProcedure {
+    pub name: Option<InternedString>,
     // This isn't technically needed, since the signature is the second element of the definition.
     signature: SourceMapped<Rc<CombinationBody>>,
+    signature_first_arg_index: usize,
     definition: SourceMapped<Rc<CombinationBody>>,
     captured_lexical_scope: CapturedLexicalScope,
 }
@@ -21,19 +23,19 @@ pub struct CompoundProcedure {
 impl CompoundProcedure {
     pub fn create(
         signature: SourceMapped<Rc<CombinationBody>>,
+        signature_first_arg_index: usize,
         definition: SourceMapped<Rc<CombinationBody>>,
         captured_lexical_scope: CapturedLexicalScope,
-    ) -> Result<(InternedString, Self), RuntimeError> {
-        let (name, ..) = parse_signature(&signature)?;
+    ) -> Result<Self, RuntimeError> {
+        parse_signature(&signature, signature_first_arg_index)?;
         get_body(&definition)?;
-        Ok((
-            name,
-            CompoundProcedure {
-                signature,
-                definition,
-                captured_lexical_scope,
-            },
-        ))
+        Ok(CompoundProcedure {
+            name: None,
+            signature,
+            signature_first_arg_index,
+            definition,
+            captured_lexical_scope,
+        })
     }
 
     pub fn call(&self, mut ctx: ProcedureContext) -> Result<Value, RuntimeError> {
@@ -53,7 +55,8 @@ impl CompoundProcedure {
         ctx: &mut ProcedureContext,
     ) -> Result<Value, RuntimeError> {
         // We're unwrapping these because we already validated them upon construction.
-        let (.., arg_bindings) = parse_signature(&self.signature).unwrap();
+        let arg_bindings =
+            parse_signature(&self.signature, self.signature_first_arg_index).unwrap();
         let body = get_body(&self.definition).unwrap();
 
         if ctx.operands.len() != arg_bindings.len() {
@@ -79,16 +82,13 @@ fn get_body(definition: &SourceMapped<Rc<CombinationBody>>) -> Result<&[Expressi
 
 fn parse_signature(
     signature: &SourceMapped<Rc<CombinationBody>>,
-) -> Result<(InternedString, Vec<InternedString>), RuntimeError> {
-    let Some(first) = signature.0.get(0) else {
-        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(signature.1));
-    };
-    let name = first.expect_identifier()?;
+    first_arg_index: usize,
+) -> Result<Vec<InternedString>, RuntimeError> {
     let mut arg_bindings: Vec<InternedString> = vec![];
-    for arg_name in &signature.0[1..] {
+    for arg_name in &signature.0[first_arg_index..] {
         arg_bindings.push(arg_name.expect_identifier()?);
     }
-    Ok((name, arg_bindings))
+    Ok(arg_bindings)
 }
 
 impl PartialEq for CompoundProcedure {
