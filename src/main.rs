@@ -1,4 +1,4 @@
-use std::fs::read_to_string;
+use std::{fs::read_to_string, process};
 
 use clap::Parser;
 
@@ -34,5 +34,15 @@ fn main() {
     let source_id = interpreter
         .source_mapper
         .add(args.source_filename.clone(), contents);
-    println!("{:?}", interpreter.evaluate(source_id));
+    match interpreter.evaluate(source_id) {
+        Ok(value) => println!("{:?}", value),
+        Err(err) => {
+            if let Some(trace) = interpreter.source_mapper.trace(&err.1) {
+                println!("Error: {:?} in {}", err.0, trace.join("\n"));
+            } else {
+                println!("Error: {:?}", err.0);
+            }
+            process::exit(1)
+        }
+    }
 }
