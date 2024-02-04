@@ -46,11 +46,11 @@ fn less_than(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut latest: f64 = -INFINITY;
     for number in number_args(&mut ctx)? {
         if number <= latest {
-            return Ok(Value::Boolean(false).into());
+            return Ok(false.into());
         }
         latest = number;
     }
-    Ok(Value::Boolean(true).into())
+    Ok(true.into())
 }
 
 fn add(mut ctx: ProcedureContext) -> ProcedureResult {
@@ -58,7 +58,7 @@ fn add(mut ctx: ProcedureContext) -> ProcedureResult {
     for number in number_args(&mut ctx)? {
         result += number
     }
-    Ok(Value::Number(result).into())
+    Ok(result.into())
 }
 
 fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
@@ -66,7 +66,7 @@ fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
     for number in number_args(&mut ctx)? {
         result *= number
     }
-    Ok(Value::Number(result).into())
+    Ok(result.into())
 }
 
 fn _if(ctx: ProcedureContext) -> ProcedureResult {

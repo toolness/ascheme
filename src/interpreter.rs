@@ -67,6 +67,30 @@ impl Value {
     }
 }
 
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Boolean(value)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Number(value)
+    }
+}
+
+impl From<bool> for ProcedureSuccess {
+    fn from(value: bool) -> Self {
+        ProcedureSuccess::Value(value.into())
+    }
+}
+
+impl From<f64> for ProcedureSuccess {
+    fn from(value: f64) -> Self {
+        ProcedureSuccess::Value(value.into())
+    }
+}
+
 pub struct ProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
     pub combination: SourceMapped<&'a Rc<Vec<Expression>>>,
