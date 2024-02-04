@@ -63,7 +63,9 @@ pub enum Procedure {
     Compound(CompoundProcedure),
 }
 
-pub type ProcedureFn = fn(ProcedureContext) -> Result<ProcedureSuccess, RuntimeError>;
+pub type ProcedureResult = Result<ProcedureSuccess, RuntimeError>;
+
+pub type ProcedureFn = fn(ProcedureContext) -> ProcedureResult;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
@@ -125,7 +127,7 @@ impl Interpreter {
         combination: SourceMapped<&Rc<Vec<Expression>>>,
         operands: &[Expression],
         source_range: SourceRange,
-    ) -> Result<ProcedureSuccess, RuntimeError> {
+    ) -> ProcedureResult {
         if self.stack.len() >= MAX_STACK_SIZE {
             return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
         }

@@ -3,7 +3,8 @@ use std::rc::Rc;
 use crate::{
     environment::CapturedLexicalScope,
     interpreter::{
-        Interpreter, ProcedureContext, ProcedureSuccess, RuntimeError, RuntimeErrorType, Value,
+        Interpreter, ProcedureContext, ProcedureResult, ProcedureSuccess, RuntimeError,
+        RuntimeErrorType, Value,
     },
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
@@ -40,7 +41,7 @@ impl CompoundProcedure {
         })
     }
 
-    pub fn call(self, mut ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
+    pub fn call(self, mut ctx: ProcedureContext) -> ProcedureResult {
         let bound_procedure = self.bind(&mut ctx)?;
         bound_procedure.call(&mut ctx.interpreter)
     }
@@ -81,7 +82,7 @@ pub struct BoundProcedure {
 }
 
 impl BoundProcedure {
-    pub fn call(self, interpreter: &mut Interpreter) -> Result<ProcedureSuccess, RuntimeError> {
+    pub fn call(self, interpreter: &mut Interpreter) -> ProcedureResult {
         interpreter.environment.push(
             self.procedure.captured_lexical_scope.clone(),
             self.procedure.signature.1,

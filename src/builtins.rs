@@ -2,8 +2,7 @@ use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
     interpreter::{
-        Procedure, ProcedureContext, ProcedureFn, ProcedureSuccess, RuntimeError, RuntimeErrorType,
-        Value,
+        Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType, Value,
     },
     parser::ExpressionValue,
     source_mapped::{SourceMappable, SourceMapped},
@@ -29,7 +28,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     ]
 }
 
-fn add(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
+fn add(ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 0.0;
     for expr in ctx.operands.iter() {
         let number = ctx.interpreter.expect_number(expr)?;
@@ -38,7 +37,7 @@ fn add(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     Ok(Value::Number(result).into())
 }
 
-fn multiply(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
+fn multiply(ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 1.0;
     for expr in ctx.operands.iter() {
         let number = ctx.interpreter.expect_number(expr)?;
@@ -47,7 +46,7 @@ fn multiply(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     Ok(Value::Number(result).into())
 }
 
-fn define(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
+fn define(ctx: ProcedureContext) -> ProcedureResult {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
@@ -81,7 +80,7 @@ fn define(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     }
 }
 
-fn lambda(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
+fn lambda(ctx: ProcedureContext) -> ProcedureResult {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
             let signature = SourceMapped(expressions.clone(), *range);
