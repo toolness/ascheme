@@ -192,16 +192,16 @@ impl Interpreter {
         if let Some(tail_call_context) = self.try_bind_tail_call_context(expression)? {
             Ok(ProcedureSuccess::TailCall(tail_call_context))
         } else {
-            Ok(ProcedureSuccess::Value(self.eval_expression(expression)?))
+            self.lazy_eval_expression(expression)
         }
     }
 
-    pub fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
+    fn lazy_eval_expression(&mut self, expression: &Expression) -> ProcedureResult {
         match &expression.0 {
-            ExpressionValue::Number(number) => Ok(Value::Number(*number)),
+            ExpressionValue::Number(number) => Ok(Value::Number(*number).into()),
             ExpressionValue::Symbol(identifier) => {
                 if let Some(value) = self.environment.get(identifier) {
-                    Ok(value)
+                    Ok(value.into())
                 } else {
                     Err(RuntimeErrorType::UnboundVariable(identifier.clone())
                         .source_mapped(expression.1))
@@ -220,15 +220,18 @@ impl Interpreter {
                         self.source_mapper.trace(&combination.1).join("\n")
                     );
                 }
-                let mut result =
-                    self.eval_procedure(procedure, combination, operands, operator.1)?;
-                loop {
-                    match result {
-                        ProcedureSuccess::Value(value) => return Ok(value),
-                        ProcedureSuccess::TailCall(tail_call_context) => {
-                            result = tail_call_context.bound_procedure.call(self)?;
-                        }
-                    }
+                self.eval_procedure(procedure, combination, operands, operator.1)
+            }
+        }
+    }
+
+    pub fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
+        let mut result = self.lazy_eval_expression(expression)?;
+        loop {
+            match result {
+                ProcedureSuccess::Value(value) => return Ok(value),
+                ProcedureSuccess::TailCall(tail_call_context) => {
+                    result = tail_call_context.bound_procedure.call(self)?;
                 }
             }
         }
