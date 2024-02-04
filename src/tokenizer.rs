@@ -87,8 +87,9 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn accept_identifier(&mut self) -> bool {
-        let is_ident_char =
-            |char: char| !char.is_whitespace() && char != '.' && char != '(' && char != ')';
+        let is_ident_char = |char: char| {
+            !char.is_whitespace() && char != '.' && char != '(' && char != ')' && char != ';'
+        };
         if !self.accept(|char: char| !char.is_numeric() && is_ident_char(char)) {
             return false;
         }
@@ -99,13 +100,27 @@ impl<'a> Tokenizer<'a> {
     fn chomp_whitespace(&mut self) {
         self.chomp_while(|char| char.is_whitespace());
     }
+
+    fn accept_comment(&mut self) -> bool {
+        if self.accept_char(';') {
+            self.chomp_while(|char| char != '\n');
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
     type Item = Result<Token, TokenizeError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.chomp_whitespace();
+        loop {
+            self.chomp_whitespace();
+            if !self.accept_comment() {
+                break;
+            }
+        }
         if self.is_at_end() {
             return None;
         }
@@ -174,6 +189,14 @@ mod tests {
         test_tokenize(
             "hi there? ",
             &[(Ok(Identifier), "hi"), (Ok(Identifier), "there?")],
+        )
+    }
+
+    #[test]
+    fn comment_works() {
+        test_tokenize(
+            "hi ; here is a comment\n there ",
+            &[(Ok(Identifier), "hi"), (Ok(Identifier), "there")],
         )
     }
 }
