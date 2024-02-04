@@ -52,6 +52,21 @@ pub enum Value {
     Procedure(Procedure),
 }
 
+impl Value {
+    /// From R5RS 6.3.1:
+    ///
+    /// > Of all the standard Scheme values, only `#f` counts as false
+    /// > in conditional expressions. Except for `#f`, all standard
+    /// > Scheme values, including `#t`, pairs, the empty list, symbols,
+    /// > numbers, strings, vectors, and procedures, count as true.
+    pub fn as_bool(&self) -> bool {
+        match self {
+            Value::Boolean(false) => false,
+            _ => true,
+        }
+    }
+}
+
 pub struct ProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
     pub combination: SourceMapped<&'a Rc<Vec<Expression>>>,
