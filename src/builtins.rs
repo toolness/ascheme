@@ -23,9 +23,19 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     vec![
         ("+", add),
         ("*", multiply),
+        ("<", less_than),
         ("define", define),
         ("lambda", lambda),
     ]
+}
+
+fn less_than(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 2 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let first = ctx.interpreter.expect_number(&ctx.operands[0])?;
+    let second = ctx.interpreter.expect_number(&ctx.operands[1])?;
+    Ok(Value::Boolean(first < second).into())
 }
 
 fn add(ctx: ProcedureContext) -> ProcedureResult {

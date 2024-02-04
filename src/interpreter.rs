@@ -48,6 +48,7 @@ impl SourceMapped<ExpressionValue> {
 pub enum Value {
     Undefined,
     Number(f64),
+    Boolean(bool),
     Procedure(Procedure),
 }
 
@@ -277,6 +278,7 @@ mod tests {
                 let string = match value {
                     Value::Undefined => "".to_string(),
                     Value::Number(num) => num.to_string(),
+                    Value::Boolean(bool) => (if bool { "#t" } else { "#f" }).to_string(),
                     Value::Procedure(_) => {
                         unimplemented!("Converting procedure to string is unimplemented")
                     }
@@ -322,6 +324,13 @@ mod tests {
         test_eval_success("(define x (lambda () 3))", "");
         test_eval_success("(define x (lambda () 3)) (x)", "3");
         test_eval_success("(define add-three (lambda (n) (+ 3 n))) (add-three 1)", "4");
+    }
+
+    #[test]
+    fn ord_ops_work() {
+        test_eval_success("(< 1 0)", "#f");
+        test_eval_success("(< 0 1)", "#t");
+        test_eval_success("(< 1 1)", "#f");
     }
 
     #[test]
