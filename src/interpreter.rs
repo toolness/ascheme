@@ -79,14 +79,8 @@ impl From<f64> for Value {
     }
 }
 
-impl From<bool> for ProcedureSuccess {
-    fn from(value: bool) -> Self {
-        ProcedureSuccess::Value(value.into())
-    }
-}
-
-impl From<f64> for ProcedureSuccess {
-    fn from(value: f64) -> Self {
+impl<T: Into<Value>> From<T> for ProcedureSuccess {
+    fn from(value: T) -> Self {
         ProcedureSuccess::Value(value.into())
     }
 }
@@ -114,12 +108,6 @@ pub struct TailCallContext {
 pub enum ProcedureSuccess {
     Value(Value),
     TailCall(TailCallContext),
-}
-
-impl From<Value> for ProcedureSuccess {
-    fn from(value: Value) -> Self {
-        ProcedureSuccess::Value(value)
-    }
 }
 
 pub struct Interpreter {
