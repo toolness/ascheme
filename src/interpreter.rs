@@ -10,7 +10,7 @@ use crate::{
     string_interner::{InternedString, StringInterner},
 };
 
-const MAX_STACK_SIZE: usize = 16;
+const DEFAULT_MAX_STACK_SIZE: usize = 32;
 
 #[derive(Debug)]
 pub enum RuntimeErrorType {
@@ -88,6 +88,7 @@ pub struct Interpreter {
     pub string_interner: StringInterner,
     pub source_mapper: SourceMapper,
     pub tracing: bool,
+    pub max_stack_size: usize,
     stack: Vec<SourceRange>,
 }
 
@@ -102,6 +103,7 @@ impl Interpreter {
             string_interner,
             source_mapper,
             tracing: false,
+            max_stack_size: DEFAULT_MAX_STACK_SIZE,
             stack: vec![],
         }
     }
@@ -129,7 +131,7 @@ impl Interpreter {
         operands: &[Expression],
         source_range: SourceRange,
     ) -> ProcedureResult {
-        if self.stack.len() >= MAX_STACK_SIZE {
+        if self.stack.len() >= self.max_stack_size {
             return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
         }
         self.stack.push(source_range);
