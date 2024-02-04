@@ -83,6 +83,7 @@ impl<'a> Tokenizer<'a> {
     fn try_accept_number(&mut self) -> Option<Result<TokenType, TokenizeErrorType>> {
         let mut found_decimals = 0;
         let mut found_digit = false;
+        let found_plus_or_minus = self.accept(|char| char == '+' || char == '-');
         loop {
             if self.accept_char('.') {
                 found_decimals += 1;
@@ -96,6 +97,8 @@ impl<'a> Tokenizer<'a> {
             Some(Err(TokenizeErrorType::InvalidNumber))
         } else if found_digit {
             Some(Ok(TokenType::Number))
+        } else if found_plus_or_minus {
+            Some(Ok(TokenType::Identifier))
         } else {
             None
         }
@@ -204,6 +207,21 @@ mod tests {
                 (Err(TokenizeErrorType::InvalidNumber), "..5"),
             ],
         )
+    }
+
+    #[test]
+    fn plus_and_minus_work() {
+        test_tokenize(
+            "+3 -4 + 3 - 4",
+            &[
+                (Ok(Number), "+3"),
+                (Ok(Number), "-4"),
+                (Ok(Identifier), "+"),
+                (Ok(Number), "3"),
+                (Ok(Identifier), "-"),
+                (Ok(Number), "4"),
+            ],
+        );
     }
 
     #[test]

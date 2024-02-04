@@ -331,6 +331,8 @@ mod tests {
         test_eval_success("(*)", "1");
 
         test_eval_success("(+ 1 2)", "3");
+        test_eval_success("(+ +1 2)", "3");
+        test_eval_success("(+ -10 2)", "-8");
         test_eval_success("  (+ 1 2 (* 3 4)) ", "15");
     }
 
