@@ -94,14 +94,7 @@ impl BoundProcedure {
             interpreter.environment.set(name, value);
         }
 
-        // Note that we verified at construction time that the body has at least one expression.
-
-        if body.len() > 1 {
-            interpreter.eval_expressions(&body[0..body.len() - 1])?;
-        }
-
-        let last_expression = &body[body.len() - 1];
-        let result = interpreter.eval_expression_in_tail_context(last_expression)?;
+        let result = interpreter.eval_expressions_in_tail_context(body)?;
 
         // Note that the environment won't have been popped if an error occured above--this is
         // so we can examine it afterwards, if needed. It's up to the caller to clean things

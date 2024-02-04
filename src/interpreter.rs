@@ -232,6 +232,22 @@ impl Interpreter {
         }
     }
 
+    pub fn eval_expressions_in_tail_context(
+        &mut self,
+        expressions: &[Expression],
+    ) -> Result<ProcedureSuccess, RuntimeError> {
+        if expressions.len() == 0 {
+            return Ok(Value::Undefined.into());
+        }
+
+        if expressions.len() > 1 {
+            self.eval_expressions(&expressions[0..expressions.len() - 1])?;
+        }
+
+        let last_expression = &expressions[expressions.len() - 1];
+        self.eval_expression_in_tail_context(last_expression)
+    }
+
     pub fn eval_expressions(&mut self, expressions: &[Expression]) -> Result<Value, RuntimeError> {
         let mut last_value: Value = Value::Undefined;
         for expression in expressions {
