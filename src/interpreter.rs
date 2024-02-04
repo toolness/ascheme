@@ -327,6 +327,12 @@ mod tests {
     }
 
     #[test]
+    fn booleans_works() {
+        test_eval_success("#t", "#t");
+        test_eval_success("#f", "#f");
+    }
+
+    #[test]
     fn less_than_works() {
         test_eval_success("(<)", "#t");
         test_eval_success("(< 1)", "#t");
