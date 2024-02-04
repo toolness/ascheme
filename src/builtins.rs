@@ -4,7 +4,8 @@ use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
     interpreter::{
-        Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType, Value,
+        Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
+        Value,
     },
     parser::ExpressionValue,
     source_mapped::{SourceMappable, SourceMapped},
@@ -31,10 +32,17 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     ]
 }
 
-fn less_than(ctx: ProcedureContext) -> ProcedureResult {
-    let mut latest: f64 = -INFINITY;
+fn number_args(ctx: &mut ProcedureContext) -> Result<Vec<f64>, RuntimeError> {
+    let mut numbers = Vec::with_capacity(ctx.operands.len());
     for expr in ctx.operands.iter() {
-        let number = ctx.interpreter.expect_number(expr)?;
+        numbers.push(ctx.interpreter.expect_number(expr)?);
+    }
+    Ok(numbers)
+}
+
+fn less_than(mut ctx: ProcedureContext) -> ProcedureResult {
+    let mut latest: f64 = -INFINITY;
+    for number in number_args(&mut ctx)? {
         if number <= latest {
             return Ok(Value::Boolean(false).into());
         }
@@ -43,19 +51,17 @@ fn less_than(ctx: ProcedureContext) -> ProcedureResult {
     Ok(Value::Boolean(true).into())
 }
 
-fn add(ctx: ProcedureContext) -> ProcedureResult {
+fn add(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 0.0;
-    for expr in ctx.operands.iter() {
-        let number = ctx.interpreter.expect_number(expr)?;
+    for number in number_args(&mut ctx)? {
         result += number
     }
     Ok(Value::Number(result).into())
 }
 
-fn multiply(ctx: ProcedureContext) -> ProcedureResult {
+fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 1.0;
-    for expr in ctx.operands.iter() {
-        let number = ctx.interpreter.expect_number(expr)?;
+    for number in number_args(&mut ctx)? {
         result *= number
     }
     Ok(Value::Number(result).into())
