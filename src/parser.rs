@@ -27,6 +27,7 @@ impl From<TokenizeError> for ParseError {
 pub enum ExpressionValue {
     Number(f64),
     Symbol(InternedString),
+    Boolean(bool),
     Combination(Rc<Vec<Expression>>),
 }
 
@@ -76,6 +77,9 @@ impl<'a> Parser<'a> {
             }
             TokenType::RightParen => {
                 Err(ParseErrorType::UnexpectedRightParen.source_mapped(token.1))
+            }
+            TokenType::Boolean(boolean) => {
+                Ok(ExpressionValue::Boolean(boolean).source_mapped(token.1))
             }
             TokenType::Number => match token.source(&self.string).parse::<f64>() {
                 Ok(number) => Ok(ExpressionValue::Number(number).source_mapped(token.1)),

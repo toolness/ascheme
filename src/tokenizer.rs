@@ -13,6 +13,7 @@ pub enum TokenType {
     LeftParen,
     RightParen,
     Number,
+    Boolean(bool),
     Identifier,
 }
 
@@ -65,6 +66,20 @@ impl<'a> Tokenizer<'a> {
         self.accept(|next_char| next_char == char)
     }
 
+    fn try_accept_sharp(&mut self) -> Option<Result<TokenType, TokenizeErrorType>> {
+        if self.accept_char('#') {
+            if self.accept_char('t') {
+                Some(Ok(TokenType::Boolean(true)))
+            } else if self.accept_char('f') {
+                Some(Ok(TokenType::Boolean(false)))
+            } else {
+                Some(Err(TokenizeErrorType::UnexpectedCharacter))
+            }
+        } else {
+            None
+        }
+    }
+
     fn try_accept_number(&mut self) -> Option<Result<TokenType, TokenizeErrorType>> {
         let mut found_decimals = 0;
         let mut found_digit = false;
@@ -88,7 +103,12 @@ impl<'a> Tokenizer<'a> {
 
     fn accept_identifier(&mut self) -> bool {
         let is_ident_char = |char: char| {
-            !char.is_whitespace() && char != '.' && char != '(' && char != ')' && char != ';'
+            !char.is_whitespace()
+                && char != '.'
+                && char != '('
+                && char != ')'
+                && char != ';'
+                && char != '#'
         };
         if !self.accept(|char: char| !char.is_numeric() && is_ident_char(char)) {
             return false;
@@ -130,6 +150,8 @@ impl<'a> Iterator for Tokenizer<'a> {
         } else if self.accept_char(')') {
             Ok(TokenType::RightParen)
         } else if let Some(result) = self.try_accept_number() {
+            result
+        } else if let Some(result) = self.try_accept_sharp() {
             result
         } else if self.accept_identifier() {
             Ok(TokenType::Identifier)
@@ -189,6 +211,14 @@ mod tests {
         test_tokenize(
             "hi there? ",
             &[(Ok(Identifier), "hi"), (Ok(Identifier), "there?")],
+        )
+    }
+
+    #[test]
+    fn booleans_work() {
+        test_tokenize(
+            " #t  #f ",
+            &[(Ok(Boolean(true)), "#t"), (Ok(Boolean(false)), "#f")],
         )
     }
 

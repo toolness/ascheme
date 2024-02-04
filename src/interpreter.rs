@@ -199,6 +199,7 @@ impl Interpreter {
     fn lazy_eval_expression(&mut self, expression: &Expression) -> ProcedureResult {
         match &expression.0 {
             ExpressionValue::Number(number) => Ok(Value::Number(*number).into()),
+            ExpressionValue::Boolean(boolean) => Ok(Value::Boolean(*boolean).into()),
             ExpressionValue::Symbol(identifier) => {
                 if let Some(value) = self.environment.get(identifier) {
                     Ok(value.into())

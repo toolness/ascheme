@@ -20,8 +20,6 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
             Value::Procedure(Procedure::Builtin(builtin, interned_name)),
         );
     }
-    environment.set(interner.intern("#t"), Value::Boolean(true));
-    environment.set(interner.intern("#f"), Value::Boolean(false));
 }
 
 fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
