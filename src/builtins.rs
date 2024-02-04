@@ -1,3 +1,5 @@
+use std::f64::INFINITY;
+
 use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
@@ -30,12 +32,15 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
 }
 
 fn less_than(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 2 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    let mut latest: f64 = -INFINITY;
+    for expr in ctx.operands.iter() {
+        let number = ctx.interpreter.expect_number(expr)?;
+        if number <= latest {
+            return Ok(Value::Boolean(false).into());
+        }
+        latest = number;
     }
-    let first = ctx.interpreter.expect_number(&ctx.operands[0])?;
-    let second = ctx.interpreter.expect_number(&ctx.operands[1])?;
-    Ok(Value::Boolean(first < second).into())
+    Ok(Value::Boolean(true).into())
 }
 
 fn add(ctx: ProcedureContext) -> ProcedureResult {

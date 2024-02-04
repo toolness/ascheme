@@ -327,10 +327,14 @@ mod tests {
     }
 
     #[test]
-    fn ord_ops_work() {
+    fn less_than_works() {
+        test_eval_success("(<)", "#t");
+        test_eval_success("(< 1)", "#t");
         test_eval_success("(< 1 0)", "#f");
         test_eval_success("(< 0 1)", "#t");
         test_eval_success("(< 1 1)", "#f");
+        test_eval_success("(< 0 1 2)", "#t");
+        test_eval_success("(< 0 1 2 3 1)", "#f");
     }
 
     #[test]
