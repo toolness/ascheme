@@ -3,8 +3,7 @@ use std::rc::Rc;
 use crate::{
     environment::CapturedLexicalScope,
     interpreter::{
-        Interpreter, ProcedureContext, ProcedureResult, ProcedureSuccess, RuntimeError,
-        RuntimeErrorType, Value,
+        Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType, Value,
     },
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
@@ -101,14 +100,8 @@ impl BoundProcedure {
             interpreter.eval_expressions(&body[0..body.len() - 1])?;
         }
 
-        let result: ProcedureSuccess;
-
         let last_expression = &body[body.len() - 1];
-        if let Some(tail_call_context) = interpreter.try_bind_tail_call_context(last_expression)? {
-            result = ProcedureSuccess::TailCall(tail_call_context);
-        } else {
-            result = ProcedureSuccess::Value(interpreter.eval_expression(last_expression)?);
-        }
+        let result = interpreter.eval_expression_in_tail_context(last_expression)?;
 
         // Note that the environment won't have been popped if an error occured above--this is
         // so we can examine it afterwards, if needed. It's up to the caller to clean things

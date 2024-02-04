@@ -151,7 +151,7 @@ impl Interpreter {
         Ok(result)
     }
 
-    pub fn try_bind_tail_call_context(
+    fn try_bind_tail_call_context(
         &mut self,
         expression: &Expression,
     ) -> Result<Option<TailCallContext>, RuntimeError> {
@@ -184,6 +184,14 @@ impl Interpreter {
                 }
             }
             _ => Ok(None),
+        }
+    }
+
+    pub fn eval_expression_in_tail_context(&mut self, expression: &Expression) -> ProcedureResult {
+        if let Some(tail_call_context) = self.try_bind_tail_call_context(expression)? {
+            Ok(ProcedureSuccess::TailCall(tail_call_context))
+        } else {
+            Ok(ProcedureSuccess::Value(self.eval_expression(expression)?))
         }
     }
 
@@ -343,6 +351,16 @@ mod tests {
         test_eval_success("(< 1 1)", "#f");
         test_eval_success("(< 0 1 2)", "#t");
         test_eval_success("(< 0 1 2 3 1)", "#f");
+    }
+
+    #[test]
+    fn if_works() {
+        test_eval_success("(if #t 1)", "1");
+        test_eval_success("(if #t 1 2)", "1");
+        test_eval_success("(if #f 1 2)", "2");
+
+        // R5RS section 4.1.5 says this behavior is unspecified, we'll just return undefined.
+        test_eval_success("(if #f 1)", "");
     }
 
     #[test]

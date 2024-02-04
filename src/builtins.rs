@@ -31,6 +31,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("<", less_than),
         ("define", define),
         ("lambda", lambda),
+        ("if", _if),
     ]
 }
 
@@ -67,6 +68,25 @@ fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
         result *= number
     }
     Ok(Value::Number(result).into())
+}
+
+fn _if(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() < 2 || ctx.operands.len() > 3 {
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+    }
+    let test = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    if test == Value::Boolean(false) {
+        if let Some(alternate_expr) = ctx.operands.get(2) {
+            ctx.interpreter
+                .eval_expression_in_tail_context(alternate_expr)
+        } else {
+            Ok(Value::Undefined.into())
+        }
+    } else {
+        let consequent_expr = &ctx.operands[1];
+        ctx.interpreter
+            .eval_expression_in_tail_context(consequent_expr)
+    }
 }
 
 fn define(ctx: ProcedureContext) -> ProcedureResult {
