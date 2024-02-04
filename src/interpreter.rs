@@ -165,19 +165,19 @@ impl Interpreter {
                 let procedure = self.expect_procedure(operator)?;
                 let combination = SourceMapped(expressions, expression.1);
                 let operands = &expressions[1..];
-                if self.tracing {
-                    println!(
-                        "Creating tail call context {}",
-                        self.source_mapper.trace(&combination.1).join("\n")
-                    );
-                }
-                let mut ctx = ProcedureContext {
-                    interpreter: self,
-                    combination,
-                    operands,
-                };
                 match procedure {
                     Procedure::Compound(compound) => {
+                        if self.tracing {
+                            println!(
+                                "Creating tail call context {}",
+                                self.source_mapper.trace(&combination.1).join("\n")
+                            );
+                        }
+                        let mut ctx = ProcedureContext {
+                            interpreter: self,
+                            combination,
+                            operands,
+                        };
                         let bound_procedure = compound.bind(&mut ctx)?;
                         Ok(Some(TailCallContext { bound_procedure }))
                     }
