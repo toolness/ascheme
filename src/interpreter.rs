@@ -238,7 +238,8 @@ impl Interpreter {
             return "".to_string();
         }
 
-        let mut lines = vec!["Traceback (most recent call last):".to_string()];
+        let mut lines =
+            vec!["Traceback (excluding tail calls, most recent call last):".to_string()];
 
         for source_range in self.stack.iter() {
             if let Some(trace) = self.source_mapper.trace(source_range) {
