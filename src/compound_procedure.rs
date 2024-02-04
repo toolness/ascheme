@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::{
     environment::CapturedLexicalScope,
     interpreter::{
-        Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType, Value,
+        Interpreter, ProcedureContext, ProcedureSuccess, RuntimeError, RuntimeErrorType, Value,
     },
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
@@ -40,7 +40,7 @@ impl CompoundProcedure {
         })
     }
 
-    pub fn call(self, mut ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
+    pub fn call(self, mut ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
         let bound_procedure = self.bind(&mut ctx)?;
         bound_procedure.call(&mut ctx.interpreter)
     }
@@ -81,7 +81,7 @@ pub struct BoundProcedure {
 }
 
 impl BoundProcedure {
-    pub fn call(self, interpreter: &mut Interpreter) -> Result<ProcedureResult, RuntimeError> {
+    pub fn call(self, interpreter: &mut Interpreter) -> Result<ProcedureSuccess, RuntimeError> {
         interpreter.environment.push(
             self.procedure.captured_lexical_scope.clone(),
             self.procedure.signature.1,
@@ -100,13 +100,13 @@ impl BoundProcedure {
             interpreter.eval_expressions(&body[0..body.len() - 1])?;
         }
 
-        let result: ProcedureResult;
+        let result: ProcedureSuccess;
 
         let last_expression = &body[body.len() - 1];
         if let Some(tail_call_context) = interpreter.try_bind_tail_call_context(last_expression)? {
-            result = ProcedureResult::TailCall(tail_call_context);
+            result = ProcedureSuccess::TailCall(tail_call_context);
         } else {
-            result = ProcedureResult::Value(interpreter.eval_expression(last_expression)?);
+            result = ProcedureSuccess::Value(interpreter.eval_expression(last_expression)?);
         }
 
         // Note that the environment won't have been popped if an error occured above--this is

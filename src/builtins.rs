@@ -2,7 +2,7 @@ use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
     interpreter::{
-        Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
+        Procedure, ProcedureContext, ProcedureFn, ProcedureSuccess, RuntimeError, RuntimeErrorType,
         Value,
     },
     parser::ExpressionValue,
@@ -29,7 +29,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     ]
 }
 
-fn add(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
+fn add(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     let mut result = 0.0;
     for expr in ctx.operands.iter() {
         let number = ctx.interpreter.expect_number(expr)?;
@@ -38,7 +38,7 @@ fn add(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
     Ok(Value::Number(result).into())
 }
 
-fn multiply(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
+fn multiply(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     let mut result = 1.0;
     for expr in ctx.operands.iter() {
         let number = ctx.interpreter.expect_number(expr)?;
@@ -47,7 +47,7 @@ fn multiply(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
     Ok(Value::Number(result).into())
 }
 
-fn define(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
+fn define(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
@@ -81,7 +81,7 @@ fn define(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
     }
 }
 
-fn lambda(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
+fn lambda(ctx: ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
             let signature = SourceMapped(expressions.clone(), *range);

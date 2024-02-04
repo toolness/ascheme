@@ -63,20 +63,20 @@ pub enum Procedure {
     Compound(CompoundProcedure),
 }
 
-pub type ProcedureFn = fn(ProcedureContext) -> Result<ProcedureResult, RuntimeError>;
+pub type ProcedureFn = fn(ProcedureContext) -> Result<ProcedureSuccess, RuntimeError>;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
 }
 
-pub enum ProcedureResult {
+pub enum ProcedureSuccess {
     Value(Value),
     TailCall(TailCallContext),
 }
 
-impl From<Value> for ProcedureResult {
+impl From<Value> for ProcedureSuccess {
     fn from(value: Value) -> Self {
-        ProcedureResult::Value(value)
+        ProcedureSuccess::Value(value)
     }
 }
 
@@ -125,7 +125,7 @@ impl Interpreter {
         combination: SourceMapped<&Rc<Vec<Expression>>>,
         operands: &[Expression],
         source_range: SourceRange,
-    ) -> Result<ProcedureResult, RuntimeError> {
+    ) -> Result<ProcedureSuccess, RuntimeError> {
         if self.stack.len() >= MAX_STACK_SIZE {
             return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
         }
@@ -209,8 +209,8 @@ impl Interpreter {
                     self.eval_procedure(procedure, combination, operands, operator.1)?;
                 loop {
                     match result {
-                        ProcedureResult::Value(value) => return Ok(value),
-                        ProcedureResult::TailCall(tail_call_context) => {
+                        ProcedureSuccess::Value(value) => return Ok(value),
+                        ProcedureSuccess::TailCall(tail_call_context) => {
                             result = tail_call_context.bound_procedure.call(self)?;
                         }
                     }
