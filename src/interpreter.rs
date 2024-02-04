@@ -63,7 +63,7 @@ pub enum Procedure {
     Compound(CompoundProcedure),
 }
 
-pub type ProcedureFn = fn(ProcedureContext) -> Result<Value, RuntimeError>;
+pub type ProcedureFn = fn(ProcedureContext) -> Result<ProcedureResult, RuntimeError>;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
@@ -72,6 +72,12 @@ pub struct TailCallContext {
 pub enum ProcedureResult {
     Value(Value),
     TailCall(TailCallContext),
+}
+
+impl From<Value> for ProcedureResult {
+    fn from(value: Value) -> Self {
+        ProcedureResult::Value(value)
+    }
 }
 
 pub struct Interpreter {
@@ -130,7 +136,7 @@ impl Interpreter {
             operands,
         };
         let result = match procedure {
-            Procedure::Builtin(builtin, _name) => ProcedureResult::Value(builtin(ctx)?),
+            Procedure::Builtin(builtin, _name) => builtin(ctx)?,
             Procedure::Compound(compound) => compound.call(ctx)?,
         };
         // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace

@@ -2,7 +2,8 @@ use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
     interpreter::{
-        Procedure, ProcedureContext, ProcedureFn, RuntimeError, RuntimeErrorType, Value,
+        Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
+        Value,
     },
     parser::ExpressionValue,
     source_mapped::{SourceMappable, SourceMapped},
@@ -28,25 +29,25 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     ]
 }
 
-fn add(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+fn add(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
     let mut result = 0.0;
     for expr in ctx.operands.iter() {
         let number = ctx.interpreter.expect_number(expr)?;
         result += number
     }
-    Ok(Value::Number(result))
+    Ok(Value::Number(result).into())
 }
 
-fn multiply(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+fn multiply(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
     let mut result = 1.0;
     for expr in ctx.operands.iter() {
         let number = ctx.interpreter.expect_number(expr)?;
         result *= number
     }
-    Ok(Value::Number(result))
+    Ok(Value::Number(result).into())
 }
 
-fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+fn define(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
@@ -56,7 +57,7 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
                 }
             }
             ctx.interpreter.environment.set(name.clone(), value);
-            Ok(Value::Undefined)
+            Ok(Value::Undefined.into())
         }
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
             let signature = SourceMapped(expressions.clone(), *range);
@@ -74,13 +75,13 @@ fn define(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
             ctx.interpreter
                 .environment
                 .set(name, Value::Procedure(Procedure::Compound(proc)));
-            Ok(Value::Undefined)
+            Ok(Value::Undefined.into())
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
     }
 }
 
-fn lambda(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
+fn lambda(ctx: ProcedureContext) -> Result<ProcedureResult, RuntimeError> {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
             let signature = SourceMapped(expressions.clone(), *range);
@@ -90,7 +91,7 @@ fn lambda(ctx: ProcedureContext) -> Result<Value, RuntimeError> {
                 SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
                 ctx.interpreter.environment.capture_lexical_scope(),
             )?;
-            Ok(Value::Procedure(Procedure::Compound(proc)))
+            Ok(Value::Procedure(Procedure::Compound(proc)).into())
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
     }
