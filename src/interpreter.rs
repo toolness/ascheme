@@ -166,9 +166,10 @@ impl Interpreter {
                 let combination = SourceMapped(expressions, expression.1);
                 let operands = &expressions[1..];
                 if self.tracing {
-                    if let Some(lines) = self.source_mapper.trace(&combination.1) {
-                        println!("Creating tail call context {}", lines.join("\n"));
-                    }
+                    println!(
+                        "Creating tail call context {}",
+                        self.source_mapper.trace(&combination.1).join("\n")
+                    );
                 }
                 let mut ctx = ProcedureContext {
                     interpreter: self,
@@ -214,9 +215,10 @@ impl Interpreter {
                 let combination = SourceMapped(expressions, expression.1);
                 let operands = &expressions[1..];
                 if self.tracing {
-                    if let Some(lines) = self.source_mapper.trace(&combination.1) {
-                        println!("Evaluating {}", lines.join("\n"));
-                    }
+                    println!(
+                        "Evaluating {}",
+                        self.source_mapper.trace(&combination.1).join("\n")
+                    );
                 }
                 let mut result =
                     self.eval_procedure(procedure, combination, operands, operator.1)?;
@@ -277,13 +279,9 @@ impl Interpreter {
             vec!["Traceback (excluding tail calls, most recent call last):".to_string()];
 
         for source_range in self.stack.iter() {
-            if let Some(trace) = self.source_mapper.trace(source_range) {
-                for line in trace {
-                    lines.push(format!("  {}", line));
-                }
-            } else {
-                lines.push("  <Unknown>".into());
-            };
+            for line in self.source_mapper.trace(source_range) {
+                lines.push(format!("  {}", line));
+            }
         }
 
         lines.join("\n")

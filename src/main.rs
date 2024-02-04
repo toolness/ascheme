@@ -37,11 +37,11 @@ fn main() {
     match interpreter.evaluate(source_id) {
         Ok(value) => println!("{:?}", value),
         Err(err) => {
-            if let Some(trace) = interpreter.source_mapper.trace(&err.1) {
-                println!("Error: {:?} in {}", err.0, trace.join("\n"));
-            } else {
-                println!("Error: {:?}", err.0);
-            }
+            println!(
+                "Error: {:?} in {}",
+                err.0,
+                interpreter.source_mapper.trace(&err.1).join("\n")
+            );
             println!("{}", interpreter.traceback());
             process::exit(1)
         }

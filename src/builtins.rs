@@ -141,11 +141,13 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
-    if let Some(trace) = ctx.interpreter.source_mapper.trace(&ctx.combination.1) {
-        println!("Rust backtrace at {}", trace.join("\n"));
-    } else {
-        println!("Rust backtrace");
-    }
+    println!(
+        "Rust backtrace at {}",
+        ctx.interpreter
+            .source_mapper
+            .trace(&ctx.combination.1)
+            .join("\n")
+    );
     println!("{}", Backtrace::force_capture());
     ctx.interpreter
         .eval_expressions_in_tail_context(ctx.operands)

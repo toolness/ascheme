@@ -91,11 +91,11 @@ impl SourceMapper {
         MappedLine::from_source(filename, contents, start, end)
     }
 
-    pub fn trace(&self, source_range: &SourceRange) -> Option<Vec<String>> {
+    pub fn trace(&self, source_range: &SourceRange) -> Vec<String> {
         if let Some(first_line) = self.get_first_line(source_range) {
-            Some(first_line.trace())
+            first_line.trace()
         } else {
-            None
+            vec!["<Unknown>".to_string()]
         }
     }
 }
