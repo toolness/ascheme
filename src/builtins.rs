@@ -1,4 +1,4 @@
-use std::f64::INFINITY;
+use std::{backtrace::Backtrace, f64::INFINITY};
 
 use crate::{
     compound_procedure::CompoundProcedure,
@@ -32,6 +32,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("define", define),
         ("lambda", lambda),
         ("if", _if),
+        ("rust-backtrace", rust_backtrace),
     ]
 }
 
@@ -137,4 +138,15 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
     }
+}
+
+fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
+    if let Some(trace) = ctx.interpreter.source_mapper.trace(&ctx.combination.1) {
+        println!("Rust backtrace at {}", trace.join("\n"));
+    } else {
+        println!("Rust backtrace");
+    }
+    println!("{}", Backtrace::force_capture());
+    ctx.interpreter
+        .eval_expressions_in_tail_context(ctx.operands)
 }
