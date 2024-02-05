@@ -119,7 +119,7 @@ fn main() {
                 let _ = rl.add_history_entry(line.as_str());
 
                 i += 1;
-                let filename = format!("<Input#${i}>");
+                let filename = format!("<Input#{i}>");
                 let source_id = interpreter.source_mapper.add(filename, line);
                 evaluate(&mut interpreter, source_id);
             }
