@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::mpsc::Receiver};
 
 use crate::{
     builtins,
@@ -23,6 +23,7 @@ pub enum RuntimeErrorType {
     ExpectedIdentifier,
     WrongNumberOfArguments,
     StackOverflow,
+    KeyboardInterrupt,
     // Unimplemented(&'static str),
 }
 
@@ -116,6 +117,7 @@ pub struct Interpreter {
     pub source_mapper: SourceMapper,
     pub tracing: bool,
     pub max_stack_size: usize,
+    pub keyboard_interrupt_channel: Option<Receiver<()>>,
     stack: Vec<SourceRange>,
 }
 
@@ -131,6 +133,7 @@ impl Interpreter {
             source_mapper,
             tracing: false,
             max_stack_size: DEFAULT_MAX_STACK_SIZE,
+            keyboard_interrupt_channel: None,
             stack: vec![],
         }
     }
@@ -256,6 +259,11 @@ impl Interpreter {
     pub fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
         let mut result = self.lazy_eval_expression(expression)?;
         loop {
+            if let Some(channel) = &self.keyboard_interrupt_channel {
+                if channel.try_recv().is_ok() {
+                    return Err(RuntimeErrorType::KeyboardInterrupt.source_mapped(expression.1));
+                }
+            }
             match result {
                 ProcedureSuccess::Value(value) => return Ok(value),
                 ProcedureSuccess::TailCall(tail_call_context) => {

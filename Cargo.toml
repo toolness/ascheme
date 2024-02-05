@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.12", features = ["derive"] }
+ctrlc = "3.4.2"
 rustyline = { version = "13.0.0", features = ["derive"] }

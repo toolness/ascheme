@@ -1,6 +1,8 @@
+use std::sync::mpsc::channel;
 use std::{fs::read_to_string, process};
 
 use clap::Parser;
+use ctrlc;
 use parser::{parse, ParseErrorType};
 use rustyline::{Completer, Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
@@ -79,9 +81,14 @@ fn evaluate(interpreter: &mut Interpreter, source_id: SourceId) -> bool {
 
 fn main() {
     let args = CliArgs::parse();
+    let (tx, rx) = channel();
+
+    ctrlc::set_handler(move || tx.send(()).expect("Count not send signal on channel."))
+        .expect("Error setting Ctrl-C handler.");
 
     let mut interpreter = Interpreter::new();
     interpreter.tracing = args.tracing;
+    interpreter.keyboard_interrupt_channel = Some(rx);
 
     if let Some(filename) = args.source_filename {
         let contents = read_to_string(&filename).unwrap();
