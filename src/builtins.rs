@@ -107,6 +107,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
             };
             let name = first.expect_identifier()?;
             let mut proc = CompoundProcedure::create(
+                ctx.interpreter.new_id(),
                 signature,
                 1,
                 SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
@@ -127,6 +128,7 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
         Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
             let signature = SourceMapped(expressions.clone(), *range);
             let proc = CompoundProcedure::create(
+                ctx.interpreter.new_id(),
                 signature,
                 0,
                 SourceMapped(ctx.combination.0.clone(), ctx.combination.1),

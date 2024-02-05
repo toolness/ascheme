@@ -79,11 +79,12 @@ impl Display for Value {
             }
             Value::Procedure(Procedure::Compound(compound)) => write!(
                 f,
-                "#<procedure {}>",
+                "#<procedure{} #{}>",
                 match &compound.name {
-                    Some(name) => format!("{}", name.as_ref()),
-                    None => format!("(anonymous)"),
-                }
+                    Some(name) => format!(" {}", name.as_ref()),
+                    None => format!(""),
+                },
+                compound.id()
             ),
         }
     }
@@ -139,6 +140,7 @@ pub struct Interpreter {
     pub tracing: bool,
     pub max_stack_size: usize,
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
+    next_id: u32,
     stack: Vec<SourceRange>,
 }
 
@@ -155,8 +157,15 @@ impl Interpreter {
             tracing: false,
             max_stack_size: DEFAULT_MAX_STACK_SIZE,
             keyboard_interrupt_channel: None,
+            next_id: 1,
             stack: vec![],
         }
+    }
+
+    pub fn new_id(&mut self) -> u32 {
+        let id = self.next_id;
+        self.next_id += 1;
+        id
     }
 
     pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {

@@ -15,6 +15,7 @@ type CombinationBody = Vec<Expression>;
 #[derive(Debug, Clone)]
 pub struct CompoundProcedure {
     pub name: Option<InternedString>,
+    id: u32,
     // This isn't technically needed, since the signature is the second element of the definition.
     signature: SourceMapped<Rc<CombinationBody>>,
     signature_first_arg_index: usize,
@@ -24,6 +25,7 @@ pub struct CompoundProcedure {
 
 impl CompoundProcedure {
     pub fn create(
+        id: u32,
         signature: SourceMapped<Rc<CombinationBody>>,
         signature_first_arg_index: usize,
         definition: SourceMapped<Rc<CombinationBody>>,
@@ -33,11 +35,16 @@ impl CompoundProcedure {
         get_body(&definition)?;
         Ok(CompoundProcedure {
             name: None,
+            id,
             signature,
             signature_first_arg_index,
             definition,
             captured_lexical_scope,
         })
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
     }
 
     pub fn call(self, mut ctx: ProcedureContext) -> ProcedureResult {
