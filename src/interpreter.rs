@@ -295,6 +295,8 @@ impl Interpreter {
     }
 
     pub fn evaluate(&mut self, source_id: SourceId) -> Result<Value, RuntimeError> {
+        self.stack.clear();
+        self.environment.clear_lexical_scopes();
         match self.parse(source_id) {
             Ok(expressions) => self.eval_expressions(&expressions),
             Err(err) => Err(err.into()),

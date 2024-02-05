@@ -35,6 +35,10 @@ pub struct Environment {
 }
 
 impl Environment {
+    pub fn clear_lexical_scopes(&mut self) {
+        self.lexical_scopes.clear();
+    }
+
     pub fn capture_lexical_scope(&self) -> CapturedLexicalScope {
         CapturedLexicalScope(self.lexical_scopes.last().cloned())
     }
