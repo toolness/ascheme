@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::mpsc::Receiver};
+use std::{fmt::Display, rc::Rc, sync::mpsc::Receiver};
 
 use crate::{
     builtins,
@@ -64,6 +64,27 @@ impl Value {
         match self {
             Value::Boolean(false) => false,
             _ => true,
+        }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Undefined => write!(f, ""),
+            Value::Number(value) => write!(f, "{}", value),
+            Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),
+            Value::Procedure(Procedure::Builtin(_, name)) => {
+                write!(f, "#<builtin procedure {}>", name.as_ref())
+            }
+            Value::Procedure(Procedure::Compound(compound)) => write!(
+                f,
+                "#<procedure {}>",
+                match &compound.name {
+                    Some(name) => format!("{}", name.as_ref()),
+                    None => format!("(anonymous)"),
+                }
+            ),
         }
     }
 }

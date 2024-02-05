@@ -3,6 +3,7 @@ use std::{fs::read_to_string, process};
 
 use clap::Parser;
 use ctrlc;
+use interpreter::Value;
 use parser::{parse, ParseErrorType};
 use rustyline::{Completer, Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
@@ -64,7 +65,9 @@ impl Validator for SchemeInputValidator {
 fn evaluate(interpreter: &mut Interpreter, source_id: SourceId) -> bool {
     match interpreter.evaluate(source_id) {
         Ok(value) => {
-            println!("{:?}", value);
+            if value != Value::Undefined {
+                println!("{}", value);
+            }
             true
         }
         Err(err) => {
