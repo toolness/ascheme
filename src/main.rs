@@ -1,11 +1,15 @@
 use std::{fs::read_to_string, process};
 
 use clap::Parser;
+use parser::{parse, ParseErrorType};
+use rustyline::{Completer, Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
+use string_interner::StringInterner;
 
 use crate::interpreter::Interpreter;
 
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::error::ReadlineError;
+use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 
 mod builtins;
 mod compound_procedure;
@@ -32,6 +36,26 @@ pub struct CliArgs {
     /// Continue in interactive mode after executing source file.
     #[arg(short, long)]
     pub interactive: bool,
+}
+
+#[derive(Completer, Helper, Highlighter, Hinter)]
+struct SchemeInputValidator();
+
+impl Validator for SchemeInputValidator {
+    fn validate(&self, ctx: &mut ValidationContext<'_>) -> rustyline::Result<ValidationResult> {
+        let input = ctx.input();
+        let mut interner = StringInterner::default();
+        let Err(err) = parse(input, &mut interner, None) else {
+            return Ok(ValidationResult::Valid(None));
+        };
+
+        match err.0 {
+            ParseErrorType::MissingRightParen => Ok(ValidationResult::Incomplete),
+            // There's an error, but the interpreter will show it to the user--we just want to let
+            // rustyline know whether to let the user continue typing.
+            _ => Ok(ValidationResult::Valid(None)),
+        }
+    }
 }
 
 /// Returns true on success, false on failure.
@@ -68,10 +92,12 @@ fn main() {
         }
     }
 
-    let Ok(mut rl) = DefaultEditor::new() else {
+    let Ok(mut rl) = Editor::new() else {
         eprintln!("Initializing DefaultEditor failed!");
         process::exit(1);
     };
+
+    rl.set_helper(Some(SchemeInputValidator()));
 
     // Note that we're ignoring the result here, which is generally OK--if it
     // errors, it's probably because the file doesn't exist, and even then
