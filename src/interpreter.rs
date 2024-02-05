@@ -352,7 +352,7 @@ impl Interpreter {
 
 #[cfg(test)]
 mod tests {
-    use crate::interpreter::{Interpreter, Value};
+    use crate::interpreter::Interpreter;
 
     fn test_eval_success(code: &'static str, expected_value: &'static str) {
         let mut interpreter = Interpreter::new();
@@ -361,15 +361,11 @@ mod tests {
             .add("<String>".into(), code.into());
         match interpreter.evaluate(source_id) {
             Ok(value) => {
-                let string = match value {
-                    Value::Undefined => "".to_string(),
-                    Value::Number(num) => num.to_string(),
-                    Value::Boolean(bool) => (if bool { "#t" } else { "#f" }).to_string(),
-                    Value::Procedure(_) => {
-                        unimplemented!("Converting procedure to string is unimplemented")
-                    }
-                };
-                assert_eq!(string.as_str(), expected_value, "Evaluating code '{code}'");
+                assert_eq!(
+                    value.to_string(),
+                    expected_value,
+                    "Evaluating code '{code}'"
+                );
             }
             Err(err) => {
                 panic!("Evaluating code '{code}' raised error {err:?}");
