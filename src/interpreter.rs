@@ -57,8 +57,10 @@ impl<T: Into<Value>> From<T> for SourceValue {
 pub enum Value {
     Undefined,
     Number(f64),
+    Symbol(InternedString),
     Boolean(bool),
     Procedure(Procedure),
+    List(Rc<Vec<SourceValue>>),
 }
 
 impl Value {
@@ -81,6 +83,18 @@ impl Display for Value {
         match self {
             Value::Undefined => write!(f, ""),
             Value::Number(value) => write!(f, "{}", value),
+            Value::Symbol(name) => write!(f, "{}", name),
+            Value::List(items) => {
+                write!(f, "(")?;
+                let len = items.len();
+                for (i, item) in items.iter().enumerate() {
+                    write!(f, "{}", item)?;
+                    if i < len - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, ")")
+            }
             Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),
             Value::Procedure(Procedure::Builtin(_, name)) => {
                 write!(f, "#<builtin procedure {}>", name.as_ref())

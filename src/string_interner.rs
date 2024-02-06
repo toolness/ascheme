@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 use core::hash::Hash;
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, fmt::Display, rc::Rc};
 
 // The first u32 is really the most important information here,
 // the Rc<String> is essentially denormalized data that's packaged
@@ -34,6 +34,12 @@ impl Hash for InternedString {
 impl Debug for InternedString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?} (#{})", self.1.as_str(), self.0)
+    }
+}
+
+impl Display for InternedString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.1)
     }
 }
 

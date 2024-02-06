@@ -52,3 +52,12 @@ impl<T: Display> Display for SourceMapped<T> {
         self.0.fmt(f)
     }
 }
+
+impl<T: PartialEq> PartialEq for SourceMapped<T> {
+    fn eq(&self, other: &Self) -> bool {
+        // Note that we are ignoring the actual source mapping here! It's
+        // just used for debugging and isn't relevant to our concept of
+        // equality.
+        self.0 == other.0
+    }
+}
