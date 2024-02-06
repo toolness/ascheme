@@ -68,7 +68,7 @@ impl Validator for SchemeInputValidator {
 fn evaluate(interpreter: &mut Interpreter, source_id: SourceId) -> bool {
     match interpreter.evaluate(source_id) {
         Ok(value) => {
-            if value != Value::Undefined {
+            if value.0 != Value::Undefined {
                 println!("{}", value);
             }
             true

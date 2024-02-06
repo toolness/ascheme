@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::source_mapper::SourceId;
 
 pub type SourceRange = (usize, usize, Option<SourceId>);
@@ -42,5 +44,11 @@ impl<T: Sized> SourceMappable for T {}
 impl<T: Clone> Clone for SourceMapped<T> {
     fn clone(&self) -> Self {
         Self(self.0.clone(), self.1.clone())
+    }
+}
+
+impl<T: Display> Display for SourceMapped<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }

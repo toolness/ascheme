@@ -17,7 +17,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
         let interned_name = interner.intern(name);
         environment.set(
             interned_name.clone(),
-            Value::Procedure(Procedure::Builtin(builtin, interned_name)),
+            Value::Procedure(Procedure::Builtin(builtin, interned_name)).into(),
         );
     }
 }
@@ -89,7 +89,7 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() < 2 || ctx.operands.len() > 3 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
     }
-    let test = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    let test = ctx.interpreter.eval_expression(&ctx.operands[0])?.0;
     if test.as_bool() {
         let consequent_expr = &ctx.operands[1];
         ctx.interpreter
@@ -108,7 +108,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
     match ctx.operands.get(0) {
         Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
-            if let Value::Procedure(Procedure::Compound(compound)) = &mut value {
+            if let Value::Procedure(Procedure::Compound(compound)) = &mut value.0 {
                 if compound.name.is_none() {
                     compound.name = Some(name.clone());
                 }
@@ -130,9 +130,10 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
                 ctx.interpreter.environment.capture_lexical_scope(),
             )?;
             proc.name = Some(name.clone());
-            ctx.interpreter
-                .environment
-                .set(name, Value::Procedure(Procedure::Compound(proc)));
+            ctx.interpreter.environment.set(
+                name,
+                Value::Procedure(Procedure::Compound(proc)).source_mapped(*range),
+            );
             Ok(Value::Undefined.into())
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),

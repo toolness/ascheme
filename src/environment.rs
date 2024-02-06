@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    interpreter::Value,
+    interpreter::SourceValue,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
 };
@@ -9,11 +9,11 @@ use crate::{
 #[derive(Default, Clone, Debug)]
 struct Scope {
     parent: Option<Rc<SourceMapped<Scope>>>,
-    bindings: Rc<RefCell<HashMap<InternedString, Value>>>,
+    bindings: Rc<RefCell<HashMap<InternedString, SourceValue>>>,
 }
 
 impl Scope {
-    fn get(&self, identifier: &InternedString) -> Option<Value> {
+    fn get(&self, identifier: &InternedString) -> Option<SourceValue> {
         if let Some(value) = self.bindings.borrow().get(identifier) {
             Some(value.clone())
         } else {
@@ -54,7 +54,7 @@ impl Environment {
         self.lexical_scopes.pop();
     }
 
-    pub fn get(&self, identifier: &InternedString) -> Option<Value> {
+    pub fn get(&self, identifier: &InternedString) -> Option<SourceValue> {
         if let Some(scope) = self.lexical_scopes.last() {
             if let Some(value) = scope.0.get(identifier) {
                 return Some(value);
@@ -63,7 +63,7 @@ impl Environment {
         self.globals.get(identifier)
     }
 
-    pub fn set(&mut self, identifier: InternedString, value: Value) {
+    pub fn set(&mut self, identifier: InternedString, value: SourceValue) {
         if let Some(scope) = self.lexical_scopes.last_mut() {
             scope.0.bindings.borrow_mut().insert(identifier, value);
         } else {

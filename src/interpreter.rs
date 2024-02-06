@@ -45,6 +45,14 @@ impl SourceMapped<ExpressionValue> {
     }
 }
 
+pub type SourceValue = SourceMapped<Value>;
+
+impl<T: Into<Value>> From<T> for SourceValue {
+    fn from(value: T) -> Self {
+        value.into().empty_source_map()
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Undefined,
@@ -102,7 +110,7 @@ impl From<f64> for Value {
     }
 }
 
-impl<T: Into<Value>> From<T> for ProcedureSuccess {
+impl<T: Into<SourceValue>> From<T> for ProcedureSuccess {
     fn from(value: T) -> Self {
         ProcedureSuccess::Value(value.into())
     }
@@ -129,7 +137,7 @@ pub struct TailCallContext {
 }
 
 pub enum ProcedureSuccess {
-    Value(Value),
+    Value(SourceValue),
     TailCall(TailCallContext),
 }
 
@@ -169,7 +177,7 @@ impl Interpreter {
     }
 
     pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
-        if let Value::Number(number) = self.eval_expression(&expression)? {
+        if let Value::Number(number) = self.eval_expression(&expression)?.0 {
             Ok(number)
         } else {
             Err(RuntimeErrorType::ExpectedNumber.source_mapped(expression.1))
@@ -177,7 +185,7 @@ impl Interpreter {
     }
 
     fn expect_procedure(&mut self, expression: &Expression) -> Result<Procedure, RuntimeError> {
-        if let Value::Procedure(procedure) = self.eval_expression(&expression)? {
+        if let Value::Procedure(procedure) = self.eval_expression(&expression)?.0 {
             Ok(procedure)
         } else {
             Err(RuntimeErrorType::ExpectedProcedure.source_mapped(expression.1))
@@ -286,7 +294,10 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_expression(&mut self, expression: &Expression) -> Result<Value, RuntimeError> {
+    pub fn eval_expression(
+        &mut self,
+        expression: &Expression,
+    ) -> Result<SourceValue, RuntimeError> {
         let mut result = self.lazy_eval_expression(expression)?;
         loop {
             if let Some(channel) = &self.keyboard_interrupt_channel {
@@ -319,8 +330,11 @@ impl Interpreter {
         self.eval_expression_in_tail_context(last_expression)
     }
 
-    pub fn eval_expressions(&mut self, expressions: &[Expression]) -> Result<Value, RuntimeError> {
-        let mut last_value: Value = Value::Undefined;
+    pub fn eval_expressions(
+        &mut self,
+        expressions: &[Expression],
+    ) -> Result<SourceValue, RuntimeError> {
+        let mut last_value: SourceValue = Value::Undefined.into();
         for expression in expressions {
             last_value = self.eval_expression(expression)?;
         }
@@ -332,7 +346,7 @@ impl Interpreter {
         parse(code, &mut self.string_interner, Some(source_id))
     }
 
-    pub fn evaluate(&mut self, source_id: SourceId) -> Result<Value, RuntimeError> {
+    pub fn evaluate(&mut self, source_id: SourceId) -> Result<SourceValue, RuntimeError> {
         self.stack.clear();
         self.environment.clear_lexical_scopes();
         match self.parse(source_id) {

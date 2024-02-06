@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::{
     environment::CapturedLexicalScope,
     interpreter::{
-        Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType, Value,
+        Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType, SourceValue,
     },
     parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
@@ -84,7 +84,7 @@ impl CompoundProcedure {
 
 pub struct BoundProcedure {
     procedure: CompoundProcedure,
-    operands: Vec<Value>,
+    operands: Vec<SourceValue>,
 }
 
 impl BoundProcedure {
