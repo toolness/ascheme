@@ -24,6 +24,9 @@ mod source_mapper;
 mod string_interner;
 mod tokenizer;
 
+#[cfg(test)]
+mod interpreter_tests;
+
 const HISTORY_FILENAME: &'static str = ".interpreter-history.txt";
 
 #[derive(Parser)]
