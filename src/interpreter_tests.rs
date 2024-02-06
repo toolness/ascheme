@@ -25,6 +25,12 @@ fn trivial_expressions_work() {
 }
 
 #[test]
+fn procedure_repr_works() {
+    test_eval_success("(define (boop) 1) boop", "#<procedure boop #1>");
+    test_eval_success("(lambda () 1)", "#<procedure #1>");
+}
+
+#[test]
 fn basic_arithmetic_works() {
     // This is how try.scheme.org works, at least.
     test_eval_success("(+)", "0");
