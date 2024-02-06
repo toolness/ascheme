@@ -27,6 +27,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("+", add),
         ("*", multiply),
         ("<", less_than),
+        ("=", numeric_eq),
         ("define", define),
         ("lambda", lambda),
         ("if", _if),
@@ -67,6 +68,21 @@ fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
         result *= number
     }
     Ok(result.into())
+}
+
+fn numeric_eq(mut ctx: ProcedureContext) -> ProcedureResult {
+    let numbers = number_args(&mut ctx)?;
+    if numbers.len() < 2 {
+        Ok(true.into())
+    } else {
+        let number = numbers[0];
+        for other_number in &numbers[1..] {
+            if *other_number != number {
+                return Ok(false.into());
+            }
+        }
+        Ok(true.into())
+    }
 }
 
 fn _if(ctx: ProcedureContext) -> ProcedureResult {

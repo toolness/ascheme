@@ -80,6 +80,16 @@ fn less_than_works() {
 }
 
 #[test]
+fn numeric_eq_works() {
+    test_eval_success("(=)", "#t");
+    test_eval_success("(= 1)", "#t");
+    test_eval_success("(= 1 0)", "#f");
+    test_eval_success("(= 1 1)", "#t");
+    test_eval_success("(= 1 1 1)", "#t");
+    test_eval_success("(= 1 2 3 4)", "#f");
+}
+
+#[test]
 fn if_works() {
     test_eval_success("(if #t 1)", "1");
     test_eval_success("(if #t 1 2)", "1");
