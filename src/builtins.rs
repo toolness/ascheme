@@ -5,10 +5,10 @@ use crate::{
     environment::Environment,
     interpreter::{
         Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
-        Value,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
+    value::Value,
 };
 
 pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {

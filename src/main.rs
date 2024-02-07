@@ -3,11 +3,11 @@ use std::{fs::read_to_string, process};
 
 use clap::Parser;
 use ctrlc;
-use interpreter::Value;
 use parser::{parse, ParseErrorType};
 use rustyline::{Completer, Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
 use string_interner::StringInterner;
+use value::Value;
 
 use crate::interpreter::Interpreter;
 
@@ -23,6 +23,7 @@ mod source_mapped;
 mod source_mapper;
 mod string_interner;
 mod tokenizer;
+mod value;
 
 #[cfg(test)]
 mod interpreter_tests;

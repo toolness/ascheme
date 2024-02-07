@@ -2,11 +2,10 @@ use std::rc::Rc;
 
 use crate::{
     environment::CapturedLexicalScope,
-    interpreter::{
-        Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType, SourceValue,
-    },
+    interpreter::{Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
+    value::SourceValue,
 };
 
 type CombinationBody = Vec<SourceValue>;

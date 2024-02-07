@@ -1,9 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    interpreter::SourceValue,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
+    value::SourceValue,
 };
 
 #[derive(Default, Clone, Debug)]

@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
 use crate::{
-    interpreter::{SourceValue, Value},
     source_mapped::{SourceMappable, SourceMapped},
     source_mapper::SourceId,
     string_interner::StringInterner,
     tokenizer::{Token, TokenType, TokenizeError, TokenizeErrorType, Tokenizer},
+    value::{SourceValue, Value},
 };
 
 #[derive(Debug)]
