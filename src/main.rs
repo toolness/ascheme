@@ -28,6 +28,9 @@ mod value;
 #[cfg(test)]
 mod interpreter_tests;
 
+#[cfg(test)]
+mod pair; // TODO: Move this out of [cfg(test)] once we start using it.
+
 const HISTORY_FILENAME: &'static str = ".interpreter-history.txt";
 
 #[derive(Parser)]
