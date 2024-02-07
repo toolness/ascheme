@@ -5,12 +5,11 @@ use crate::{
     interpreter::{
         Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType, SourceValue,
     },
-    parser::Expression,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
 };
 
-type CombinationBody = Vec<Expression>;
+type CombinationBody = Vec<SourceValue>;
 
 #[derive(Debug, Clone)]
 pub struct CompoundProcedure {
@@ -67,7 +66,7 @@ impl CompoundProcedure {
         })
     }
 
-    fn body(&self) -> &[Expression] {
+    fn body(&self) -> &[SourceValue] {
         // We're unwrapping these because we already validated them upon construction.
         get_body(&self.definition).unwrap()
     }
@@ -112,7 +111,9 @@ impl BoundProcedure {
     }
 }
 
-fn get_body(definition: &SourceMapped<Rc<CombinationBody>>) -> Result<&[Expression], RuntimeError> {
+fn get_body(
+    definition: &SourceMapped<Rc<CombinationBody>>,
+) -> Result<&[SourceValue], RuntimeError> {
     let body = &definition.0[2..];
     if body.is_empty() {
         Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(definition.1))

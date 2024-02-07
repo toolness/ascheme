@@ -4,7 +4,7 @@ use crate::{
     builtins,
     compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
-    parser::{parse, Expression, ExpressionValue, ParseError, ParseErrorType},
+    parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     source_mapper::{SourceId, SourceMapper},
     string_interner::{InternedString, StringInterner},
@@ -35,9 +35,9 @@ impl From<ParseError> for RuntimeError {
     }
 }
 
-impl SourceMapped<ExpressionValue> {
+impl SourceMapped<Value> {
     pub fn expect_identifier(&self) -> Result<InternedString, RuntimeError> {
-        if let ExpressionValue::Symbol(symbol) = &self.0 {
+        if let Value::Symbol(symbol) = &self.0 {
             Ok(symbol.clone())
         } else {
             Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(self.1))
@@ -132,8 +132,8 @@ impl<T: Into<SourceValue>> From<T> for ProcedureSuccess {
 
 pub struct ProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
-    pub combination: SourceMapped<&'a Rc<Vec<Expression>>>,
-    pub operands: &'a [Expression],
+    pub combination: SourceMapped<&'a Rc<Vec<SourceValue>>>,
+    pub operands: &'a [SourceValue],
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -190,7 +190,7 @@ impl Interpreter {
         id
     }
 
-    pub fn expect_number(&mut self, expression: &Expression) -> Result<f64, RuntimeError> {
+    pub fn expect_number(&mut self, expression: &SourceValue) -> Result<f64, RuntimeError> {
         if let Value::Number(number) = self.eval_expression(&expression)?.0 {
             Ok(number)
         } else {
@@ -198,7 +198,7 @@ impl Interpreter {
         }
     }
 
-    fn expect_procedure(&mut self, expression: &Expression) -> Result<Procedure, RuntimeError> {
+    fn expect_procedure(&mut self, expression: &SourceValue) -> Result<Procedure, RuntimeError> {
         if let Value::Procedure(procedure) = self.eval_expression(&expression)?.0 {
             Ok(procedure)
         } else {
@@ -209,8 +209,8 @@ impl Interpreter {
     fn eval_procedure(
         &mut self,
         procedure: Procedure,
-        combination: SourceMapped<&Rc<Vec<Expression>>>,
-        operands: &[Expression],
+        combination: SourceMapped<&Rc<Vec<SourceValue>>>,
+        operands: &[SourceValue],
         source_range: SourceRange,
     ) -> ProcedureResult {
         if self.stack.len() >= self.max_stack_size {
@@ -235,10 +235,10 @@ impl Interpreter {
 
     fn try_bind_tail_call_context(
         &mut self,
-        expression: &Expression,
+        expression: &SourceValue,
     ) -> Result<Option<TailCallContext>, RuntimeError> {
         match &expression.0 {
-            ExpressionValue::Combination(expressions) => {
+            Value::List(expressions) => {
                 // TODO: A lot of this is duplicated from eval_expression, it'd be nice to consolidate
                 // somehow.
                 let Some(operator) = expressions.get(0) else {
@@ -270,7 +270,7 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_expression_in_tail_context(&mut self, expression: &Expression) -> ProcedureResult {
+    pub fn eval_expression_in_tail_context(&mut self, expression: &SourceValue) -> ProcedureResult {
         if let Some(tail_call_context) = self.try_bind_tail_call_context(expression)? {
             Ok(ProcedureSuccess::TailCall(tail_call_context))
         } else {
@@ -278,11 +278,14 @@ impl Interpreter {
         }
     }
 
-    fn lazy_eval_expression(&mut self, expression: &Expression) -> ProcedureResult {
+    fn lazy_eval_expression(&mut self, expression: &SourceValue) -> ProcedureResult {
         match &expression.0 {
-            ExpressionValue::Number(number) => Ok(Value::Number(*number).into()),
-            ExpressionValue::Boolean(boolean) => Ok(Value::Boolean(*boolean).into()),
-            ExpressionValue::Symbol(identifier) => {
+            Value::Undefined | Value::Procedure(_) => {
+                Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1))
+            }
+            Value::Number(number) => Ok(Value::Number(*number).into()),
+            Value::Boolean(boolean) => Ok(Value::Boolean(*boolean).into()),
+            Value::Symbol(identifier) => {
                 if let Some(value) = self.environment.get(identifier) {
                     Ok(value.into())
                 } else {
@@ -290,7 +293,7 @@ impl Interpreter {
                         .source_mapped(expression.1))
                 }
             }
-            ExpressionValue::Combination(expressions) => {
+            Value::List(expressions) => {
                 let Some(operator) = expressions.get(0) else {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
@@ -310,7 +313,7 @@ impl Interpreter {
 
     pub fn eval_expression(
         &mut self,
-        expression: &Expression,
+        expression: &SourceValue,
     ) -> Result<SourceValue, RuntimeError> {
         let mut result = self.lazy_eval_expression(expression)?;
         loop {
@@ -330,7 +333,7 @@ impl Interpreter {
 
     pub fn eval_expressions_in_tail_context(
         &mut self,
-        expressions: &[Expression],
+        expressions: &[SourceValue],
     ) -> Result<ProcedureSuccess, RuntimeError> {
         if expressions.len() == 0 {
             return Ok(Value::Undefined.into());
@@ -346,7 +349,7 @@ impl Interpreter {
 
     pub fn eval_expressions(
         &mut self,
-        expressions: &[Expression],
+        expressions: &[SourceValue],
     ) -> Result<SourceValue, RuntimeError> {
         let mut last_value: SourceValue = Value::Undefined.into();
         for expression in expressions {
@@ -355,7 +358,7 @@ impl Interpreter {
         Ok(last_value)
     }
 
-    pub fn parse(&mut self, source_id: SourceId) -> Result<Vec<Expression>, ParseError> {
+    pub fn parse(&mut self, source_id: SourceId) -> Result<Vec<SourceValue>, ParseError> {
         let code = self.source_mapper.get_contents(source_id);
         parse(code, &mut self.string_interner, Some(source_id))
     }

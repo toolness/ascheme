@@ -7,7 +7,6 @@ use crate::{
         Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
         Value,
     },
-    parser::ExpressionValue,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
 };
@@ -106,7 +105,7 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
 
 fn define(ctx: ProcedureContext) -> ProcedureResult {
     match ctx.operands.get(0) {
-        Some(SourceMapped(ExpressionValue::Symbol(name), ..)) => {
+        Some(SourceMapped(Value::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
             if let Value::Procedure(Procedure::Compound(compound)) = &mut value.0 {
                 if compound.name.is_none() {
@@ -116,7 +115,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
             ctx.interpreter.environment.set(name.clone(), value);
             Ok(Value::Undefined.into())
         }
-        Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
+        Some(SourceMapped(Value::List(expressions), range)) => {
             let signature = SourceMapped(expressions.clone(), *range);
             let Some(first) = signature.0.get(0) else {
                 return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(signature.1));
@@ -142,7 +141,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
 
 fn lambda(ctx: ProcedureContext) -> ProcedureResult {
     match ctx.operands.get(0) {
-        Some(SourceMapped(ExpressionValue::Combination(expressions), range)) => {
+        Some(SourceMapped(Value::List(expressions), range)) => {
             let signature = SourceMapped(expressions.clone(), *range);
             let proc = CompoundProcedure::create(
                 ctx.interpreter.new_id(),
