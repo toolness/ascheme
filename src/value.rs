@@ -61,7 +61,7 @@ impl Display for Value {
                 for (i, item) in items.iter().enumerate() {
                     write!(f, "{}", item)?;
                     if i < len - 1 {
-                        write!(f, ", ")?;
+                        write!(f, " ")?;
                     }
                 }
                 write!(f, ")")

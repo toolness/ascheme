@@ -29,6 +29,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("=", numeric_eq),
         ("define", define),
         ("lambda", lambda),
+        ("quote", quote),
         ("if", _if),
         ("rust-backtrace", rust_backtrace),
     ]
@@ -153,6 +154,14 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
             Ok(Value::Procedure(Procedure::Compound(proc)).into())
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
+    }
+}
+
+fn quote(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() == 1 {
+        Ok(ctx.operands[0].clone().into())
+    } else {
+        Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1))
     }
 }
 

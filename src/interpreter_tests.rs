@@ -25,6 +25,16 @@ fn trivial_expressions_work() {
 }
 
 #[test]
+fn quote_works() {
+    test_eval_success("(quote 1)", "1");
+    test_eval_success("(quote (1   2    3  ))", "(1 2 3)");
+    test_eval_success("(quote (1 2 3 (4)))", "(1 2 3 (4))");
+    test_eval_success("(quote #t)", "#t");
+    test_eval_success("(quote #f)", "#f");
+    test_eval_success("(quote ())", "()");
+}
+
+#[test]
 fn procedure_repr_works() {
     test_eval_success("(define (boop) 1) boop", "#<procedure boop #1>");
     test_eval_success("(lambda () 1)", "#<procedure #1>");
