@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Datum {
     Number(f64),
     EmptyList,
-    Pair(Box<Pair>),
+    Pair(Rc<Pair>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -21,7 +23,7 @@ impl Pair {
 }
 
 pub struct PairIterator {
-    current: Option<Box<Pair>>,
+    current: Option<Rc<Pair>>,
     last: Option<Datum>,
 }
 
@@ -37,11 +39,12 @@ impl Iterator for PairIterator {
             };
         };
 
-        let result = pair.car;
-        if let Datum::Pair(pair) = pair.cdr {
+        let result = pair.car.clone();
+        let cloned_cdr = pair.cdr.clone();
+        if let Datum::Pair(pair) = cloned_cdr {
             self.current = Some(pair);
         } else {
-            self.last = Some(pair.cdr);
+            self.last = Some(cloned_cdr);
         }
 
         Some(result)
