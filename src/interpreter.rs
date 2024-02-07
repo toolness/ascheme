@@ -192,7 +192,10 @@ impl Interpreter {
 
     fn lazy_eval_expression(&mut self, expression: &SourceValue) -> ProcedureResult {
         match &expression.0 {
-            Value::Undefined | Value::Procedure(_) => {
+            Value::Pair(_) => {
+                todo!("TODO IMPLEMENT lazy_eval_expression FOR PAIR")
+            }
+            Value::EmptyList | Value::Undefined | Value::Procedure(_) => {
                 Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1))
             }
             Value::Number(number) => Ok(Value::Number(*number).into()),

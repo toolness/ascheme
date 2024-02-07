@@ -2,6 +2,7 @@ use std::{fmt::Display, rc::Rc};
 
 use crate::{
     interpreter::{Procedure, RuntimeError, RuntimeErrorType},
+    pair::Pair,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
 };
@@ -27,11 +28,13 @@ impl<T: Into<Value>> From<T> for SourceValue {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Undefined,
+    EmptyList,
     Number(f64),
     Symbol(InternedString),
     Boolean(bool),
     Procedure(Procedure),
     List(Rc<Vec<SourceValue>>),
+    Pair(Rc<Pair>),
 }
 
 impl Value {
@@ -53,6 +56,8 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Undefined => write!(f, ""),
+            Value::EmptyList => write!(f, "()"),
+            Value::Pair(_) => todo!("TODO IMPLEMENT DISPLAY FOR PAIR"),
             Value::Number(value) => write!(f, "{}", value),
             Value::Symbol(name) => write!(f, "{}", name),
             Value::List(items) => {

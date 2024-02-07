@@ -18,6 +18,7 @@ mod builtins;
 mod compound_procedure;
 mod environment;
 mod interpreter;
+mod pair;
 mod parser;
 mod source_mapped;
 mod source_mapper;
@@ -27,9 +28,6 @@ mod value;
 
 #[cfg(test)]
 mod interpreter_tests;
-
-#[cfg(test)]
-mod pair; // TODO: Move this out of [cfg(test)] once we start using it.
 
 const HISTORY_FILENAME: &'static str = ".interpreter-history.txt";
 
