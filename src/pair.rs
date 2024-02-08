@@ -86,10 +86,10 @@ mod tests {
     #[test]
     fn it_works() {
         let list = Pair {
-            car: Value::Number(1.0).into(),
+            car: 1.0.into(),
             cdr: Value::Pair(
                 Pair {
-                    car: Value::Number(2.0).into(),
+                    car: 2.0.into(),
                     cdr: Value::EmptyList.into(),
                 }
                 .into(),
@@ -99,11 +99,7 @@ mod tests {
 
         assert_eq!(
             list.iter().cloned().collect::<Vec<SourceValue>>(),
-            vec![
-                Value::Number(1.0).into(),
-                Value::Number(2.0).into(),
-                Value::EmptyList.into(),
-            ]
+            vec![1.0.into(), 2.0.into(), Value::EmptyList.into(),]
         );
     }
 }
