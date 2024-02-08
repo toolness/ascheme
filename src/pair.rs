@@ -9,21 +9,17 @@ pub struct Pair {
 }
 
 impl Pair {
-    pub fn into_iter(self) -> PairIterator {
+    fn iter(&self) -> PairIterator {
         PairIterator {
-            current: Some(self.into()),
+            current: Some(&self),
             last: None,
         }
     }
 
-    pub fn clone_and_try_into_rc_list(&self) -> Option<Rc<Vec<SourceValue>>> {
-        self.clone().try_into_list().map(|list| list.into())
-    }
-
-    fn try_into_list(self) -> Option<Vec<SourceValue>> {
-        let mut maybe_list = self.into_iter().collect::<Vec<SourceValue>>();
+    pub fn try_as_rc_list(&self) -> Option<Rc<Vec<SourceValue>>> {
+        let mut maybe_list = self.iter().cloned().collect::<Vec<SourceValue>>();
         if maybe_list.pop().unwrap().0 == Value::EmptyList {
-            Some(maybe_list)
+            Some(maybe_list.into())
         } else {
             None
         }
@@ -53,13 +49,13 @@ pub fn vec_to_list(mut values: Vec<SourceValue>) -> Value {
     Value::Pair(Rc::new(latest))
 }
 
-pub struct PairIterator {
-    current: Option<Rc<Pair>>,
-    last: Option<SourceValue>,
+pub struct PairIterator<'a> {
+    current: Option<&'a Pair>,
+    last: Option<&'a SourceValue>,
 }
 
-impl Iterator for PairIterator {
-    type Item = SourceValue;
+impl<'a> Iterator for PairIterator<'a> {
+    type Item = &'a SourceValue;
 
     fn next(&mut self) -> Option<Self::Item> {
         let Some(pair) = self.current.take() else {
@@ -70,12 +66,11 @@ impl Iterator for PairIterator {
             };
         };
 
-        let result = pair.car.clone();
-        let cloned_cdr = pair.cdr.clone();
-        if let Value::Pair(pair) = cloned_cdr.0 {
-            self.current = Some(pair);
+        let result = &pair.car;
+        if let Value::Pair(pair) = &pair.cdr.0 {
+            self.current = Some(pair.as_ref());
         } else {
-            self.last = Some(cloned_cdr);
+            self.last = Some(&pair.cdr);
         }
 
         Some(result)
@@ -103,7 +98,7 @@ mod tests {
         };
 
         assert_eq!(
-            list.into_iter().collect::<Vec<SourceValue>>(),
+            list.iter().cloned().collect::<Vec<SourceValue>>(),
             vec![
                 Value::Number(1.0).into(),
                 Value::Number(2.0).into(),

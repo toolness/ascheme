@@ -153,7 +153,7 @@ impl Interpreter {
             Value::Pair(pair) => {
                 // TODO: A lot of this is duplicated from eval_expression, it'd be nice to consolidate
                 // somehow.
-                let Some(expressions) = pair.clone_and_try_into_rc_list() else {
+                let Some(expressions) = pair.try_as_rc_list() else {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
                 // Unwrap b/c it's from a pair, guaranteed not to be an empty list.
@@ -208,7 +208,7 @@ impl Interpreter {
                 }
             }
             Value::Pair(pair) => {
-                let Some(expressions) = pair.clone_and_try_into_rc_list() else {
+                let Some(expressions) = pair.try_as_rc_list() else {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
                 // Unwrap b/c it's from a pair, guaranteed not to be an empty list.

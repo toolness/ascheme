@@ -55,7 +55,7 @@ impl SourceMapped<Value> {
     pub fn try_into_list(&self) -> Option<SourceMapped<Rc<Vec<SourceValue>>>> {
         match self {
             SourceMapped(Value::Pair(pair), range) => {
-                let Some(expressions) = pair.clone_and_try_into_rc_list() else {
+                let Some(expressions) = pair.try_as_rc_list() else {
                     return None;
                 };
                 Some(SourceMapped(expressions, *range))
@@ -74,7 +74,7 @@ impl Display for Value {
             Value::Number(value) => write!(f, "{}", value),
             Value::Symbol(name) => write!(f, "{}", name),
             Value::Pair(pair) => {
-                if let Some(items) = pair.clone_and_try_into_rc_list() {
+                if let Some(items) = pair.try_as_rc_list() {
                     write!(f, "(")?;
                     let len = items.len();
                     for (i, item) in items.iter().enumerate() {

@@ -117,7 +117,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
             Ok(Value::Undefined.into())
         }
         Some(SourceMapped(Value::Pair(pair), range)) => {
-            let Some(expressions) = pair.clone_and_try_into_rc_list() else {
+            let Some(expressions) = pair.try_as_rc_list() else {
                 return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(*range));
             };
             let signature = SourceMapped(expressions, *range);
