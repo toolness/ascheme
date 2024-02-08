@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashSet, rc::Rc};
 
 use crate::value::{SourceValue, Value};
 
@@ -16,12 +16,35 @@ impl Pair {
         }
     }
 
+    pub fn is_list(&self) -> bool {
+        let mut latest = self;
+        let mut visited: HashSet<*const Pair> = HashSet::new();
+        loop {
+            // TODO: Given current typings, I don't think it's actually
+            // possible for cycles to exist in a Pair. But it *is* possible
+            // in Scheme, and it might eventually be possible in this interpreter,
+            // so we might as well add detection for them here.
+            if visited.contains(&(latest as *const Pair)) {
+                return false;
+            }
+            visited.insert(latest as *const Pair);
+            match &latest.cdr.0 {
+                Value::EmptyList => return true,
+                Value::Pair(pair) => {
+                    latest = pair.as_ref();
+                }
+                _ => return false,
+            }
+        }
+    }
+
     pub fn try_as_rc_list(&self) -> Option<Rc<Vec<SourceValue>>> {
-        let mut maybe_list = self.iter().cloned().collect::<Vec<SourceValue>>();
-        if maybe_list.pop().unwrap().0 == Value::EmptyList {
-            Some(maybe_list.into())
-        } else {
+        if !self.is_list() {
             None
+        } else {
+            let mut list = self.iter().cloned().collect::<Vec<SourceValue>>();
+            list.pop();
+            Some(list.into())
         }
     }
 }
@@ -97,9 +120,19 @@ mod tests {
             .into(),
         };
 
+        assert_eq!(list.is_list(), true);
         assert_eq!(
             list.iter().cloned().collect::<Vec<SourceValue>>(),
             vec![1.0.into(), 2.0.into(), Value::EmptyList.into(),]
         );
+    }
+
+    #[test]
+    fn improper_lists_are_detected() {
+        let improper_list = Pair {
+            car: 1.0.into(),
+            cdr: 2.0.into(),
+        };
+        assert_eq!(improper_list.is_list(), false);
     }
 }
