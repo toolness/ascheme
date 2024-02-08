@@ -150,14 +150,16 @@ impl Interpreter {
         expression: &SourceValue,
     ) -> Result<Option<TailCallContext>, RuntimeError> {
         match &expression.0 {
-            Value::List(expressions) => {
+            Value::Pair(pair) => {
                 // TODO: A lot of this is duplicated from eval_expression, it'd be nice to consolidate
                 // somehow.
-                let Some(operator) = expressions.get(0) else {
+                let Some(expressions) = pair.clone_and_try_into_rc_list() else {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
+                // Unwrap b/c it's from a pair, guaranteed not to be an empty list.
+                let operator = expressions.get(0).unwrap();
                 let procedure = self.expect_procedure(operator)?;
-                let combination = SourceMapped(expressions, expression.1);
+                let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 match procedure {
                     Procedure::Compound(compound) => {
@@ -192,9 +194,6 @@ impl Interpreter {
 
     fn lazy_eval_expression(&mut self, expression: &SourceValue) -> ProcedureResult {
         match &expression.0 {
-            Value::Pair(_) => {
-                todo!("TODO IMPLEMENT lazy_eval_expression FOR PAIR")
-            }
             Value::EmptyList | Value::Undefined | Value::Procedure(_) => {
                 Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1))
             }
@@ -208,12 +207,14 @@ impl Interpreter {
                         .source_mapped(expression.1))
                 }
             }
-            Value::List(expressions) => {
-                let Some(operator) = expressions.get(0) else {
+            Value::Pair(pair) => {
+                let Some(expressions) = pair.clone_and_try_into_rc_list() else {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
+                // Unwrap b/c it's from a pair, guaranteed not to be an empty list.
+                let operator = expressions.get(0).unwrap();
                 let procedure = self.expect_procedure(operator)?;
-                let combination = SourceMapped(expressions, expression.1);
+                let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 if self.tracing {
                     println!(

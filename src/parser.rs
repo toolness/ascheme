@@ -1,6 +1,5 @@
-use std::rc::Rc;
-
 use crate::{
+    pair::vec_to_list,
     source_mapped::{SourceMappable, SourceMapped},
     source_mapper::SourceId,
     string_interner::StringInterner,
@@ -53,7 +52,7 @@ impl<'a> Parser<'a> {
                     match self.tokenizer.next() {
                         Some(Ok(nested_token)) => {
                             if nested_token.0 == TokenType::RightParen {
-                                return Ok(Value::List(Rc::new(expressions))
+                                return Ok(vec_to_list(expressions)
                                     .source_mapped(token.extend_range(&nested_token)));
                             } else {
                                 expressions.push(self.parse_token(nested_token)?);

@@ -116,11 +116,13 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
             ctx.interpreter.environment.set(name.clone(), value);
             Ok(Value::Undefined.into())
         }
-        Some(SourceMapped(Value::List(expressions), range)) => {
-            let signature = SourceMapped(expressions.clone(), *range);
-            let Some(first) = signature.0.get(0) else {
-                return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(signature.1));
+        Some(SourceMapped(Value::Pair(pair), range)) => {
+            let Some(expressions) = pair.clone_and_try_into_rc_list() else {
+                return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(*range));
             };
+            let signature = SourceMapped(expressions, *range);
+            // We can just unwrap this b/c it's from a pair.
+            let first = signature.0.get(0).unwrap();
             let name = first.expect_identifier()?;
             let mut proc = CompoundProcedure::create(
                 ctx.interpreter.new_id(),
@@ -141,20 +143,23 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn lambda(ctx: ProcedureContext) -> ProcedureResult {
-    match ctx.operands.get(0) {
-        Some(SourceMapped(Value::List(expressions), range)) => {
-            let signature = SourceMapped(expressions.clone(), *range);
-            let proc = CompoundProcedure::create(
-                ctx.interpreter.new_id(),
-                signature,
-                0,
-                SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
-                ctx.interpreter.environment.capture_lexical_scope(),
-            )?;
-            Ok(Value::Procedure(Procedure::Compound(proc)).into())
-        }
-        _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
-    }
+    let Some(SourceMapped(expressions, range)) = ctx
+        .operands
+        .get(0)
+        .map(|value| value.try_into_list())
+        .flatten()
+    else {
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+    };
+    let signature = SourceMapped(expressions.clone(), range);
+    let proc = CompoundProcedure::create(
+        ctx.interpreter.new_id(),
+        signature,
+        0,
+        SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
+        ctx.interpreter.environment.capture_lexical_scope(),
+    )?;
+    Ok(Value::Procedure(Procedure::Compound(proc)).into())
 }
 
 fn quote(ctx: ProcedureContext) -> ProcedureResult {

@@ -9,12 +9,48 @@ pub struct Pair {
 }
 
 impl Pair {
-    fn into_iter(self) -> PairIterator {
+    pub fn into_iter(self) -> PairIterator {
         PairIterator {
             current: Some(self.into()),
             last: None,
         }
     }
+
+    pub fn clone_and_try_into_rc_list(&self) -> Option<Rc<Vec<SourceValue>>> {
+        self.clone().try_into_list().map(|list| list.into())
+    }
+
+    fn try_into_list(self) -> Option<Vec<SourceValue>> {
+        let mut maybe_list = self.into_iter().collect::<Vec<SourceValue>>();
+        if maybe_list.pop().unwrap().0 == Value::EmptyList {
+            Some(maybe_list)
+        } else {
+            None
+        }
+    }
+}
+
+pub fn vec_to_list(mut values: Vec<SourceValue>) -> Value {
+    if values.is_empty() {
+        return Value::EmptyList;
+    }
+    let mut latest = Pair {
+        car: Value::Undefined.into(),
+        cdr: Value::EmptyList.into(),
+    };
+    values.reverse();
+    let len = values.len();
+    for (i, value) in values.into_iter().enumerate() {
+        latest.car = value;
+        if i < len - 1 {
+            latest = Pair {
+                car: Value::Undefined.into(),
+                // TODO: Could probably come up with a better source map.
+                cdr: Value::Pair(Rc::new(latest)).into(),
+            }
+        }
+    }
+    Value::Pair(Rc::new(latest))
 }
 
 pub struct PairIterator {

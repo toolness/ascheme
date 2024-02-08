@@ -33,7 +33,6 @@ pub enum Value {
     Symbol(InternedString),
     Boolean(bool),
     Procedure(Procedure),
-    List(Rc<Vec<SourceValue>>),
     Pair(Rc<Pair>),
 }
 
@@ -52,24 +51,42 @@ impl Value {
     }
 }
 
+impl SourceMapped<Value> {
+    pub fn try_into_list(&self) -> Option<SourceMapped<Rc<Vec<SourceValue>>>> {
+        match self {
+            SourceMapped(Value::Pair(pair), range) => {
+                let Some(expressions) = pair.clone_and_try_into_rc_list() else {
+                    return None;
+                };
+                Some(SourceMapped(expressions, *range))
+            }
+            SourceMapped(Value::EmptyList, range) => Some(SourceMapped(vec![].into(), *range)),
+            _ => None,
+        }
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Undefined => write!(f, ""),
             Value::EmptyList => write!(f, "()"),
-            Value::Pair(_) => todo!("TODO IMPLEMENT DISPLAY FOR PAIR"),
             Value::Number(value) => write!(f, "{}", value),
             Value::Symbol(name) => write!(f, "{}", name),
-            Value::List(items) => {
-                write!(f, "(")?;
-                let len = items.len();
-                for (i, item) in items.iter().enumerate() {
-                    write!(f, "{}", item)?;
-                    if i < len - 1 {
-                        write!(f, " ")?;
+            Value::Pair(pair) => {
+                if let Some(items) = pair.clone_and_try_into_rc_list() {
+                    write!(f, "(")?;
+                    let len = items.len();
+                    for (i, item) in items.iter().enumerate() {
+                        write!(f, "{}", item)?;
+                        if i < len - 1 {
+                            write!(f, " ")?;
+                        }
                     }
+                    write!(f, ")")
+                } else {
+                    todo!("IMPLEMENT DISPLAY FOR IMPROPER LISTS")
                 }
-                write!(f, ")")
             }
             Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),
             Value::Procedure(Procedure::Builtin(_, name)) => {
