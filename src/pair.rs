@@ -2,6 +2,13 @@ use std::{collections::HashSet, rc::Rc};
 
 use crate::value::{SourceValue, Value};
 
+#[derive(Debug, PartialEq)]
+pub enum PairType {
+    List,
+    ImproperList,
+    Cyclic,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pair {
     pub car: SourceValue,
@@ -16,7 +23,7 @@ impl Pair {
         }
     }
 
-    pub fn is_list(&self) -> bool {
+    pub fn get_type(&self) -> PairType {
         let mut latest = self;
         let mut visited: HashSet<*const Pair> = HashSet::new();
         loop {
@@ -25,17 +32,21 @@ impl Pair {
             // in Scheme, and it might eventually be possible in this interpreter,
             // so we might as well add detection for them here.
             if visited.contains(&(latest as *const Pair)) {
-                return false;
+                return PairType::Cyclic;
             }
             visited.insert(latest as *const Pair);
             match &latest.cdr.0 {
-                Value::EmptyList => return true,
+                Value::EmptyList => return PairType::List,
                 Value::Pair(pair) => {
                     latest = pair.as_ref();
                 }
-                _ => return false,
+                _ => return PairType::ImproperList,
             }
         }
+    }
+
+    pub fn is_list(&self) -> bool {
+        self.get_type() == PairType::List
     }
 
     pub fn try_as_rc_list(&self) -> Option<Rc<Vec<SourceValue>>> {
