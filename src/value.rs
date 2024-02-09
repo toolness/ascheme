@@ -74,19 +74,12 @@ impl Display for Value {
             Value::Number(value) => write!(f, "{}", value),
             Value::Symbol(name) => write!(f, "{}", name),
             Value::Pair(pair) => {
-                if let Some(items) = pair.try_as_rc_list() {
-                    write!(f, "(")?;
-                    let len = items.len();
-                    for (i, item) in items.iter().enumerate() {
-                        write!(f, "{}", item)?;
-                        if i < len - 1 {
-                            write!(f, " ")?;
-                        }
+                match pair.try_get_vec_pair() {
+                    Some(vec_pair) => write!(f, "{}", vec_pair),
+                    None => {
+                        // TODO: Implement display for cyclic lists.
+                        write!(f, "<CYCLIC LIST>")
                     }
-                    write!(f, ")")
-                } else {
-                    // TODO: IMPLEMENT DISPLAY FOR IMPROPER LISTS!
-                    write!(f, "{pair:#?}")
                 }
             }
             Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),

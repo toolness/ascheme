@@ -39,6 +39,8 @@ fn quote_works() {
 fn dot_works() {
     test_eval_success("(quote (1 . ()))", "(1)");
     test_eval_success("(quote (1 . (2 . (3 . ()))))", "(1 2 3)");
+    test_eval_success("(quote (1 . 2))", "(1 . 2)");
+    test_eval_success("(quote (1 2 . 3))", "(1 2 . 3)");
 }
 
 #[test]

@@ -1,6 +1,44 @@
+use std::fmt::Display;
 use std::{collections::HashSet, rc::Rc};
 
 use crate::value::{SourceValue, Value};
+
+#[derive(Debug, PartialEq)]
+pub enum VecPair {
+    List(Rc<Vec<SourceValue>>),
+    ImproperList(Rc<Vec<SourceValue>>),
+}
+
+impl Display for VecPair {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VecPair::List(items) => {
+                write!(f, "(")?;
+                let len = items.len();
+                for (i, item) in items.iter().enumerate() {
+                    write!(f, "{}", item)?;
+                    if i < len - 1 {
+                        write!(f, " ")?;
+                    }
+                }
+                write!(f, ")")
+            }
+            VecPair::ImproperList(items) => {
+                write!(f, "(")?;
+                let len = items.len();
+                for (i, item) in items.iter().enumerate() {
+                    write!(f, "{}", item)?;
+                    if i == len - 2 {
+                        write!(f, " . ")?;
+                    } else if i < len - 1 {
+                        write!(f, " ")?;
+                    }
+                }
+                write!(f, ")")
+            }
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum PairType {
@@ -20,6 +58,22 @@ impl Pair {
         PairIterator {
             current: Some(&self),
             last: None,
+        }
+    }
+
+    fn as_list(&self) -> Vec<SourceValue> {
+        let mut list = self.iter().cloned().collect::<Vec<SourceValue>>();
+        list.pop();
+        list.into()
+    }
+
+    pub fn try_get_vec_pair(&self) -> Option<VecPair> {
+        match self.get_type() {
+            PairType::List => Some(VecPair::List(self.as_list().into())),
+            PairType::ImproperList => Some(VecPair::ImproperList(
+                self.iter().cloned().collect::<Vec<SourceValue>>().into(),
+            )),
+            PairType::Cyclic => None,
         }
     }
 
@@ -45,17 +99,10 @@ impl Pair {
         }
     }
 
-    pub fn is_list(&self) -> bool {
-        self.get_type() == PairType::List
-    }
-
     pub fn try_as_rc_list(&self) -> Option<Rc<Vec<SourceValue>>> {
-        if !self.is_list() {
-            None
-        } else {
-            let mut list = self.iter().cloned().collect::<Vec<SourceValue>>();
-            list.pop();
-            Some(list.into())
+        match self.get_type() {
+            PairType::List => Some(self.as_list().into()),
+            _ => None,
         }
     }
 }
@@ -121,7 +168,7 @@ impl<'a> Iterator for PairIterator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::value::Value;
+    use crate::{pair::PairType, value::Value};
 
     use super::{Pair, SourceValue};
 
@@ -139,7 +186,7 @@ mod tests {
             .into(),
         };
 
-        assert_eq!(list.is_list(), true);
+        assert_eq!(list.get_type(), PairType::List);
         assert_eq!(
             list.iter().cloned().collect::<Vec<SourceValue>>(),
             vec![1.0.into(), 2.0.into(), Value::EmptyList.into(),]
@@ -152,6 +199,6 @@ mod tests {
             car: 1.0.into(),
             cdr: 2.0.into(),
         };
-        assert_eq!(improper_list.is_list(), false);
+        assert_eq!(improper_list.get_type(), PairType::ImproperList);
     }
 }
