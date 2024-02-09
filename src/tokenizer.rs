@@ -1,6 +1,9 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use crate::{source_mapped::SourceMapped, source_mapper::SourceId};
+use crate::{
+    source_mapped::{SourceMapped, SourceRange},
+    source_mapper::SourceId,
+};
 
 pub struct Tokenizer<'a> {
     source: Option<SourceId>,
@@ -35,6 +38,10 @@ impl<'a> Tokenizer<'a> {
             chars: string.as_ref().char_indices().peekable(),
             curr_pos: 0,
         }
+    }
+
+    pub fn curr_pos_as_source_range(&self) -> SourceRange {
+        (self.curr_pos, self.curr_pos, self.source)
     }
 
     fn is_at_end(&mut self) -> bool {

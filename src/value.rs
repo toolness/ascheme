@@ -85,7 +85,8 @@ impl Display for Value {
                     }
                     write!(f, ")")
                 } else {
-                    todo!("IMPLEMENT DISPLAY FOR IMPROPER LISTS")
+                    // TODO: IMPLEMENT DISPLAY FOR IMPROPER LISTS!
+                    write!(f, "{pair:#?}")
                 }
             }
             Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),

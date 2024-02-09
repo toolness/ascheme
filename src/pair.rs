@@ -49,17 +49,18 @@ impl Pair {
     }
 }
 
-pub fn vec_to_list(mut values: Vec<SourceValue>) -> Value {
-    if values.is_empty() {
-        return Value::EmptyList;
-    }
+pub fn vec_to_pair(mut initial_values: Vec<SourceValue>, final_value: SourceValue) -> Value {
+    assert!(
+        !initial_values.is_empty(),
+        "vec_to_pair() must be given non-empty values!"
+    );
     let mut latest = Pair {
         car: Value::Undefined.into(),
-        cdr: Value::EmptyList.into(),
+        cdr: final_value,
     };
-    values.reverse();
-    let len = values.len();
-    for (i, value) in values.into_iter().enumerate() {
+    initial_values.reverse();
+    let len = initial_values.len();
+    for (i, value) in initial_values.into_iter().enumerate() {
         latest.car = value;
         if i < len - 1 {
             latest = Pair {
@@ -70,6 +71,13 @@ pub fn vec_to_list(mut values: Vec<SourceValue>) -> Value {
         }
     }
     Value::Pair(Rc::new(latest))
+}
+
+pub fn vec_to_list(values: Vec<SourceValue>) -> Value {
+    if values.is_empty() {
+        return Value::EmptyList;
+    }
+    vec_to_pair(values, Value::EmptyList.into())
 }
 
 pub struct PairIterator<'a> {

@@ -1,5 +1,5 @@
 use crate::{
-    pair::vec_to_list,
+    pair::{vec_to_list, vec_to_pair},
     source_mapped::{SourceMappable, SourceMapped},
     source_mapper::SourceId,
     string_interner::StringInterner,
@@ -12,6 +12,8 @@ pub enum ParseErrorType {
     Tokenize(TokenizeErrorType),
     InvalidNumber,
     MissingRightParen,
+    UnexpectedEndOfFile,
+    Expected(TokenType),
     Unexpected(TokenType),
 }
 
@@ -44,6 +46,29 @@ impl<'a> Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    fn parse_expected_expression(&mut self) -> Result<SourceValue, ParseError> {
+        match self.tokenizer.next() {
+            Some(Ok(token)) => self.parse_token(token),
+            Some(Err(tokenize_error)) => Err(tokenize_error.into()),
+            None => Err(ParseErrorType::UnexpectedEndOfFile
+                .source_mapped(self.tokenizer.curr_pos_as_source_range())),
+        }
+    }
+
+    fn expect_token(&mut self, token_type: TokenType) -> Result<Token, ParseError> {
+        match self.tokenizer.next() {
+            Some(Ok(token)) => {
+                if token.0 != token_type {
+                    return Err(ParseErrorType::Expected(token_type).source_mapped(token.1));
+                }
+                Ok(token)
+            }
+            Some(Err(tokenize_error)) => Err(tokenize_error.into()),
+            None => Err(ParseErrorType::UnexpectedEndOfFile
+                .source_mapped(self.tokenizer.curr_pos_as_source_range())),
+        }
+    }
+
     fn parse_token(&mut self, token: Token) -> Result<SourceValue, ParseError> {
         match token.0 {
             TokenType::LeftParen => {
@@ -55,7 +80,14 @@ impl<'a> Parser<'a> {
                                 return Ok(vec_to_list(expressions)
                                     .source_mapped(token.extend_range(&nested_token)));
                             } else if nested_token.0 == TokenType::Dot {
-                                // TODO: Make this an improper list.
+                                if expressions.is_empty() {
+                                    return Err(ParseErrorType::Unexpected(TokenType::Dot)
+                                        .source_mapped(nested_token.1));
+                                }
+                                let final_value = self.parse_expected_expression()?;
+                                let right_paren = self.expect_token(TokenType::RightParen)?;
+                                return Ok(vec_to_pair(expressions, final_value)
+                                    .source_mapped(right_paren.1));
                             } else {
                                 expressions.push(self.parse_token(nested_token)?);
                             }
