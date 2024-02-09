@@ -15,6 +15,7 @@ pub enum TokenType {
     Number,
     Boolean(bool),
     Identifier,
+    Dot,
 }
 
 pub type Token = SourceMapped<TokenType>;
@@ -99,6 +100,8 @@ impl<'a> Tokenizer<'a> {
             Some(Ok(TokenType::Number))
         } else if found_plus_or_minus {
             Some(Ok(TokenType::Identifier))
+        } else if found_decimals == 1 {
+            Some(Ok(TokenType::Dot))
         } else {
             None
         }
@@ -207,6 +210,13 @@ mod tests {
                 (Err(TokenizeErrorType::InvalidNumber), "..5"),
             ],
         )
+    }
+
+    #[test]
+    fn dot_works() {
+        test_tokenize(".", &[(Ok(Dot), ".")]);
+        test_tokenize(". 32", &[(Ok(Dot), "."), (Ok(Number), "32")]);
+        test_tokenize("1. .", &[(Ok(Number), "1."), (Ok(Dot), ".")]);
     }
 
     #[test]

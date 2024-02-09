@@ -12,7 +12,7 @@ pub enum ParseErrorType {
     Tokenize(TokenizeErrorType),
     InvalidNumber,
     MissingRightParen,
-    UnexpectedRightParen,
+    Unexpected(TokenType),
 }
 
 pub type ParseError = SourceMapped<ParseErrorType>;
@@ -54,6 +54,8 @@ impl<'a> Parser<'a> {
                             if nested_token.0 == TokenType::RightParen {
                                 return Ok(vec_to_list(expressions)
                                     .source_mapped(token.extend_range(&nested_token)));
+                            } else if nested_token.0 == TokenType::Dot {
+                                // TODO: Make this an improper list.
                             } else {
                                 expressions.push(self.parse_token(nested_token)?);
                             }
@@ -66,7 +68,10 @@ impl<'a> Parser<'a> {
                 }
             }
             TokenType::RightParen => {
-                Err(ParseErrorType::UnexpectedRightParen.source_mapped(token.1))
+                Err(ParseErrorType::Unexpected(TokenType::RightParen).source_mapped(token.1))
+            }
+            TokenType::Dot => {
+                Err(ParseErrorType::Unexpected(TokenType::Dot).source_mapped(token.1))
             }
             TokenType::Boolean(boolean) => Ok(Value::Boolean(boolean).source_mapped(token.1)),
             TokenType::Number => match token.source(&self.string).parse::<f64>() {
