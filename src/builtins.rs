@@ -35,7 +35,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("set-car!", set_car),
         ("set-cdr!", set_cdr),
         ("rust-backtrace", rust_backtrace),
-        ("print-stats", print_stats),
+        ("stats", stats),
     ]
 }
 
@@ -211,7 +211,7 @@ fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(Value::Undefined.into())
 }
 
-fn print_stats(ctx: ProcedureContext) -> ProcedureResult {
+fn stats(ctx: ProcedureContext) -> ProcedureResult {
     ctx.interpreter.print_stats();
     Ok(Value::Undefined.into())
 }
