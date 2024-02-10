@@ -17,7 +17,6 @@ impl SourceMapped<Value> {
     }
 
     pub fn expect_pair(&self) -> Result<Pair, RuntimeError> {
-        println!("UM expect_pair {:?}", self);
         if let Value::Pair(pair) = &self.0 {
             Ok(pair.clone())
         } else {
