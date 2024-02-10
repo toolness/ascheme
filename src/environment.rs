@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
+    object_tracker::ObjectTracker,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
     value::SourceValue,
@@ -32,6 +33,7 @@ pub struct CapturedLexicalScope(Option<Rc<SourceMapped<Scope>>>);
 pub struct Environment {
     globals: Scope,
     lexical_scopes: Vec<Rc<SourceMapped<Scope>>>,
+    tracker: ObjectTracker<SourceMapped<Scope>>,
 }
 
 impl Environment {
@@ -46,8 +48,8 @@ impl Environment {
     pub fn push(&mut self, scope: CapturedLexicalScope, source_range: SourceRange) {
         let mut new_scope = Scope::default();
         new_scope.parent = scope.0;
-        self.lexical_scopes
-            .push(new_scope.source_mapped(source_range).into());
+        let tracked_scope = self.tracker.track(new_scope.source_mapped(source_range));
+        self.lexical_scopes.push(tracked_scope);
     }
 
     pub fn pop(&mut self) {
