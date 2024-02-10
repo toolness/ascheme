@@ -205,4 +205,11 @@ mod tests {
         let improper_list = pair(1.0.into(), 2.0.into());
         assert_eq!(improper_list.get_type(), PairType::ImproperList);
     }
+
+    #[test]
+    fn cyclic_lists_are_detected() {
+        let cyclic_list = pair(1.0.into(), Value::EmptyList.into());
+        cyclic_list.0.borrow_mut().cdr = Value::Pair(cyclic_list.clone()).into();
+        assert_eq!(cyclic_list.get_type(), PairType::Cyclic);
+    }
 }
