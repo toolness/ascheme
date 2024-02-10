@@ -15,6 +15,15 @@ impl SourceMapped<Value> {
             Err(RuntimeErrorType::ExpectedIdentifier.source_mapped(self.1))
         }
     }
+
+    pub fn expect_pair(&self) -> Result<Pair, RuntimeError> {
+        println!("UM expect_pair {:?}", self);
+        if let Value::Pair(pair) = &self.0 {
+            Ok(pair.clone())
+        } else {
+            Err(RuntimeErrorType::ExpectedPair.source_mapped(self.1))
+        }
+    }
 }
 
 pub type SourceValue = SourceMapped<Value>;

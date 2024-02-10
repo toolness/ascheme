@@ -6,9 +6,10 @@ use crate::{
     interpreter::{
         Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
     },
+    pair::Pair,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
-    value::Value,
+    value::{SourceValue, Value},
 };
 
 pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {
@@ -31,6 +32,8 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("lambda", lambda),
         ("quote", quote),
         ("if", _if),
+        ("set-car!", set_car),
+        ("set-cdr!", set_cdr),
         ("rust-backtrace", rust_backtrace),
     ]
 }
@@ -181,4 +184,28 @@ fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
     println!("{}", Backtrace::force_capture());
     ctx.interpreter
         .eval_expressions_in_tail_context(ctx.operands)
+}
+
+fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue), RuntimeError> {
+    if ctx.operands.len() != 2 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let pair = ctx
+        .interpreter
+        .eval_expression(&ctx.operands[0])?
+        .expect_pair()?;
+    let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
+    Ok((pair, value))
+}
+
+fn set_car(mut ctx: ProcedureContext) -> ProcedureResult {
+    let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
+    pair.set_car(value);
+    Ok(Value::Undefined.into())
+}
+
+fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
+    let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
+    pair.set_cdr(value);
+    Ok(Value::Undefined.into())
 }

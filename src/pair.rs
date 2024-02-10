@@ -86,6 +86,14 @@ impl Pair {
         list.into()
     }
 
+    pub fn set_car(&mut self, value: SourceValue) {
+        self.0.borrow_mut().car = value;
+    }
+
+    pub fn set_cdr(&mut self, value: SourceValue) {
+        self.0.borrow_mut().cdr = value;
+    }
+
     pub fn try_get_vec_pair(&self) -> Option<VecPair> {
         match self.get_type() {
             PairType::List => Some(VecPair::List(self.as_list().into())),

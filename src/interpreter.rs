@@ -23,6 +23,7 @@ pub enum RuntimeErrorType {
     ExpectedNumber,
     ExpectedProcedure,
     ExpectedIdentifier,
+    ExpectedPair,
     WrongNumberOfArguments,
     StackOverflow,
     KeyboardInterrupt,
