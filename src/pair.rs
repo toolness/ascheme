@@ -144,10 +144,6 @@ impl PairManager {
         self.make(PairInner { car, cdr })
     }
 
-    pub fn compact(&mut self) {
-        self.0.compact();
-    }
-
     pub fn print_stats(&self) {
         println!("Pairs: {}", self.0.stats());
     }

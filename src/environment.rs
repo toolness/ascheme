@@ -37,10 +37,6 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn compact(&mut self) {
-        self.tracker.compact();
-    }
-
     pub fn print_stats(&self) {
         println!("Lexical scopes: {}", self.tracker.stats());
     }

@@ -124,10 +124,6 @@ impl<T> ObjectTracker<T> {
         self.0.borrow_mut().track(object, weak_self)
     }
 
-    pub fn compact(&mut self) {
-        // TODO: We don't need this anymore, it can be removed I think.
-    }
-
     pub fn stats(&self) -> String {
         self.0.borrow().stats()
     }

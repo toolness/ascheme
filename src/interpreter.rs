@@ -115,11 +115,6 @@ impl Interpreter {
         }
     }
 
-    pub fn gc(&mut self) {
-        self.pair_manager.compact();
-        self.environment.compact();
-    }
-
     pub fn print_stats(&self) {
         self.pair_manager.print_stats();
         self.environment.print_stats();
