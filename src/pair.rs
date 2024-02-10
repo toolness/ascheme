@@ -144,6 +144,14 @@ impl PairManager {
         self.make(PairInner { car, cdr })
     }
 
+    pub fn compact(&mut self) {
+        self.0.compact();
+    }
+
+    pub fn print_stats(&self) {
+        println!("Pairs: {}", self.0.len());
+    }
+
     fn make(&mut self, inner: PairInner) -> Pair {
         Pair(self.0.track(RefCell::new(inner)))
     }
