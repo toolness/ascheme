@@ -97,26 +97,27 @@ impl Pair {
     }
 
     pub fn get_type(&self) -> PairType {
-        // It's unfortunate we have to resort to unsafe code just
-        // to iterate through the chain of pairs. The only alternative
-        // I could find was to clone every single item of the list,
-        // which felt like overkill, and this use of unsafe doesn't seem
-        // terribly risky.
-        unsafe {
-            let mut latest = self.as_ptr();
-            let mut visited: HashSet<*const PairInner> = HashSet::new();
-            loop {
-                if visited.contains(&latest) {
-                    return PairType::Cyclic;
-                }
-                visited.insert(latest);
-                let new_latest = match &(*latest).cdr.0 {
-                    Value::EmptyList => return PairType::List,
-                    Value::Pair(pair) => pair.as_ptr(),
-                    _ => return PairType::ImproperList,
-                };
-                latest = new_latest;
+        let mut latest = self.as_ptr();
+        let mut visited: HashSet<*const PairInner> = HashSet::new();
+        loop {
+            if visited.contains(&latest) {
+                return PairType::Cyclic;
             }
+            visited.insert(latest);
+
+            // It's unfortunate we have to resort to unsafe code just
+            // to iterate through the chain of pairs. The only alternative
+            // I could find was to clone every single item of the list,
+            // which felt like overkill, and this use of unsafe doesn't seem
+            // terribly risky.
+            let cdr = unsafe { &(*latest).cdr.0 };
+
+            let new_latest = match cdr {
+                Value::EmptyList => return PairType::List,
+                Value::Pair(pair) => pair.as_ptr(),
+                _ => return PairType::ImproperList,
+            };
+            latest = new_latest;
         }
     }
 
