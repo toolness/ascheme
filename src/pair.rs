@@ -141,6 +141,9 @@ impl Pair {
 pub struct PairManager();
 
 impl PairManager {
+    // TODO: Implement cyclic garbage collection, otherwise we'll have leaks when
+    // cycles are created.
+
     pub fn vec_to_pair(
         &mut self,
         mut initial_values: Vec<SourceValue>,
