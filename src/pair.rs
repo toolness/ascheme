@@ -93,6 +93,9 @@ impl Pair {
     }
 
     pub fn get_type(&self) -> PairType {
+        // TODO: It's unfortunate we have to do all this cloning just
+        // to iterate through the chain of pairs. Not sure how to get
+        // around that...
         let mut latest = self.clone();
         let mut visited: HashSet<*const PairInner> = HashSet::new();
         loop {
