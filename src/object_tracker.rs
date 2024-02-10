@@ -1,8 +1,13 @@
 use std::rc::{Rc, Weak};
 
-#[derive(Default)]
 pub struct ObjectTracker<T> {
     objects: Vec<Weak<T>>,
+}
+
+impl<T> Default for ObjectTracker<T> {
+    fn default() -> Self {
+        Self { objects: vec![] }
+    }
 }
 
 impl<T> ObjectTracker<T> {

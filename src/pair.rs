@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::ops::Deref;
 use std::{collections::HashSet, rc::Rc};
 
+use crate::object_tracker::ObjectTracker;
 use crate::value::{SourceValue, Value};
 
 #[derive(Debug, PartialEq)]
@@ -56,12 +57,6 @@ pub struct Pair(Rc<RefCell<PairInner>>);
 pub struct PairInner {
     pub car: SourceValue,
     pub cdr: SourceValue,
-}
-
-impl From<PairInner> for Pair {
-    fn from(value: PairInner) -> Self {
-        Pair(Rc::new(RefCell::new(value)))
-    }
 }
 
 impl Pair {
@@ -138,11 +133,20 @@ impl Pair {
 }
 
 #[derive(Default)]
-pub struct PairManager();
+pub struct PairManager(ObjectTracker<RefCell<PairInner>>);
 
 impl PairManager {
     // TODO: Implement cyclic garbage collection, otherwise we'll have leaks when
     // cycles are created.
+
+    #[cfg(test)]
+    pub fn pair(&mut self, car: SourceValue, cdr: SourceValue) -> Pair {
+        self.make(PairInner { car, cdr })
+    }
+
+    fn make(&mut self, inner: PairInner) -> Pair {
+        Pair(self.0.track(RefCell::new(inner)))
+    }
 
     pub fn vec_to_pair(
         &mut self,
@@ -165,11 +169,11 @@ impl PairManager {
                 latest = PairInner {
                     car: Value::Undefined.into(),
                     // TODO: Could probably come up with a better source map.
-                    cdr: Value::Pair(latest.into()).into(),
+                    cdr: Value::Pair(self.make(latest)).into(),
                 }
             }
         }
-        Value::Pair(latest.into())
+        Value::Pair(self.make(latest))
     }
 
     pub fn vec_to_list(&mut self, values: Vec<SourceValue>) -> Value {
@@ -210,20 +214,18 @@ impl Iterator for PairIterator {
 
 #[cfg(test)]
 mod tests {
-    use crate::{pair::PairType, value::Value};
+    use crate::{
+        pair::{PairManager, PairType},
+        value::Value,
+    };
 
-    use super::{Pair, PairInner, SourceValue};
-
-    fn pair(car: SourceValue, cdr: SourceValue) -> Pair {
-        PairInner { car, cdr }.into()
-    }
+    use super::SourceValue;
 
     #[test]
     fn it_works() {
-        let list = pair(
-            1.0.into(),
-            Value::Pair(pair(2.0.into(), Value::EmptyList.into())).into(),
-        );
+        let mut manager = PairManager::default();
+        let second_el = Value::Pair(manager.pair(2.0.into(), Value::EmptyList.into())).into();
+        let list = manager.pair(1.0.into(), second_el);
 
         assert_eq!(list.get_type(), PairType::List);
         assert_eq!(
@@ -234,13 +236,15 @@ mod tests {
 
     #[test]
     fn improper_lists_are_detected() {
-        let improper_list = pair(1.0.into(), 2.0.into());
+        let mut manager = PairManager::default();
+        let improper_list = manager.pair(1.0.into(), 2.0.into());
         assert_eq!(improper_list.get_type(), PairType::ImproperList);
     }
 
     #[test]
     fn cyclic_lists_are_detected() {
-        let cyclic_list = pair(1.0.into(), Value::EmptyList.into());
+        let mut manager = PairManager::default();
+        let cyclic_list = manager.pair(1.0.into(), Value::EmptyList.into());
         cyclic_list.0.borrow_mut().cdr = Value::Pair(cyclic_list.clone()).into();
         assert_eq!(cyclic_list.get_type(), PairType::Cyclic);
     }
