@@ -1,35 +1,23 @@
-use std::{
-    collections::HashMap,
-    rc::{Rc, Weak},
-};
-
-pub struct Tracked<T>(Rc<T>, usize);
+use std::rc::{Rc, Weak};
 
 #[derive(Default)]
 pub struct ObjectTracker<T> {
-    objects: HashMap<usize, Weak<T>>,
-    latest_id: usize,
+    objects: Vec<Weak<T>>,
 }
 
 impl<T> ObjectTracker<T> {
-    pub fn track(&mut self, object: T) -> Tracked<T> {
-        self.latest_id += 1;
-        let id = self.latest_id;
+    pub fn track(&mut self, object: T) -> Rc<T> {
         let rc = Rc::new(object);
-        self.objects.insert(id, Rc::downgrade(&rc));
-        Tracked(rc, id)
+        self.objects.push(Rc::downgrade(&rc));
+        rc
     }
 
     pub fn compact(&mut self) {
-        let mut removed = Vec::with_capacity(self.objects.len());
-        for (id, weakref) in self.objects.iter() {
-            if weakref.upgrade().is_none() {
-                removed.push(*id);
-            }
-        }
-        for id in removed {
-            self.objects.remove(&id);
-        }
+        let objects = std::mem::take(&mut self.objects);
+        self.objects = objects
+            .into_iter()
+            .filter(|weakref| weakref.upgrade().is_some())
+            .collect();
     }
 
     pub fn len(&self) -> usize {
