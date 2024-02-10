@@ -149,7 +149,7 @@ impl PairManager {
     }
 
     pub fn print_stats(&self) {
-        println!("Pairs: {}", self.0.len());
+        println!("Pairs: {}", self.0.stats());
     }
 
     fn make(&mut self, inner: PairInner) -> Pair {

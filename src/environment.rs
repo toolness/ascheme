@@ -42,7 +42,7 @@ impl Environment {
     }
 
     pub fn print_stats(&self) {
-        println!("Lexical scopes: {}", self.tracker.len());
+        println!("Lexical scopes: {}", self.tracker.stats());
     }
 
     pub fn clear_lexical_scopes(&mut self) {
