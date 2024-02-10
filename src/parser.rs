@@ -1,5 +1,5 @@
 use crate::{
-    pair::{vec_to_list, vec_to_pair},
+    pair::PairManager,
     source_mapped::{SourceMappable, SourceMapped},
     source_mapper::SourceId,
     string_interner::StringInterner,
@@ -29,6 +29,7 @@ pub struct Parser<'a> {
     string: &'a str,
     tokenizer: Tokenizer<'a>,
     interner: &'a mut StringInterner,
+    pair_manager: &'a mut PairManager,
 }
 
 impl<'a> Parser<'a> {
@@ -36,11 +37,13 @@ impl<'a> Parser<'a> {
         string: &'a str,
         tokenizer: Tokenizer<'a>,
         interner: &'a mut StringInterner,
+        pair_manager: &'a mut PairManager,
     ) -> Self {
         Parser {
             string,
             tokenizer,
             interner,
+            pair_manager,
         }
     }
 }
@@ -76,7 +79,9 @@ impl<'a> Parser<'a> {
                     match self.tokenizer.next() {
                         Some(Ok(nested_token)) => {
                             if nested_token.0 == TokenType::RightParen {
-                                return Ok(vec_to_list(expressions)
+                                return Ok(self
+                                    .pair_manager
+                                    .vec_to_list(expressions)
                                     .source_mapped(token.extend_range(&nested_token)));
                             } else if nested_token.0 == TokenType::Dot {
                                 if expressions.is_empty() {
@@ -85,7 +90,9 @@ impl<'a> Parser<'a> {
                                 }
                                 let final_value = self.expect_expression()?;
                                 let right_paren = self.expect_token_type(TokenType::RightParen)?;
-                                return Ok(vec_to_pair(expressions, final_value)
+                                return Ok(self
+                                    .pair_manager
+                                    .vec_to_pair(expressions, final_value)
                                     .source_mapped(right_paren.1));
                             } else {
                                 expressions.push(self.parse_token(nested_token)?);
@@ -136,8 +143,9 @@ impl<'a> Iterator for Parser<'a> {
 pub fn parse(
     code: &str,
     interner: &mut StringInterner,
+    pair_manager: &mut PairManager,
     source: Option<SourceId>,
 ) -> Result<Vec<SourceValue>, ParseError> {
-    let parser = Parser::new(code, Tokenizer::new(&code, source), interner);
+    let parser = Parser::new(code, Tokenizer::new(&code, source), interner, pair_manager);
     parser.parse_all()
 }

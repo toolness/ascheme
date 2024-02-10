@@ -36,6 +36,16 @@ fn quote_works() {
 }
 
 #[test]
+fn set_car_works() {
+    test_eval_success("(define a (quote (1 . 2))) (set-car! a 5) a", "(5 . 2)");
+}
+
+#[test]
+fn set_cdr_works() {
+    test_eval_success("(define a (quote (1 . 2))) (set-cdr! a 5) a", "(1 . 5)");
+}
+
+#[test]
 fn dot_works() {
     test_eval_success("(quote (1 . ()))", "(1)");
     test_eval_success("(quote (1 . (2 . (3 . ()))))", "(1 2 3)");

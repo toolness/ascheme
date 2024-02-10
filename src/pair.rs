@@ -1,4 +1,6 @@
+use std::cell::{Ref, RefCell};
 use std::fmt::Display;
+use std::ops::Deref;
 use std::{collections::HashSet, rc::Rc};
 
 use crate::value::{SourceValue, Value};
@@ -48,54 +50,82 @@ pub enum PairType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Pair {
+pub struct Pair(Rc<RefCell<PairInner>>);
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct PairInner {
     pub car: SourceValue,
     pub cdr: SourceValue,
 }
 
+impl From<PairInner> for Pair {
+    fn from(value: PairInner) -> Self {
+        Pair(Rc::new(RefCell::new(value)))
+    }
+}
+
 impl Pair {
+    fn inner(&self) -> Ref<PairInner> {
+        self.0.borrow()
+    }
+
+    fn as_ptr(&self) -> *const PairInner {
+        self.0.borrow().deref() as *const PairInner
+    }
+
     fn iter(&self) -> PairIterator {
         PairIterator {
-            current: Some(&self),
+            current: Some(self.clone()),
             last: None,
         }
     }
 
     fn as_list(&self) -> Vec<SourceValue> {
-        let mut list = self.iter().cloned().collect::<Vec<SourceValue>>();
+        let mut list = self.iter().collect::<Vec<SourceValue>>();
         list.pop();
         list.into()
+    }
+
+    pub fn set_car(&mut self, value: SourceValue) {
+        self.0.borrow_mut().car = value;
+    }
+
+    pub fn set_cdr(&mut self, value: SourceValue) {
+        self.0.borrow_mut().cdr = value;
     }
 
     pub fn try_get_vec_pair(&self) -> Option<VecPair> {
         match self.get_type() {
             PairType::List => Some(VecPair::List(self.as_list().into())),
             PairType::ImproperList => Some(VecPair::ImproperList(
-                self.iter().cloned().collect::<Vec<SourceValue>>().into(),
+                self.iter().collect::<Vec<SourceValue>>().into(),
             )),
             PairType::Cyclic => None,
         }
     }
 
     pub fn get_type(&self) -> PairType {
-        let mut latest = self;
-        let mut visited: HashSet<*const Pair> = HashSet::new();
+        let mut latest = self.as_ptr();
+        let mut visited: HashSet<*const PairInner> = HashSet::new();
         loop {
-            // TODO: Given current typings, I don't think it's actually
-            // possible for cycles to exist in a Pair. But it *is* possible
-            // in Scheme, and it might eventually be possible in this interpreter,
-            // so we might as well add detection for them here.
-            if visited.contains(&(latest as *const Pair)) {
+            if visited.contains(&latest) {
                 return PairType::Cyclic;
             }
-            visited.insert(latest as *const Pair);
-            match &latest.cdr.0 {
+            visited.insert(latest);
+
+            // It's unfortunate we have to resort to unsafe code just
+            // to iterate through the chain of pairs. The only alternative
+            // I could find was to clone every single item of the list,
+            // which felt like overkill, and this use of unsafe doesn't seem
+            // terribly risky.
+            let cdr = unsafe { &(*latest).cdr.0 };
+
+            let new_latest = match cdr {
                 Value::EmptyList => return PairType::List,
-                Value::Pair(pair) => {
-                    latest = pair.as_ref();
-                }
+                Value::Pair(pair) => pair.as_ptr(),
                 _ => return PairType::ImproperList,
-            }
+            };
+            latest = new_latest;
         }
     }
 
@@ -107,44 +137,56 @@ impl Pair {
     }
 }
 
-pub fn vec_to_pair(mut initial_values: Vec<SourceValue>, final_value: SourceValue) -> Value {
-    assert!(
-        !initial_values.is_empty(),
-        "vec_to_pair() must be given non-empty values!"
-    );
-    let mut latest = Pair {
-        car: Value::Undefined.into(),
-        cdr: final_value,
-    };
-    initial_values.reverse();
-    let len = initial_values.len();
-    for (i, value) in initial_values.into_iter().enumerate() {
-        latest.car = value;
-        if i < len - 1 {
-            latest = Pair {
-                car: Value::Undefined.into(),
-                // TODO: Could probably come up with a better source map.
-                cdr: Value::Pair(Rc::new(latest)).into(),
+#[derive(Default)]
+pub struct PairManager();
+
+impl PairManager {
+    // TODO: Implement cyclic garbage collection, otherwise we'll have leaks when
+    // cycles are created.
+
+    pub fn vec_to_pair(
+        &mut self,
+        mut initial_values: Vec<SourceValue>,
+        final_value: SourceValue,
+    ) -> Value {
+        assert!(
+            !initial_values.is_empty(),
+            "vec_to_pair() must be given non-empty values!"
+        );
+        let mut latest = PairInner {
+            car: Value::Undefined.into(),
+            cdr: final_value,
+        };
+        initial_values.reverse();
+        let len = initial_values.len();
+        for (i, value) in initial_values.into_iter().enumerate() {
+            latest.car = value;
+            if i < len - 1 {
+                latest = PairInner {
+                    car: Value::Undefined.into(),
+                    // TODO: Could probably come up with a better source map.
+                    cdr: Value::Pair(latest.into()).into(),
+                }
             }
         }
+        Value::Pair(latest.into())
     }
-    Value::Pair(Rc::new(latest))
-}
 
-pub fn vec_to_list(values: Vec<SourceValue>) -> Value {
-    if values.is_empty() {
-        return Value::EmptyList;
+    pub fn vec_to_list(&mut self, values: Vec<SourceValue>) -> Value {
+        if values.is_empty() {
+            return Value::EmptyList;
+        }
+        self.vec_to_pair(values, Value::EmptyList.into())
     }
-    vec_to_pair(values, Value::EmptyList.into())
 }
 
-pub struct PairIterator<'a> {
-    current: Option<&'a Pair>,
-    last: Option<&'a SourceValue>,
+pub struct PairIterator {
+    current: Option<Pair>,
+    last: Option<SourceValue>,
 }
 
-impl<'a> Iterator for PairIterator<'a> {
-    type Item = &'a SourceValue;
+impl Iterator for PairIterator {
+    type Item = SourceValue;
 
     fn next(&mut self) -> Option<Self::Item> {
         let Some(pair) = self.current.take() else {
@@ -155,11 +197,11 @@ impl<'a> Iterator for PairIterator<'a> {
             };
         };
 
-        let result = &pair.car;
-        if let Value::Pair(pair) = &pair.cdr.0 {
-            self.current = Some(pair.as_ref());
+        let result = pair.inner().car.clone();
+        if let Value::Pair(pair) = &pair.inner().cdr.0 {
+            self.current = Some(pair.clone());
         } else {
-            self.last = Some(&pair.cdr);
+            self.last = Some(pair.inner().cdr.clone());
         }
 
         Some(result)
@@ -170,35 +212,36 @@ impl<'a> Iterator for PairIterator<'a> {
 mod tests {
     use crate::{pair::PairType, value::Value};
 
-    use super::{Pair, SourceValue};
+    use super::{Pair, PairInner, SourceValue};
+
+    fn pair(car: SourceValue, cdr: SourceValue) -> Pair {
+        PairInner { car, cdr }.into()
+    }
 
     #[test]
     fn it_works() {
-        let list = Pair {
-            car: 1.0.into(),
-            cdr: Value::Pair(
-                Pair {
-                    car: 2.0.into(),
-                    cdr: Value::EmptyList.into(),
-                }
-                .into(),
-            )
-            .into(),
-        };
+        let list = pair(
+            1.0.into(),
+            Value::Pair(pair(2.0.into(), Value::EmptyList.into())).into(),
+        );
 
         assert_eq!(list.get_type(), PairType::List);
         assert_eq!(
-            list.iter().cloned().collect::<Vec<SourceValue>>(),
+            list.iter().collect::<Vec<SourceValue>>(),
             vec![1.0.into(), 2.0.into(), Value::EmptyList.into(),]
         );
     }
 
     #[test]
     fn improper_lists_are_detected() {
-        let improper_list = Pair {
-            car: 1.0.into(),
-            cdr: 2.0.into(),
-        };
+        let improper_list = pair(1.0.into(), 2.0.into());
         assert_eq!(improper_list.get_type(), PairType::ImproperList);
+    }
+
+    #[test]
+    fn cyclic_lists_are_detected() {
+        let cyclic_list = pair(1.0.into(), Value::EmptyList.into());
+        cyclic_list.0.borrow_mut().cdr = Value::Pair(cyclic_list.clone()).into();
+        assert_eq!(cyclic_list.get_type(), PairType::Cyclic);
     }
 }
