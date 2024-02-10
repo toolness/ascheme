@@ -93,22 +93,26 @@ impl Pair {
     }
 
     pub fn get_type(&self) -> PairType {
-        // TODO: It's unfortunate we have to do all this cloning just
-        // to iterate through the chain of pairs. Not sure how to get
-        // around that...
-        let mut latest = self.clone();
-        let mut visited: HashSet<*const PairInner> = HashSet::new();
-        loop {
-            if visited.contains(&(latest.inner().deref() as *const PairInner)) {
-                return PairType::Cyclic;
+        // It's unfortunate we have to resort to unsafe code just
+        // to iterate through the chain of pairs. The only alternative
+        // I could find was to clone every single item of the list,
+        // which felt like overkill, and this use of unsafe doesn't seem
+        // terribly risky.
+        unsafe {
+            let mut latest: *const PairInner = self.0.borrow().deref() as *const PairInner;
+            let mut visited: HashSet<*const PairInner> = HashSet::new();
+            loop {
+                if visited.contains(&latest) {
+                    return PairType::Cyclic;
+                }
+                visited.insert(latest);
+                let new_latest = match &(*latest).cdr.0 {
+                    Value::EmptyList => return PairType::List,
+                    Value::Pair(pair) => pair.0.borrow().deref() as *const PairInner,
+                    _ => return PairType::ImproperList,
+                };
+                latest = new_latest;
             }
-            visited.insert(latest.inner().deref() as *const PairInner);
-            let new_latest = match &latest.inner().cdr.0 {
-                Value::EmptyList => return PairType::List,
-                Value::Pair(pair) => pair.clone(),
-                _ => return PairType::ImproperList,
-            };
-            latest = new_latest;
         }
     }
 
