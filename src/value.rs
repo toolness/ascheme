@@ -33,7 +33,7 @@ pub enum Value {
     Symbol(InternedString),
     Boolean(bool),
     Procedure(Procedure),
-    Pair(Rc<Pair>),
+    Pair(Pair),
 }
 
 impl Value {
