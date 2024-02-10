@@ -120,35 +120,44 @@ impl Pair {
     }
 }
 
-pub fn vec_to_pair(mut initial_values: Vec<SourceValue>, final_value: SourceValue) -> Value {
-    assert!(
-        !initial_values.is_empty(),
-        "vec_to_pair() must be given non-empty values!"
-    );
-    let mut latest = PairInner {
-        car: Value::Undefined.into(),
-        cdr: final_value,
-    };
-    initial_values.reverse();
-    let len = initial_values.len();
-    for (i, value) in initial_values.into_iter().enumerate() {
-        latest.car = value;
-        if i < len - 1 {
-            latest = PairInner {
-                car: Value::Undefined.into(),
-                // TODO: Could probably come up with a better source map.
-                cdr: Value::Pair(latest.into()).into(),
+#[derive(Default)]
+pub struct PairManager();
+
+impl PairManager {
+    pub fn vec_to_pair(
+        &mut self,
+        mut initial_values: Vec<SourceValue>,
+        final_value: SourceValue,
+    ) -> Value {
+        assert!(
+            !initial_values.is_empty(),
+            "vec_to_pair() must be given non-empty values!"
+        );
+        let mut latest = PairInner {
+            car: Value::Undefined.into(),
+            cdr: final_value,
+        };
+        initial_values.reverse();
+        let len = initial_values.len();
+        for (i, value) in initial_values.into_iter().enumerate() {
+            latest.car = value;
+            if i < len - 1 {
+                latest = PairInner {
+                    car: Value::Undefined.into(),
+                    // TODO: Could probably come up with a better source map.
+                    cdr: Value::Pair(latest.into()).into(),
+                }
             }
         }
+        Value::Pair(latest.into())
     }
-    Value::Pair(latest.into())
-}
 
-pub fn vec_to_list(values: Vec<SourceValue>) -> Value {
-    if values.is_empty() {
-        return Value::EmptyList;
+    pub fn vec_to_list(&mut self, values: Vec<SourceValue>) -> Value {
+        if values.is_empty() {
+            return Value::EmptyList;
+        }
+        self.vec_to_pair(values, Value::EmptyList.into())
     }
-    vec_to_pair(values, Value::EmptyList.into())
 }
 
 pub struct PairIterator {

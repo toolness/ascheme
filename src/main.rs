@@ -3,6 +3,7 @@ use std::{fs::read_to_string, process};
 
 use clap::Parser;
 use ctrlc;
+use pair::PairManager;
 use parser::{parse, ParseErrorType};
 use rustyline::{Completer, Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
@@ -53,7 +54,8 @@ impl Validator for SchemeInputValidator {
     fn validate(&self, ctx: &mut ValidationContext<'_>) -> rustyline::Result<ValidationResult> {
         let input = ctx.input();
         let mut interner = StringInterner::default();
-        let Err(err) = parse(input, &mut interner, None) else {
+        let mut pair_manager = PairManager::default();
+        let Err(err) = parse(input, &mut interner, &mut pair_manager, None) else {
             return Ok(ValidationResult::Valid(None));
         };
 

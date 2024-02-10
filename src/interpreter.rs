@@ -4,6 +4,7 @@ use crate::{
     builtins,
     compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
+    pair::PairManager,
     parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     source_mapper::{SourceId, SourceMapper},
@@ -70,6 +71,7 @@ pub enum ProcedureSuccess {
 pub struct Interpreter {
     pub environment: Environment,
     pub string_interner: StringInterner,
+    pub pair_manager: PairManager,
     pub source_mapper: SourceMapper,
     pub tracing: bool,
     pub max_stack_size: usize,
@@ -82,11 +84,13 @@ impl Interpreter {
     pub fn new() -> Self {
         let source_mapper = SourceMapper::default();
         let mut string_interner = StringInterner::default();
+        let pair_manager = PairManager::default();
         let mut environment = Environment::default();
         builtins::populate_environment(&mut environment, &mut string_interner);
         Interpreter {
             environment,
             string_interner,
+            pair_manager,
             source_mapper,
             tracing: false,
             max_stack_size: DEFAULT_MAX_STACK_SIZE,
@@ -276,7 +280,12 @@ impl Interpreter {
 
     pub fn parse(&mut self, source_id: SourceId) -> Result<Vec<SourceValue>, ParseError> {
         let code = self.source_mapper.get_contents(source_id);
-        parse(code, &mut self.string_interner, Some(source_id))
+        parse(
+            code,
+            &mut self.string_interner,
+            &mut self.pair_manager,
+            Some(source_id),
+        )
     }
 
     pub fn evaluate(&mut self, source_id: SourceId) -> Result<SourceValue, RuntimeError> {
