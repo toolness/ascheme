@@ -19,6 +19,7 @@ mod builtins;
 mod compound_procedure;
 mod environment;
 mod interpreter;
+mod object_tracker;
 mod pair;
 mod parser;
 mod source_mapped;
