@@ -69,6 +69,10 @@ impl Pair {
         self.0.borrow()
     }
 
+    fn as_ptr(&self) -> *const PairInner {
+        self.0.borrow().deref() as *const PairInner
+    }
+
     fn iter(&self) -> PairIterator {
         PairIterator {
             current: Some(self.clone()),
@@ -99,7 +103,7 @@ impl Pair {
         // which felt like overkill, and this use of unsafe doesn't seem
         // terribly risky.
         unsafe {
-            let mut latest: *const PairInner = self.0.borrow().deref() as *const PairInner;
+            let mut latest = self.as_ptr();
             let mut visited: HashSet<*const PairInner> = HashSet::new();
             loop {
                 if visited.contains(&latest) {
@@ -108,7 +112,7 @@ impl Pair {
                 visited.insert(latest);
                 let new_latest = match &(*latest).cdr.0 {
                     Value::EmptyList => return PairType::List,
-                    Value::Pair(pair) => pair.0.borrow().deref() as *const PairInner,
+                    Value::Pair(pair) => pair.as_ptr(),
                     _ => return PairType::ImproperList,
                 };
                 latest = new_latest;
