@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    object_tracker::ObjectTracker,
+    object_tracker::{ObjectTracker, Tracked},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
     value::SourceValue,
@@ -9,7 +9,7 @@ use crate::{
 
 #[derive(Default, Clone, Debug)]
 struct Scope {
-    parent: Option<Rc<SourceMapped<Scope>>>,
+    parent: Option<Tracked<SourceMapped<Scope>>>,
     bindings: Rc<RefCell<HashMap<InternedString, SourceValue>>>,
 }
 
@@ -27,12 +27,12 @@ impl Scope {
 }
 
 #[derive(Debug, Clone)]
-pub struct CapturedLexicalScope(Option<Rc<SourceMapped<Scope>>>);
+pub struct CapturedLexicalScope(Option<Tracked<SourceMapped<Scope>>>);
 
 #[derive(Default)]
 pub struct Environment {
     globals: Scope,
-    lexical_scopes: Vec<Rc<SourceMapped<Scope>>>,
+    lexical_scopes: Vec<Tracked<SourceMapped<Scope>>>,
     tracker: ObjectTracker<SourceMapped<Scope>>,
 }
 

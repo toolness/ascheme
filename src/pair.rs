@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::ops::Deref;
 use std::{collections::HashSet, rc::Rc};
 
-use crate::object_tracker::ObjectTracker;
+use crate::object_tracker::{ObjectTracker, Tracked};
 use crate::value::{SourceValue, Value};
 
 #[derive(Debug, PartialEq)]
@@ -51,7 +51,7 @@ pub enum PairType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Pair(Rc<RefCell<PairInner>>);
+pub struct Pair(Tracked<RefCell<PairInner>>);
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct PairInner {
