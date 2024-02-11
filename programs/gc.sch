@@ -1,0 +1,6 @@
+(define x (quote (1 . 2)))
+(set-cdr! x x)
+(define x 0)
+(stats)
+(gc)
+(stats)
