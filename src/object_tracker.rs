@@ -80,7 +80,7 @@ impl<T: CycleBreaker> Deref for Tracked<T> {
 impl<T: Traverser + CycleBreaker> Traverser for Tracked<T> {
     fn traverse(&self, visitor: &Visitor) {
         self.mark_as_reachable();
-        visitor.traverse(&self.0.object, "Tracked");
+        visitor.visit(&self.0.object, "Tracked object");
     }
 }
 
