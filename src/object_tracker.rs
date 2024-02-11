@@ -80,7 +80,7 @@ impl<T: CycleBreaker> Deref for Tracked<T> {
 impl<T: Traverser + CycleBreaker> Traverser for Tracked<T> {
     fn traverse(&self, visitor: &Visitor) {
         self.mark_as_reachable();
-        visitor.visit(&self.0.object, "Tracked object");
+        visitor.visit(&self.0.object, self.0.object.debug_name());
     }
 }
 
@@ -225,5 +225,7 @@ impl<T: CycleBreaker> ObjectTracker<T> {
 }
 
 pub trait CycleBreaker {
+    fn debug_name(&self) -> &'static str;
+
     fn break_cycles(&self);
 }

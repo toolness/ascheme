@@ -59,6 +59,10 @@ impl CycleBreaker for RefCell<PairInner> {
         self.borrow_mut().car = Value::Undefined.into();
         self.borrow_mut().cdr = Value::Undefined.into();
     }
+
+    fn debug_name(&self) -> &'static str {
+        "Pair"
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]

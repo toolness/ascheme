@@ -76,4 +76,8 @@ impl<T: CycleBreaker> CycleBreaker for SourceMapped<T> {
     fn break_cycles(&self) {
         self.0.break_cycles();
     }
+
+    fn debug_name(&self) -> &'static str {
+        self.0.debug_name()
+    }
 }

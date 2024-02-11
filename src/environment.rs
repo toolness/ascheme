@@ -31,6 +31,10 @@ impl CycleBreaker for Scope {
     fn break_cycles(&self) {
         self.bindings.borrow_mut().clear();
     }
+
+    fn debug_name(&self) -> &'static str {
+        "Scope"
+    }
 }
 
 impl Traverser for Scope {
