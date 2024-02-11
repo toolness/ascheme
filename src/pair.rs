@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::ops::Deref;
 use std::{collections::HashSet, rc::Rc};
 
+use crate::gc::{Traverser, Visitor};
 use crate::object_tracker::{ObjectTracker, Tracked};
 use crate::value::{SourceValue, Value};
 
@@ -57,6 +58,13 @@ pub struct Pair(Tracked<RefCell<PairInner>>);
 pub struct PairInner {
     pub car: SourceValue,
     pub cdr: SourceValue,
+}
+
+impl Traverser for PairInner {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.car, "Pair car");
+        visitor.traverse(&self.cdr, "Pair cdr");
+    }
 }
 
 impl Pair {
@@ -129,6 +137,12 @@ impl Pair {
             PairType::List => Some(self.as_list().into()),
             _ => None,
         }
+    }
+}
+
+impl Traverser for Pair {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(self.0.borrow().deref(), "Pair");
     }
 }
 

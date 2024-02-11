@@ -1,6 +1,7 @@
 use std::{fmt::Display, rc::Rc};
 
 use crate::{
+    gc::{Traverser, Visitor},
     interpreter::{Procedure, RuntimeError, RuntimeErrorType},
     pair::Pair,
     source_mapped::{SourceMappable, SourceMapped},
@@ -70,6 +71,20 @@ impl SourceMapped<Value> {
             }
             SourceMapped(Value::EmptyList, range) => Some(SourceMapped(vec![].into(), *range)),
             _ => None,
+        }
+    }
+}
+
+impl Traverser for Value {
+    fn traverse(&self, visitor: &Visitor) {
+        match self {
+            Value::Pair(pair) => {
+                visitor.traverse(pair, "Value pair");
+            }
+            Value::Procedure(Procedure::Compound(compound)) => {
+                visitor.traverse(compound, "Value compound procedure");
+            }
+            _ => {}
         }
     }
 }

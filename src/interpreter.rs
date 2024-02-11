@@ -4,6 +4,7 @@ use crate::{
     builtins,
     compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
+    gc::{Traverser, Visitor},
     pair::PairManager,
     parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
@@ -318,5 +319,11 @@ impl Interpreter {
         }
 
         lines.join("\n")
+    }
+}
+
+impl Traverser for Interpreter {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.environment, "Interpreter environment");
     }
 }

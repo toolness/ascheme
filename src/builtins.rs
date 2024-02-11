@@ -3,6 +3,7 @@ use std::{backtrace::Backtrace, f64::INFINITY};
 use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
+    gc::Visitor,
     interpreter::{
         Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
     },
@@ -36,6 +37,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("set-cdr!", set_cdr),
         ("rust-backtrace", rust_backtrace),
         ("stats", stats),
+        ("gc", gc),
     ]
 }
 
@@ -213,5 +215,11 @@ fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
 
 fn stats(ctx: ProcedureContext) -> ProcedureResult {
     ctx.interpreter.print_stats();
+    Ok(Value::Undefined.into())
+}
+
+fn gc(ctx: ProcedureContext) -> ProcedureResult {
+    let visitor = Visitor::default();
+    visitor.traverse(ctx.interpreter, "Interpreter");
     Ok(Value::Undefined.into())
 }

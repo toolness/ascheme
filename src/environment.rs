@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
+    gc::{Traverser, Visitor},
     object_tracker::{ObjectTracker, Tracked},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
@@ -26,8 +27,27 @@ impl Scope {
     }
 }
 
+impl Traverser for Scope {
+    fn traverse(&self, visitor: &Visitor) {
+        if let Some(parent) = &self.parent {
+            visitor.traverse(parent, "Scope parent");
+        }
+        for value in self.bindings.borrow().values() {
+            visitor.traverse(value, "Scope binding");
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CapturedLexicalScope(Option<Tracked<SourceMapped<Scope>>>);
+
+impl Traverser for CapturedLexicalScope {
+    fn traverse(&self, visitor: &Visitor) {
+        if let Some(scope) = &self.0 {
+            visitor.traverse(scope, "Captured lexical scope");
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct Environment {
@@ -75,5 +95,12 @@ impl Environment {
         } else {
             self.globals.bindings.borrow_mut().insert(identifier, value);
         }
+    }
+}
+
+impl Traverser for Environment {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.globals, "Environment globals");
+        visitor.traverse(&self.lexical_scopes, "Environment lexical scopes");
     }
 }

@@ -5,6 +5,8 @@ use std::{
     rc::{Rc, Weak},
 };
 
+use crate::gc::{Traverser, Visitor};
+
 struct TrackedInner<T> {
     object: T,
     tracker: Weak<RefCell<ObjectTrackerInner<T>>>,
@@ -29,6 +31,12 @@ impl<T> Deref for Tracked<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.0.object
+    }
+}
+
+impl<T: Traverser> Traverser for Tracked<T> {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.0.object, "Tracked");
     }
 }
 

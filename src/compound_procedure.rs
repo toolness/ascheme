@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     environment::CapturedLexicalScope,
+    gc::{Traverser, Visitor},
     interpreter::{Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
@@ -77,6 +78,17 @@ impl CompoundProcedure {
 
     fn arity(&self) -> usize {
         self.signature.0.len() - self.signature_first_arg_index
+    }
+}
+
+impl Traverser for CompoundProcedure {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.definition, "CompoundProcedure definition");
+        visitor.traverse(&self.signature, "CompoundProcedure signature");
+        visitor.traverse(
+            &self.captured_lexical_scope,
+            "CompoundProcedure captured lexical scope",
+        );
     }
 }
 
