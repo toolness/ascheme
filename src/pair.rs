@@ -3,7 +3,8 @@ use std::fmt::Display;
 use std::ops::Deref;
 use std::{collections::HashSet, rc::Rc};
 
-use crate::object_tracker::{ObjectTracker, Tracked};
+use crate::gc::{Traverser, Visitor};
+use crate::object_tracker::{CycleBreaker, ObjectTracker, Tracked};
 use crate::value::{SourceValue, Value};
 
 #[derive(Debug, PartialEq)]
@@ -53,10 +54,28 @@ pub enum PairType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pair(Tracked<RefCell<PairInner>>);
 
+impl CycleBreaker for RefCell<PairInner> {
+    fn break_cycles(&self) {
+        self.borrow_mut().car = Value::Undefined.into();
+        self.borrow_mut().cdr = Value::Undefined.into();
+    }
+
+    fn debug_name(&self) -> &'static str {
+        "Pair"
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct PairInner {
     pub car: SourceValue,
     pub cdr: SourceValue,
+}
+
+impl Traverser for PairInner {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.car);
+        visitor.traverse(&self.cdr);
+    }
 }
 
 impl Pair {
@@ -132,6 +151,12 @@ impl Pair {
     }
 }
 
+impl Traverser for Pair {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.0);
+    }
+}
+
 #[derive(Default)]
 pub struct PairManager(ObjectTracker<RefCell<PairInner>>);
 
@@ -185,6 +210,14 @@ impl PairManager {
             return Value::EmptyList;
         }
         self.vec_to_pair(values, Value::EmptyList.into())
+    }
+
+    pub fn begin_mark(&mut self) {
+        self.0.begin_mark();
+    }
+
+    pub fn sweep(&mut self) -> usize {
+        self.0.sweep()
     }
 }
 

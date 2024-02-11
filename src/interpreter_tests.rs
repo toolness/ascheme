@@ -119,6 +119,21 @@ fn numeric_eq_works() {
 }
 
 #[test]
+fn gc_finds_cycles() {
+    // These print 0 because there aren't any objects trapped in cycles--regular ref-counting
+    // will clean up the data.
+    test_eval_success("(gc)", "0");
+    test_eval_success("(define (x n) (+ n 1)) (gc)", "0");
+    test_eval_success("(define (x n) (+ n 1)) (define x 0) (gc)", "0");
+
+    // This prints 1 because an object is caught in a cycle.
+    test_eval_success(
+        "(define x (quote (1 . 2))) (set-cdr! x x) (define x 0) (gc)",
+        "1",
+    );
+}
+
+#[test]
 fn if_works() {
     test_eval_success("(if #t 1)", "1");
     test_eval_success("(if #t 1 2)", "1");

@@ -4,6 +4,7 @@ use crate::{
     builtins,
     compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
+    gc::Visitor,
     pair::PairManager,
     parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
@@ -79,6 +80,7 @@ pub struct Interpreter {
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
     next_id: u32,
     stack: Vec<SourceRange>,
+    program_expressions: Vec<SourceValue>,
 }
 
 impl Interpreter {
@@ -98,6 +100,7 @@ impl Interpreter {
             keyboard_interrupt_channel: None,
             next_id: 1,
             stack: vec![],
+            program_expressions: vec![],
         }
     }
 
@@ -295,10 +298,26 @@ impl Interpreter {
     }
 
     pub fn evaluate(&mut self, source_id: SourceId) -> Result<SourceValue, RuntimeError> {
+        // TODO: The method isn't re-entrant, we should raise an error or
+        // something if we detect we're being called in a re-entrant way (or
+        // alternatively, make this method re-entrant).
         self.stack.clear();
+        self.program_expressions.clear();
         self.environment.clear_lexical_scopes();
         match self.parse(source_id) {
-            Ok(expressions) => self.eval_expressions(&expressions),
+            Ok(mut expressions) => {
+                // This is a bit convoluted because we need to root the expressions
+                // we're evaluating and that have yet to be evaluated in the GC, so
+                // they don't get GC'd while we're running the program.
+                expressions.reverse();
+                self.program_expressions = expressions;
+                let mut last_value: SourceValue = Value::Undefined.into();
+                while let Some(expression) = self.program_expressions.last().cloned() {
+                    last_value = self.eval_expression(&expression)?;
+                    self.program_expressions.pop();
+                }
+                Ok(last_value)
+            }
             Err(err) => Err(err.into()),
         }
     }
@@ -318,5 +337,21 @@ impl Interpreter {
         }
 
         lines.join("\n")
+    }
+
+    pub fn gc(&mut self, debug: bool) -> usize {
+        let mut visitor = Visitor::default();
+        visitor.debug = debug;
+        self.environment.begin_mark();
+        self.pair_manager.begin_mark();
+        visitor.traverse(&self.environment);
+        visitor.traverse(&self.program_expressions);
+        let env_cycles = self.environment.sweep();
+        let pair_cycles = self.pair_manager.sweep();
+        if visitor.debug {
+            println!("Lexical scopes reclaimed: {}", env_cycles);
+            println!("Pairs reclaimed: {}", pair_cycles);
+        }
+        env_cycles + pair_cycles
     }
 }

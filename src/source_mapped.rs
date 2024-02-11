@@ -1,6 +1,10 @@
 use std::fmt::Display;
 
-use crate::source_mapper::SourceId;
+use crate::{
+    gc::{Traverser, Visitor},
+    object_tracker::CycleBreaker,
+    source_mapper::SourceId,
+};
 
 pub type SourceRange = (usize, usize, Option<SourceId>);
 
@@ -59,5 +63,21 @@ impl<T: PartialEq> PartialEq for SourceMapped<T> {
         // just used for debugging and isn't relevant to our concept of
         // equality.
         self.0 == other.0
+    }
+}
+
+impl<T: Traverser> Traverser for SourceMapped<T> {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.0);
+    }
+}
+
+impl<T: CycleBreaker> CycleBreaker for SourceMapped<T> {
+    fn break_cycles(&self) {
+        self.0.break_cycles();
+    }
+
+    fn debug_name(&self) -> &'static str {
+        self.0.debug_name()
     }
 }

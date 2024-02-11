@@ -18,6 +18,7 @@ use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 mod builtins;
 mod compound_procedure;
 mod environment;
+mod gc;
 mod interpreter;
 mod object_tracker;
 mod pair;

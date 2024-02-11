@@ -1,7 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    object_tracker::{ObjectTracker, Tracked},
+    gc::{Traverser, Visitor},
+    object_tracker::{CycleBreaker, ObjectTracker, Tracked},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
     value::SourceValue,
@@ -26,8 +27,44 @@ impl Scope {
     }
 }
 
+impl CycleBreaker for Scope {
+    fn break_cycles(&self) {
+        self.bindings.borrow_mut().clear();
+    }
+
+    fn debug_name(&self) -> &'static str {
+        "Scope"
+    }
+}
+
+impl Traverser for Scope {
+    fn traverse(&self, visitor: &Visitor) {
+        if let Some(parent) = &self.parent {
+            visitor.traverse(parent);
+        }
+        for (name, value) in self.bindings.borrow().iter() {
+            if visitor.debug {
+                visitor.log(&format!("Traversing scope binding: {}", name));
+                visitor.indent();
+            }
+            visitor.traverse(value);
+            if visitor.debug {
+                visitor.dedent();
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CapturedLexicalScope(Option<Tracked<SourceMapped<Scope>>>);
+
+impl Traverser for CapturedLexicalScope {
+    fn traverse(&self, visitor: &Visitor) {
+        if let Some(scope) = &self.0 {
+            visitor.traverse(scope);
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct Environment {
@@ -39,6 +76,14 @@ pub struct Environment {
 impl Environment {
     pub fn print_stats(&self) {
         println!("Lexical scopes: {}", self.tracker.stats());
+    }
+
+    pub fn begin_mark(&mut self) {
+        self.tracker.begin_mark();
+    }
+
+    pub fn sweep(&mut self) -> usize {
+        self.tracker.sweep()
     }
 
     pub fn clear_lexical_scopes(&mut self) {
@@ -75,5 +120,12 @@ impl Environment {
         } else {
             self.globals.bindings.borrow_mut().insert(identifier, value);
         }
+    }
+}
+
+impl Traverser for Environment {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.globals);
+        visitor.traverse(&self.lexical_scopes);
     }
 }

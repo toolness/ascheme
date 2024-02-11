@@ -36,6 +36,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("set-cdr!", set_cdr),
         ("rust-backtrace", rust_backtrace),
         ("stats", stats),
+        ("gc", gc),
     ]
 }
 
@@ -214,4 +215,9 @@ fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
 fn stats(ctx: ProcedureContext) -> ProcedureResult {
     ctx.interpreter.print_stats();
     Ok(Value::Undefined.into())
+}
+
+fn gc(ctx: ProcedureContext) -> ProcedureResult {
+    let objs_found_in_cycles = ctx.interpreter.gc(true);
+    Ok((objs_found_in_cycles as f64).into())
 }
