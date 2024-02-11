@@ -11,7 +11,27 @@ struct TrackedInner<T: CycleBreaker> {
     object: T,
     tracker: Weak<RefCell<ObjectTrackerInner<T>>>,
     is_reachable: RefCell<bool>,
+    has_had_cycles_broken: RefCell<bool>,
     id: usize,
+}
+
+impl<T: CycleBreaker> TrackedInner<T> {
+    fn has_had_cycles_broken(&self) -> bool {
+        *self.has_had_cycles_broken.borrow().deref()
+    }
+
+    fn is_reachable(&self) -> bool {
+        *self.is_reachable.borrow().deref()
+    }
+
+    fn begin_mark(&self) {
+        *self.is_reachable.borrow_mut() = false;
+    }
+
+    fn break_cycles(&self) {
+        self.object.break_cycles();
+        *self.has_had_cycles_broken.borrow_mut() = true;
+    }
 }
 
 impl<T: CycleBreaker> Drop for TrackedInner<T> {
@@ -47,6 +67,12 @@ impl<T: CycleBreaker> Deref for Tracked<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
+        if self.0.has_had_cycles_broken() {
+            eprintln!(
+                "WARNING: Accessing object #{}, which has had its cycles broken.",
+                self.0.id
+            );
+        }
         &self.0.object
     }
 }
@@ -94,6 +120,7 @@ impl<T: CycleBreaker> ObjectTrackerInner<T> {
                 tracker: weak_self,
                 id,
                 is_reachable: false.into(),
+                has_had_cycles_broken: false.into(),
             });
             assert!(matches!(self.objects.get(id), Some(None)));
             self.objects[id] = Some(Rc::downgrade(&rc));
@@ -105,6 +132,7 @@ impl<T: CycleBreaker> ObjectTrackerInner<T> {
                 tracker: weak_self,
                 id,
                 is_reachable: false.into(),
+                has_had_cycles_broken: false.into(),
             });
             self.objects.push(Some(Rc::downgrade(&rc)));
             Tracked(rc)
@@ -120,7 +148,7 @@ impl<T: CycleBreaker> ObjectTrackerInner<T> {
         for obj in &self.objects {
             if let Some(obj) = obj {
                 if let Some(obj) = obj.upgrade() {
-                    *obj.is_reachable.borrow_mut() = false;
+                    obj.begin_mark();
                 }
             }
         }
@@ -131,15 +159,14 @@ impl<T: CycleBreaker> ObjectTrackerInner<T> {
         for obj in &self.objects {
             if let Some(obj) = obj {
                 if let Some(obj) = obj.upgrade() {
-                    let is_reachable = *obj.is_reachable.borrow().deref();
-                    if !is_reachable {
+                    if !obj.is_reachable() {
                         objs_in_cycles.push(obj);
                     }
                 }
             }
         }
         for obj in objs_in_cycles.iter() {
-            obj.as_ref().object.break_cycles();
+            obj.as_ref().break_cycles();
         }
         objs_in_cycles
     }
