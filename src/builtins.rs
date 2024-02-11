@@ -218,6 +218,6 @@ fn stats(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn gc(ctx: ProcedureContext) -> ProcedureResult {
-    ctx.interpreter.gc(true);
-    Ok(Value::Undefined.into())
+    let objs_found_in_cycles = ctx.interpreter.gc(true);
+    Ok((objs_found_in_cycles as f64).into())
 }

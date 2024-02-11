@@ -339,7 +339,7 @@ impl Interpreter {
         lines.join("\n")
     }
 
-    pub fn gc(&mut self, debug: bool) {
+    pub fn gc(&mut self, debug: bool) -> usize {
         let mut visitor = Visitor::default();
         visitor.debug = debug;
         self.environment.begin_mark();
@@ -352,5 +352,6 @@ impl Interpreter {
             println!("Lexical scopes reclaimed: {}", env_cycles);
             println!("Pairs reclaimed: {}", pair_cycles);
         }
+        env_cycles + pair_cycles
     }
 }
