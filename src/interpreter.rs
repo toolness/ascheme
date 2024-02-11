@@ -80,6 +80,7 @@ pub struct Interpreter {
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
     next_id: u32,
     stack: Vec<SourceRange>,
+    program_expressions: Option<Rc<Vec<SourceValue>>>,
 }
 
 impl Interpreter {
@@ -99,6 +100,7 @@ impl Interpreter {
             keyboard_interrupt_channel: None,
             next_id: 1,
             stack: vec![],
+            program_expressions: None,
         }
     }
 
@@ -296,15 +298,20 @@ impl Interpreter {
     }
 
     pub fn evaluate(&mut self, source_id: SourceId) -> Result<SourceValue, RuntimeError> {
+        // TODO: The method isn't re-entrant, we should raise an error or
+        // something if we detect we're being called in a re-entrant way (or
+        // alternatively, make this method re-entrant).
         self.stack.clear();
+        self.program_expressions = None;
         self.environment.clear_lexical_scopes();
         match self.parse(source_id) {
-            // TODO: These expressions aren't pinned anywhere that GC has access to,
-            // which means that it's entirely possible for GC to be called partway through
-            // their evaluation, resulting in malformed expression errors because all the
-            // pairs yet to be evaluated have had their cycles broken (which sets their car and
-            // cdr to undefined). D'oh.
-            Ok(expressions) => self.eval_expressions(&expressions),
+            Ok(expressions) => {
+                let expressions = Rc::new(expressions);
+                self.program_expressions = Some(expressions.clone());
+                let result = self.eval_expressions(&expressions)?;
+                self.program_expressions = None;
+                Ok(result)
+            }
             Err(err) => Err(err.into()),
         }
     }
@@ -332,6 +339,7 @@ impl Interpreter {
         self.environment.begin_mark();
         self.pair_manager.begin_mark();
         visitor.traverse(&self.environment, "Interpreter environment");
+        visitor.traverse(&self.program_expressions, "Program expressoins");
         let env_cycles = self.environment.sweep();
         let pair_cycles = self.pair_manager.sweep();
         if visitor.debug {

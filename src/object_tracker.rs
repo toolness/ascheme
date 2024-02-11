@@ -68,8 +68,8 @@ impl<T: CycleBreaker> Deref for Tracked<T> {
 
     fn deref(&self) -> &Self::Target {
         if self.0.has_had_cycles_broken() {
-            eprintln!(
-                "WARNING: Accessing object #{}, which has had its cycles broken.",
+            panic!(
+                "Accessing object #{}, which has had its cycles broken.",
                 self.0.id
             );
         }

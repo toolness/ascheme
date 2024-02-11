@@ -79,3 +79,11 @@ impl<T: Traverser> Traverser for RefCell<T> {
         visitor.traverse(self.borrow().deref(), "RefCell");
     }
 }
+
+impl<T: Traverser> Traverser for Option<T> {
+    fn traverse(&self, visitor: &Visitor) {
+        if let Some(traverser) = self {
+            visitor.traverse(traverser, "Option");
+        }
+    }
+}
