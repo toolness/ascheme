@@ -168,6 +168,9 @@ impl<T: CycleBreaker> ObjectTrackerInner<T> {
         for obj in objs_in_cycles.iter() {
             obj.as_ref().break_cycles();
         }
+        // Note that we're returning these in part because we don't want to
+        // drop them: if we did, their `drop` methods would attempt to access us,
+        // and we're already mutably borrowed!
         objs_in_cycles
     }
 
