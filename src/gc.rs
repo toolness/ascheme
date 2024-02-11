@@ -20,6 +20,11 @@ impl Visitor {
     /// use that as part of the identifier.
     ///
     /// This feels extremely stupid but I don't know what else to do.
+    ///
+    /// TODO: Maybe we only actually have to care about double-visiting
+    /// Tracked objects? If that's the case, we could have a separate visit
+    /// method that just takes a tracked object, and we could use its id for
+    /// comparison.
     pub fn traverse(&self, traverser: &dyn Traverser, type_id: &'static str) {
         let traverser_ptr = (traverser as *const dyn Traverser) as *const () as usize;
         let type_id_ptr = (type_id as *const str) as *const () as usize;
