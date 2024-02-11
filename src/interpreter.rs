@@ -344,8 +344,8 @@ impl Interpreter {
         visitor.debug = debug;
         self.environment.begin_mark();
         self.pair_manager.begin_mark();
-        visitor.traverse(&self.environment, "Interpreter environment");
-        visitor.traverse(&self.program_expressions, "Program expressoins");
+        visitor.traverse(&self.environment);
+        visitor.traverse(&self.program_expressions);
         let env_cycles = self.environment.sweep();
         let pair_cycles = self.pair_manager.sweep();
         if visitor.debug {

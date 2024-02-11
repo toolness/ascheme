@@ -79,10 +79,10 @@ impl Traverser for Value {
     fn traverse(&self, visitor: &Visitor) {
         match self {
             Value::Pair(pair) => {
-                visitor.traverse(pair, "Value pair");
+                visitor.traverse(pair);
             }
             Value::Procedure(Procedure::Compound(compound)) => {
-                visitor.traverse(compound, "Value compound procedure");
+                visitor.traverse(compound);
             }
             _ => {}
         }

@@ -54,7 +54,7 @@ impl Visitor {
     /// but obtaining a unique identifier for the traverser is non-trivial, as
     /// e.g. the first child of a struct may have the exact same memory address as
     /// its parent.)
-    pub fn traverse(&self, traverser: &dyn Traverser, _name: &'static str) {
+    pub fn traverse(&self, traverser: &dyn Traverser) {
         traverser.traverse(self);
     }
 }
@@ -68,27 +68,27 @@ pub trait Traverser {
 impl<T: Traverser> Traverser for Vec<T> {
     fn traverse(&self, visitor: &Visitor) {
         for item in self {
-            visitor.traverse(item, "Vec item");
+            visitor.traverse(item);
         }
     }
 }
 
 impl<T: Traverser> Traverser for Rc<T> {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(self.as_ref(), "Rc");
+        visitor.traverse(self.as_ref());
     }
 }
 
 impl<T: Traverser> Traverser for RefCell<T> {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(self.borrow().deref(), "RefCell");
+        visitor.traverse(self.borrow().deref());
     }
 }
 
 impl<T: Traverser> Traverser for Option<T> {
     fn traverse(&self, visitor: &Visitor) {
         if let Some(traverser) = self {
-            visitor.traverse(traverser, "Option");
+            visitor.traverse(traverser);
         }
     }
 }

@@ -40,14 +40,14 @@ impl CycleBreaker for Scope {
 impl Traverser for Scope {
     fn traverse(&self, visitor: &Visitor) {
         if let Some(parent) = &self.parent {
-            visitor.traverse(parent, "Scope parent");
+            visitor.traverse(parent);
         }
         for (name, value) in self.bindings.borrow().iter() {
             if visitor.debug {
                 visitor.log(&format!("Traversing scope binding: {}", name));
                 visitor.indent();
             }
-            visitor.traverse(value, "Scope binding");
+            visitor.traverse(value);
             if visitor.debug {
                 visitor.dedent();
             }
@@ -61,7 +61,7 @@ pub struct CapturedLexicalScope(Option<Tracked<SourceMapped<Scope>>>);
 impl Traverser for CapturedLexicalScope {
     fn traverse(&self, visitor: &Visitor) {
         if let Some(scope) = &self.0 {
-            visitor.traverse(scope, "Captured lexical scope");
+            visitor.traverse(scope);
         }
     }
 }
@@ -125,7 +125,7 @@ impl Environment {
 
 impl Traverser for Environment {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(&self.globals, "Environment globals");
-        visitor.traverse(&self.lexical_scopes, "Environment lexical scopes");
+        visitor.traverse(&self.globals);
+        visitor.traverse(&self.lexical_scopes);
     }
 }

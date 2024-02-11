@@ -68,7 +68,7 @@ impl<T: PartialEq> PartialEq for SourceMapped<T> {
 
 impl<T: Traverser> Traverser for SourceMapped<T> {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(&self.0, "SourceMapped");
+        visitor.traverse(&self.0);
     }
 }
 

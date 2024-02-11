@@ -73,8 +73,8 @@ pub struct PairInner {
 
 impl Traverser for PairInner {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(&self.car, "Pair car");
-        visitor.traverse(&self.cdr, "Pair cdr");
+        visitor.traverse(&self.car);
+        visitor.traverse(&self.cdr);
     }
 }
 
@@ -153,7 +153,7 @@ impl Pair {
 
 impl Traverser for Pair {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(&self.0, "Pair");
+        visitor.traverse(&self.0);
     }
 }
 

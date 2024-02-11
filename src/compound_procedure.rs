@@ -83,12 +83,9 @@ impl CompoundProcedure {
 
 impl Traverser for CompoundProcedure {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(&self.definition, "CompoundProcedure definition");
-        visitor.traverse(&self.signature, "CompoundProcedure signature");
-        visitor.traverse(
-            &self.captured_lexical_scope,
-            "CompoundProcedure captured lexical scope",
-        );
+        visitor.traverse(&self.definition);
+        visitor.traverse(&self.signature);
+        visitor.traverse(&self.captured_lexical_scope);
     }
 }
 
