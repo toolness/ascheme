@@ -7,12 +7,27 @@ use std::{
 
 use crate::gc::{Traverser, Visitor};
 
+/// Wrapper for objects that can be tracked and possibly involved in
+/// cycles that may need to be broken in order to prevent memory leaks.
 struct TrackedInner<T: CycleBreaker> {
     object: T,
     tracker: Weak<RefCell<ObjectTrackerInner<T>>>,
-    is_reachable: RefCell<bool>,
-    has_had_cycles_broken: RefCell<bool>,
     id: usize,
+
+    /// Tracks whether the object is reachable from the interpreter's GC
+    /// roots. This is only used during the "mark" phase of mark-and-sweep GC.
+    is_reachable: RefCell<bool>,
+
+    /// Tracks whether the object has been told to break its cycles. This
+    /// occurs when GC determines that the object isn't reachable from the
+    /// interpreter's GC roots and is part of a cycle which needs to be
+    /// broken in order to prevent memory leaks.
+    ///
+    /// Once the "sweep" phase of mark-and-sweep GC sets this to `true`,
+    /// the object, while technically valid and still allocated, shouldn't
+    /// be accessed anymore--it's essentially just waiting around to be
+    /// deallocated by standard ref-counting GC.
+    has_had_cycles_broken: RefCell<bool>,
 }
 
 impl<T: CycleBreaker> TrackedInner<T> {
@@ -210,10 +225,17 @@ impl<T: CycleBreaker> ObjectTracker<T> {
         self.0.borrow_mut().track(object, weak_self)
     }
 
+    /// Marks all tracked objects as being unreachable from GC roots. This should be
+    /// called at the beginning of the "mark" phase of mark-and-sweep GC.
     pub fn begin_mark(&mut self) {
         self.0.borrow_mut().begin_mark();
     }
 
+    /// Finds all objects that haven't been marked as reachable from GC roots and
+    /// tells them to break their cycles. This is the "sweep" phase of mark-and-sweep
+    /// GC.
+    ///
+    /// Returns the number of objects involved in cycles.
     pub fn sweep(&mut self) -> usize {
         // Note that we need to capture the result in a variable, or
         // else the objects in broken cycles won't be able to
@@ -227,8 +249,15 @@ impl<T: CycleBreaker> ObjectTracker<T> {
     }
 }
 
+/// Trait to be implemented by objects that can be involved in GC cycles.
 pub trait CycleBreaker {
+    /// Returns the name of the type of object, used in debug output from
+    /// the garbage collector.
     fn debug_name(&self) -> &'static str;
 
+    /// Breaks any cycles that the object might be involved in. This should
+    /// basically clear the object out, destroying any references to other
+    /// objects, so that everything can be deallocated via standard ref-counting
+    /// GC.
     fn break_cycles(&self);
 }

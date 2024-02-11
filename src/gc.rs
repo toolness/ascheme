@@ -1,5 +1,8 @@
 use std::{cell::RefCell, collections::HashSet, ops::Deref, rc::Rc};
 
+/// A Visitor that allows the interpreter's data structures to be traversed, without
+/// infinitely looping when it encounters cycles. When used on GC roots, it can be
+/// used to mark all reachable objects as the first phase of a mark-and-sweep process.
 #[derive(Default)]
 pub struct Visitor {
     pub debug: bool,
@@ -56,6 +59,8 @@ impl Visitor {
     }
 }
 
+/// Trait implemented by objects in the interpreter, allowing `Visitor` to visit
+/// all the objects in it.
 pub trait Traverser {
     fn traverse(&self, visitor: &Visitor);
 }
