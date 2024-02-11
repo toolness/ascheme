@@ -326,14 +326,17 @@ impl Interpreter {
         lines.join("\n")
     }
 
-    pub fn gc(&mut self) {
-        let visitor = Visitor::default();
+    pub fn gc(&mut self, debug: bool) {
+        let mut visitor = Visitor::default();
+        visitor.debug = debug;
         self.environment.begin_mark();
         self.pair_manager.begin_mark();
         visitor.traverse(&self.environment, "Interpreter environment");
         let env_cycles = self.environment.sweep();
         let pair_cycles = self.pair_manager.sweep();
-        println!("Lexical scopes reclaimed: {}", env_cycles);
-        println!("Pairs reclaimed: {}", pair_cycles);
+        if visitor.debug {
+            println!("Lexical scopes reclaimed: {}", env_cycles);
+            println!("Pairs reclaimed: {}", pair_cycles);
+        }
     }
 }

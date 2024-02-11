@@ -2,6 +2,7 @@ use std::{cell::RefCell, collections::HashSet, ops::Deref, rc::Rc};
 
 #[derive(Default)]
 pub struct Visitor {
+    pub debug: bool,
     visited: RefCell<HashSet<(usize, usize)>>,
 }
 
@@ -30,10 +31,14 @@ impl Visitor {
         let type_id_ptr = (type_id as *const str) as *const () as usize;
         let id = (traverser_ptr, type_id_ptr);
         if self.visited.borrow().contains(&id) {
-            println!("Already visited {type_id} @ {:#x}", traverser_ptr);
+            if self.debug {
+                println!("Already visited {type_id} @ {:#x}", traverser_ptr);
+            }
             return;
         }
-        println!("Visiting {type_id} @ {:#x}", traverser_ptr);
+        if self.debug {
+            println!("Visiting {type_id} @ {:#x}", traverser_ptr);
+        }
         self.visited.borrow_mut().insert(id);
         traverser.traverse(self);
     }

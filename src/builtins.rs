@@ -218,6 +218,6 @@ fn stats(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn gc(ctx: ProcedureContext) -> ProcedureResult {
-    ctx.interpreter.gc();
+    ctx.interpreter.gc(true);
     Ok(Value::Undefined.into())
 }
