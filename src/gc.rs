@@ -3,27 +3,47 @@ use std::{cell::RefCell, collections::HashSet, ops::Deref, rc::Rc};
 #[derive(Default)]
 pub struct Visitor {
     pub debug: bool,
+    indent_level: RefCell<usize>,
     visited: RefCell<HashSet<usize>>,
 }
 
 impl Visitor {
+    pub fn log(&self, value: &str) {
+        println!("{}{}", "  ".repeat(*self.indent_level.borrow()), value);
+    }
+
+    pub fn indent(&self) {
+        let indent = *self.indent_level.borrow();
+        *self.indent_level.borrow_mut() = indent + 1;
+    }
+
+    pub fn dedent(&self) {
+        let indent = *self.indent_level.borrow();
+        *self.indent_level.borrow_mut() = indent - 1;
+    }
+
     /// This will only traverse the given traverser if it hasn't already been
     /// traversed. It uses the traverser's pointer as its unique identifier.
     pub fn visit(&self, traverser: &dyn Traverser, name: &str) {
         let id = (traverser as *const dyn Traverser) as *const () as usize;
         if self.visited.borrow().contains(&id) {
             if self.debug {
-                println!("Already visited {name} @ {id:#x}");
+                self.log(&format!("Already visited {name} @ {id:#x}"));
             }
             return;
         }
         if self.debug {
-            println!("Visiting {name} @ {id:#x}");
+            self.log(&format!("Visiting {name} @ {id:#x}"));
         }
         self.visited.borrow_mut().insert(id);
 
-        // TODO: Push/pop debug output indentation level around this call.
+        if self.debug {
+            self.indent();
+        }
         traverser.traverse(self);
+        if self.debug {
+            self.dedent();
+        }
     }
 
     /// This will *always* traverse the given traverser--it doesn't actually check

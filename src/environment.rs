@@ -44,9 +44,13 @@ impl Traverser for Scope {
         }
         for (name, value) in self.bindings.borrow().iter() {
             if visitor.debug {
-                println!("Traversing scope binding: {}", name);
+                visitor.log(&format!("Traversing scope binding: {}", name));
+                visitor.indent();
             }
             visitor.traverse(value, "Scope binding");
+            if visitor.debug {
+                visitor.dedent();
+            }
         }
     }
 }
