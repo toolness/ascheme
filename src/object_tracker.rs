@@ -20,13 +20,13 @@ impl<T: CycleBreaker> Drop for TrackedInner<T> {
             if let Ok(mut tracker) = tracker.try_borrow_mut() {
                 tracker.untrack(self.id);
             } else {
-                println!(
+                eprintln!(
                     "WARNING: Unable to untrack object #{} (tracker.borrow_mut() failed).",
                     self.id
                 );
             }
         } else {
-            println!(
+            eprintln!(
                 "WARNING: Unable to untrack object #{} (tracker does not exist).",
                 self.id
             );
