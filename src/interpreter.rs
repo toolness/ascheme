@@ -299,6 +299,11 @@ impl Interpreter {
         self.stack.clear();
         self.environment.clear_lexical_scopes();
         match self.parse(source_id) {
+            // TODO: These expressions aren't pinned anywhere that GC has access to,
+            // which means that it's entirely possible for GC to be called partway through
+            // their evaluation, resulting in malformed expression errors because all the
+            // pairs yet to be evaluated have had their cycles broken (which sets their car and
+            // cdr to undefined). D'oh.
             Ok(expressions) => self.eval_expressions(&expressions),
             Err(err) => Err(err.into()),
         }
