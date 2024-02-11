@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     gc::{Traverser, Visitor},
-    object_tracker::{ObjectTracker, Tracked},
+    object_tracker::{CycleBreaker, ObjectTracker, Tracked},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
     value::SourceValue,
@@ -27,12 +27,19 @@ impl Scope {
     }
 }
 
+impl CycleBreaker for Scope {
+    fn break_cycles(&self) {
+        self.bindings.borrow_mut().clear();
+    }
+}
+
 impl Traverser for Scope {
     fn traverse(&self, visitor: &Visitor) {
         if let Some(parent) = &self.parent {
             visitor.traverse(parent, "Scope parent");
         }
-        for value in self.bindings.borrow().values() {
+        for (name, value) in self.bindings.borrow().iter() {
+            println!("Traversing scope binding: {}", name);
             visitor.traverse(value, "Scope binding");
         }
     }
@@ -59,6 +66,14 @@ pub struct Environment {
 impl Environment {
     pub fn print_stats(&self) {
         println!("Lexical scopes: {}", self.tracker.stats());
+    }
+
+    pub fn begin_mark(&mut self) {
+        self.tracker.begin_mark();
+    }
+
+    pub fn sweep(&mut self) -> usize {
+        self.tracker.sweep()
     }
 
     pub fn clear_lexical_scopes(&mut self) {

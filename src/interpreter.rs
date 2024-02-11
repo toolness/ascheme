@@ -4,7 +4,7 @@ use crate::{
     builtins,
     compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
-    gc::{Traverser, Visitor},
+    gc::Visitor,
     pair::PairManager,
     parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
@@ -320,10 +320,15 @@ impl Interpreter {
 
         lines.join("\n")
     }
-}
 
-impl Traverser for Interpreter {
-    fn traverse(&self, visitor: &Visitor) {
+    pub fn gc(&mut self) {
+        let visitor = Visitor::default();
+        self.environment.begin_mark();
+        self.pair_manager.begin_mark();
         visitor.traverse(&self.environment, "Interpreter environment");
+        let env_cycles = self.environment.sweep();
+        let pair_cycles = self.pair_manager.sweep();
+        println!("Lexical scopes reclaimed: {}", env_cycles);
+        println!("Pairs reclaimed: {}", pair_cycles);
     }
 }

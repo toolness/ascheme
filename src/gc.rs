@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashSet, rc::Rc};
+use std::{cell::RefCell, collections::HashSet, ops::Deref, rc::Rc};
 
 #[derive(Default)]
 pub struct Visitor {
@@ -48,6 +48,12 @@ impl<T: Traverser> Traverser for Vec<T> {
 
 impl<T: Traverser> Traverser for Rc<T> {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(self, "Rc");
+        visitor.traverse(self.as_ref(), "Rc");
+    }
+}
+
+impl<T: Traverser> Traverser for RefCell<T> {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(self.borrow().deref(), "Rc");
     }
 }

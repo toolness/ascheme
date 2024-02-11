@@ -3,7 +3,6 @@ use std::{backtrace::Backtrace, f64::INFINITY};
 use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
-    gc::Visitor,
     interpreter::{
         Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
     },
@@ -219,7 +218,6 @@ fn stats(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn gc(ctx: ProcedureContext) -> ProcedureResult {
-    let visitor = Visitor::default();
-    visitor.traverse(ctx.interpreter, "Interpreter");
+    ctx.interpreter.gc();
     Ok(Value::Undefined.into())
 }

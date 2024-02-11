@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     gc::{Traverser, Visitor},
+    object_tracker::CycleBreaker,
     source_mapper::SourceId,
 };
 
@@ -68,5 +69,11 @@ impl<T: PartialEq> PartialEq for SourceMapped<T> {
 impl<T: Traverser> Traverser for SourceMapped<T> {
     fn traverse(&self, visitor: &Visitor) {
         visitor.traverse(&self.0, "SourceMapped");
+    }
+}
+
+impl<T: CycleBreaker> CycleBreaker for SourceMapped<T> {
+    fn break_cycles(&self) {
+        self.0.break_cycles();
     }
 }

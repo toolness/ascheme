@@ -7,26 +7,43 @@ use std::{
 
 use crate::gc::{Traverser, Visitor};
 
-struct TrackedInner<T> {
+struct TrackedInner<T: CycleBreaker> {
     object: T,
     tracker: Weak<RefCell<ObjectTrackerInner<T>>>,
+    is_reachable: RefCell<bool>,
     id: usize,
 }
 
-impl<T> Drop for TrackedInner<T> {
+impl<T: CycleBreaker> Drop for TrackedInner<T> {
     fn drop(&mut self) {
         if let Some(tracker) = self.tracker.upgrade() {
             if let Ok(mut tracker) = tracker.try_borrow_mut() {
                 tracker.untrack(self.id);
+            } else {
+                println!(
+                    "WARNING: Unable to untrack object #{} (tracker.borrow_mut() failed).",
+                    self.id
+                );
             }
+        } else {
+            println!(
+                "WARNING: Unable to untrack object #{} (tracker does not exist).",
+                self.id
+            );
         }
     }
 }
 
 #[derive(Clone)]
-pub struct Tracked<T>(Rc<TrackedInner<T>>);
+pub struct Tracked<T: CycleBreaker>(Rc<TrackedInner<T>>);
 
-impl<T> Deref for Tracked<T> {
+impl<T: CycleBreaker> Tracked<T> {
+    pub fn mark_as_reachable(&self) {
+        *self.0.is_reachable.borrow_mut() = true;
+    }
+}
+
+impl<T: CycleBreaker> Deref for Tracked<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -34,13 +51,14 @@ impl<T> Deref for Tracked<T> {
     }
 }
 
-impl<T: Traverser> Traverser for Tracked<T> {
+impl<T: Traverser + CycleBreaker> Traverser for Tracked<T> {
     fn traverse(&self, visitor: &Visitor) {
+        self.mark_as_reachable();
         visitor.traverse(&self.0.object, "Tracked");
     }
 }
 
-impl<T> Debug for Tracked<T>
+impl<T: CycleBreaker> Debug for Tracked<T>
 where
     T: Debug,
 {
@@ -49,7 +67,7 @@ where
     }
 }
 
-impl<T: PartialEq> PartialEq for Tracked<T> {
+impl<T: PartialEq + CycleBreaker> PartialEq for Tracked<T> {
     fn eq(&self, other: &Self) -> bool {
         if self.0.id == other.0.id {
             // It's the exact same object reference, so it must be equal.
@@ -60,7 +78,7 @@ impl<T: PartialEq> PartialEq for Tracked<T> {
     }
 }
 
-struct ObjectTrackerInner<T> {
+struct ObjectTrackerInner<T: CycleBreaker> {
     objects: Vec<Option<Weak<TrackedInner<T>>>>,
     /// Indexes into the `objects` vec that are None. Makes it easy to do
     /// constant-time creation of new objects, instead of having to traverse
@@ -68,13 +86,14 @@ struct ObjectTrackerInner<T> {
     free_objects: Vec<usize>,
 }
 
-impl<T> ObjectTrackerInner<T> {
+impl<T: CycleBreaker> ObjectTrackerInner<T> {
     fn track(&mut self, object: T, weak_self: Weak<RefCell<Self>>) -> Tracked<T> {
         if let Some(id) = self.free_objects.pop() {
             let rc = Rc::new(TrackedInner {
                 object,
                 tracker: weak_self,
                 id,
+                is_reachable: false.into(),
             });
             assert!(matches!(self.objects.get(id), Some(None)));
             self.objects[id] = Some(Rc::downgrade(&rc));
@@ -85,6 +104,7 @@ impl<T> ObjectTrackerInner<T> {
                 object,
                 tracker: weak_self,
                 id,
+                is_reachable: false.into(),
             });
             self.objects.push(Some(Rc::downgrade(&rc)));
             Tracked(rc)
@@ -94,6 +114,34 @@ impl<T> ObjectTrackerInner<T> {
     fn untrack(&mut self, id: usize) {
         self.objects[id] = None;
         self.free_objects.push(id);
+    }
+
+    fn begin_mark(&mut self) {
+        for obj in &self.objects {
+            if let Some(obj) = obj {
+                if let Some(obj) = obj.upgrade() {
+                    *obj.is_reachable.borrow_mut() = false;
+                }
+            }
+        }
+    }
+
+    fn sweep(&mut self) -> Vec<Rc<TrackedInner<T>>> {
+        let mut objs_in_cycles = vec![];
+        for obj in &self.objects {
+            if let Some(obj) = obj {
+                if let Some(obj) = obj.upgrade() {
+                    let is_reachable = *obj.is_reachable.borrow().deref();
+                    if !is_reachable {
+                        objs_in_cycles.push(obj);
+                    }
+                }
+            }
+        }
+        for obj in objs_in_cycles.iter() {
+            obj.as_ref().object.break_cycles();
+        }
+        objs_in_cycles
     }
 
     pub fn stats(&self) -> String {
@@ -114,9 +162,9 @@ impl<T> ObjectTrackerInner<T> {
 /// Right now it's not terribly performant or space-efficent,
 /// but at least it lets us know if we're leaking memory,
 /// without requiring us to use a debugger.
-pub struct ObjectTracker<T>(Rc<RefCell<ObjectTrackerInner<T>>>);
+pub struct ObjectTracker<T: CycleBreaker>(Rc<RefCell<ObjectTrackerInner<T>>>);
 
-impl<T> Default for ObjectTracker<T> {
+impl<T: CycleBreaker> Default for ObjectTracker<T> {
     fn default() -> Self {
         let inner = ObjectTrackerInner {
             objects: vec![],
@@ -126,13 +174,29 @@ impl<T> Default for ObjectTracker<T> {
     }
 }
 
-impl<T> ObjectTracker<T> {
+impl<T: CycleBreaker> ObjectTracker<T> {
     pub fn track(&mut self, object: T) -> Tracked<T> {
         let weak_self = Rc::downgrade(&self.0);
         self.0.borrow_mut().track(object, weak_self)
     }
 
-    pub fn stats(&self) -> String {
-        self.0.borrow().stats()
+    pub fn begin_mark(&mut self) {
+        self.0.borrow_mut().begin_mark();
     }
+
+    pub fn sweep(&mut self) -> usize {
+        // Note that we need to capture the result in a variable, or
+        // else the objects in broken cycles won't be able to
+        // borrow the tracker to notify it that they've been dropped.
+        let objs_in_cycles = self.0.borrow_mut().sweep();
+        objs_in_cycles.len()
+    }
+
+    pub fn stats(&self) -> String {
+        self.0.as_ref().borrow().stats()
+    }
+}
+
+pub trait CycleBreaker {
+    fn break_cycles(&self);
 }
