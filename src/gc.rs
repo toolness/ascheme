@@ -21,6 +21,8 @@ impl Visitor {
             println!("Visiting {name} @ {id:#x}");
         }
         self.visited.borrow_mut().insert(id);
+
+        // TODO: Push/pop debug output indentation level around this call.
         traverser.traverse(self);
     }
 
