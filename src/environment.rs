@@ -114,7 +114,9 @@ impl Environment {
         self.globals.get(identifier)
     }
 
-    pub fn set(&mut self, identifier: InternedString, value: SourceValue) {
+    /// This works like the `define` Scheme builtin, which creates/sets the value at the
+    /// current scope--it will *not* modify an existing binding in a parent lexical scope.
+    pub fn define(&mut self, identifier: InternedString, value: SourceValue) {
         if let Some(scope) = self.lexical_scopes.last_mut() {
             scope.0.bindings.borrow_mut().insert(identifier, value);
         } else {

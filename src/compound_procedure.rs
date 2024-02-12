@@ -105,7 +105,7 @@ impl BoundProcedure {
         let arg_bindings = self.procedure.arg_bindings();
 
         for (name, value) in arg_bindings.into_iter().zip(self.operands) {
-            interpreter.environment.set(name, value);
+            interpreter.environment.define(name, value);
         }
 
         let result = interpreter.eval_expressions_in_tail_context(body)?;

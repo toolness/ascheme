@@ -15,7 +15,7 @@ use crate::{
 pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {
     for (name, builtin) in get_builtins() {
         let interned_name = interner.intern(name);
-        environment.set(
+        environment.define(
             interned_name.clone(),
             Value::Procedure(Procedure::Builtin(builtin, interned_name)).into(),
         );
@@ -118,7 +118,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
                     compound.name = Some(name.clone());
                 }
             }
-            ctx.interpreter.environment.set(name.clone(), value);
+            ctx.interpreter.environment.define(name.clone(), value);
             Ok(Value::Undefined.into())
         }
         Some(SourceMapped(Value::Pair(pair), range)) => {
@@ -137,7 +137,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
                 ctx.interpreter.environment.capture_lexical_scope(),
             )?;
             proc.name = Some(name.clone());
-            ctx.interpreter.environment.set(
+            ctx.interpreter.environment.define(
                 name,
                 Value::Procedure(Procedure::Compound(proc)).source_mapped(*range),
             );
