@@ -2,6 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     gc::{Traverser, Visitor},
+    interpreter::RuntimeErrorType,
     object_tracker::{CycleBreaker, ObjectTracker, Tracked},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
@@ -23,6 +24,19 @@ impl Scope {
                 .as_ref()
                 .map(|parent| parent.0.get(identifier))
                 .flatten()
+        }
+    }
+
+    fn change(&self, identifier: &InternedString, value: &SourceValue) -> bool {
+        if self.bindings.borrow_mut().contains_key(identifier) {
+            self.bindings
+                .borrow_mut()
+                .insert(identifier.clone(), value.clone());
+            true
+        } else {
+            self.parent
+                .as_ref()
+                .map_or(false, |parent| parent.0.change(identifier, value))
         }
     }
 }
@@ -112,6 +126,24 @@ impl Environment {
             }
         }
         self.globals.get(identifier)
+    }
+
+    /// Attempt to change the value of an existing binding. Errors if no binding exists.
+    pub fn change(
+        &mut self,
+        identifier: &InternedString,
+        value: SourceValue,
+    ) -> Result<(), RuntimeErrorType> {
+        if let Some(scope) = self.lexical_scopes.last_mut() {
+            if scope.0.change(identifier, &value) {
+                return Ok(());
+            }
+        }
+        if self.globals.change(identifier, &value) {
+            Ok(())
+        } else {
+            Err(RuntimeErrorType::UnboundVariable(identifier.clone()))
+        }
     }
 
     /// This works like the `define` Scheme builtin, which creates/sets the value at the

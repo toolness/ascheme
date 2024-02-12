@@ -134,6 +134,30 @@ fn gc_finds_cycles() {
 }
 
 #[test]
+fn set_works_with_globals() {
+    test_eval_success("(define x 1) (set! x 2) x", "2");
+    test_eval_success("(define x 1) (set! x (+ x 1)) x", "2");
+}
+
+#[test]
+fn set_works_in_closures() {
+    test_eval_success(
+        "
+        (define (make-incrementer)
+          (define n 0)
+          (lambda ()
+            (set! n (+ n 1))
+            n
+          )
+        )
+        (define foo (make-incrementer))
+        (foo)
+        ",
+        "1",
+    );
+}
+
+#[test]
 fn if_works() {
     test_eval_success("(if #t 1)", "1");
     test_eval_success("(if #t 1 2)", "1");

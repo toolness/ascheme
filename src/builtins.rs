@@ -32,6 +32,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("lambda", lambda),
         ("quote", quote),
         ("if", _if),
+        ("set!", set),
         ("set-car!", set_car),
         ("set-cdr!", set_cdr),
         ("rust-backtrace", rust_backtrace),
@@ -198,6 +199,19 @@ fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue)
         .expect_pair()?;
     let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
     Ok((pair, value))
+}
+
+fn set(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 2 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let identifier = ctx.operands[0].expect_identifier()?;
+    let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
+    if let Err(err) = ctx.interpreter.environment.change(&identifier, value) {
+        Err(err.source_mapped(ctx.operands[0].1))
+    } else {
+        Ok(Value::Undefined.into())
+    }
 }
 
 fn set_car(mut ctx: ProcedureContext) -> ProcedureResult {
