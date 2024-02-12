@@ -158,6 +158,26 @@ fn set_works_in_closures() {
 }
 
 #[test]
+fn set_works_in_multiple_closures() {
+    test_eval_success(
+        "
+        (define (make-incrementer)
+          (define n 0)
+          (lambda ()
+            (set! n (+ n 1))
+            n
+          )
+        )
+        (define foo (make-incrementer))
+        (define bar (make-incrementer))
+        (foo) (foo) (foo)
+        (bar) (bar)
+        ",
+        "2",
+    );
+}
+
+#[test]
 fn if_works() {
     test_eval_success("(if #t 1)", "1");
     test_eval_success("(if #t 1 2)", "1");
