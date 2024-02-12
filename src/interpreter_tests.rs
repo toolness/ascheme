@@ -1,22 +1,28 @@
 use crate::interpreter::Interpreter;
 
-fn test_eval_success(code: &'static str, expected_value: &'static str) {
+fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
     let mut interpreter = Interpreter::new();
-    let source_id = interpreter
-        .source_mapper
-        .add("<String>".into(), code.into());
-    match interpreter.evaluate(source_id) {
-        Ok(value) => {
-            assert_eq!(
-                value.to_string(),
-                expected_value,
-                "Evaluating code '{code}'"
-            );
-        }
-        Err(err) => {
-            panic!("Evaluating code '{code}' raised error {err:?}");
+    for (i, &(code, expected_value)) in code_and_expected_values.iter().enumerate() {
+        let source_id = interpreter
+            .source_mapper
+            .add(format!("<code[{i}]>"), code.into());
+        match interpreter.evaluate(source_id) {
+            Ok(value) => {
+                assert_eq!(
+                    value.to_string(),
+                    expected_value,
+                    "Evaluating code #{i} '{code}'"
+                );
+            }
+            Err(err) => {
+                panic!("Evaluating code #{i} '{code}' raised error {err:?}");
+            }
         }
     }
+}
+
+fn test_eval_success(code: &'static str, expected_value: &'static str) {
+    test_eval_successes(&[(code, expected_value)]);
 }
 
 #[test]
@@ -141,40 +147,25 @@ fn set_works_with_globals() {
 
 #[test]
 fn set_works_in_closures() {
-    test_eval_success(
-        "
-        (define (make-incrementer)
-          (define n 0)
-          (lambda ()
-            (set! n (+ n 1))
-            n
-          )
-        )
-        (define foo (make-incrementer))
-        (foo)
-        ",
-        "1",
-    );
-}
-
-#[test]
-fn set_works_in_multiple_closures() {
-    test_eval_success(
-        "
-        (define (make-incrementer)
-          (define n 0)
-          (lambda ()
-            (set! n (+ n 1))
-            n
-          )
-        )
-        (define foo (make-incrementer))
-        (define bar (make-incrementer))
-        (foo) (foo) (foo)
-        (bar) (bar)
-        ",
-        "2",
-    );
+    test_eval_successes(&[
+        (
+            "
+            (define (make-incrementer)
+              (define n 0)
+              (lambda ()
+                (set! n (+ n 1))
+                n
+              )
+            )
+            ",
+            "",
+        ),
+        ("(define foo (make-incrementer)) (foo)", "1"),
+        ("(foo)", "2"),
+        ("(foo)", "3"),
+        ("(define bar (make-incrementer)) (bar)", "1"),
+        ("(bar)", "2"),
+    ]);
 }
 
 #[test]
