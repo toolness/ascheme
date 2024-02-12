@@ -310,6 +310,11 @@ impl Interpreter {
                 // This is a bit convoluted because we need to root the expressions
                 // we're evaluating and that have yet to be evaluated in the GC, so
                 // they don't get GC'd while we're running the program.
+                //
+                // TODO: I think we might actually need to do this kind of thing in eval_expression
+                // and eval_expressions too--technically it might be possible e.g. for a program to
+                // mutate itself while running and destroy references to running code that make them
+                // only exist in the stack... Oy.
                 expressions.reverse();
                 self.program_expressions = expressions;
                 let mut last_value: SourceValue = Value::Undefined.into();
