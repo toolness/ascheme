@@ -1,10 +1,11 @@
-use std::{rc::Rc, sync::mpsc::Receiver};
+use std::{ops::Deref, rc::Rc, sync::mpsc::Receiver};
 
 use crate::{
     builtins,
     compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
-    gc::Visitor,
+    gc::{Traverser, Visitor},
+    object_tracker::{CycleBreaker, ObjectTracker, Tracked},
     pair::PairManager,
     parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
@@ -80,7 +81,7 @@ pub struct Interpreter {
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
     next_id: u32,
     stack: Vec<SourceRange>,
-    program_expressions: Vec<SourceValue>,
+    stack_traversal_root: StackTraversalRoot,
 }
 
 impl Interpreter {
@@ -100,7 +101,7 @@ impl Interpreter {
             keyboard_interrupt_channel: None,
             next_id: 1,
             stack: vec![],
-            program_expressions: vec![],
+            stack_traversal_root: StackTraversalRoot::default(),
         }
     }
 
@@ -303,24 +304,12 @@ impl Interpreter {
         // something if we detect we're being called in a re-entrant way (or
         // alternatively, make this method re-entrant).
         self.stack.clear();
-        self.program_expressions.clear();
         self.environment.clear_lexical_scopes();
         match self.parse(source_id) {
-            Ok(mut expressions) => {
-                // This is a bit convoluted because we need to root the expressions
-                // we're evaluating and that have yet to be evaluated in the GC, so
-                // they don't get GC'd while we're running the program.
-                //
-                // TODO: I think we might actually need to do this kind of thing in eval_expression
-                // and eval_expressions too--technically it might be possible e.g. for a program to
-                // mutate itself while running and destroy references to running code that make them
-                // only exist in the stack... Oy.
-                expressions.reverse();
-                self.program_expressions = expressions;
+            Ok(expressions) => {
                 let mut last_value: SourceValue = Value::Undefined.into();
-                while let Some(expression) = self.program_expressions.last().cloned() {
-                    last_value = self.eval_expression(&expression)?;
-                    self.program_expressions.pop();
+                for expression in self.stack_traversal_root.root(expressions) {
+                    last_value = self.eval_expression(expression.deref())?;
                 }
                 Ok(last_value)
             }
@@ -351,7 +340,7 @@ impl Interpreter {
         self.environment.begin_mark();
         self.pair_manager.begin_mark();
         visitor.traverse(&self.environment);
-        visitor.traverse(&self.program_expressions);
+        visitor.traverse(&self.stack_traversal_root);
         let env_cycles = self.environment.sweep();
         let pair_cycles = self.pair_manager.sweep();
         if visitor.debug {
@@ -359,5 +348,53 @@ impl Interpreter {
             println!("Pairs reclaimed: {}", pair_cycles);
         }
         env_cycles + pair_cycles
+    }
+}
+
+#[derive(Default)]
+pub struct StackTraversalRoot {
+    tracker: ObjectTracker<SourceValueHolder>,
+}
+
+impl StackTraversalRoot {
+    pub fn root(&mut self, expressions: Vec<SourceValue>) -> Vec<Tracked<SourceValueHolder>> {
+        expressions
+            .into_iter()
+            .map(|expr| self.tracker.track(SourceValueHolder(expr)))
+            .collect()
+    }
+}
+
+pub struct SourceValueHolder(SourceValue);
+
+impl Traverser for SourceValueHolder {
+    fn traverse(&self, visitor: &Visitor) {
+        visitor.traverse(&self.0)
+    }
+}
+
+impl Deref for SourceValueHolder {
+    type Target = SourceValue;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl CycleBreaker for SourceValueHolder {
+    fn debug_name(&self) -> &'static str {
+        return "SourceValueHolder";
+    }
+
+    fn break_cycles(&self) {
+        // Nothing we can do about cycles...
+    }
+}
+
+impl Traverser for StackTraversalRoot {
+    fn traverse(&self, visitor: &Visitor) {
+        for tracked in self.tracker.all() {
+            visitor.traverse(&tracked)
+        }
     }
 }
