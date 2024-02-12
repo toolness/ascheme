@@ -121,6 +121,7 @@ impl Interpreter {
     pub fn print_stats(&self) {
         self.pair_manager.print_stats();
         self.environment.print_stats();
+        println!("Interned strings: {}", self.string_interner.len());
     }
 
     fn expect_procedure(&mut self, expression: &SourceValue) -> Result<Procedure, RuntimeError> {

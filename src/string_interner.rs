@@ -43,6 +43,11 @@ impl Display for InternedString {
     }
 }
 
+/// Interns strings to make them easy to compare and toss around.
+///
+/// Note that at present, there's no way to *deallocate* interned strings.
+/// Generally this shouldn't be much of a problem since it's only used for
+/// symbols in the interpreter, rather than user-provided strings.
 #[derive(Default)]
 pub struct StringInterner {
     // TODO: This isn't great, we're allocating 2x more strings than we need to,
@@ -66,6 +71,10 @@ impl StringInterner {
             self.ids_to_strings.push(rc_string.clone());
             InternedString(id, rc_string)
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.ids_to_strings.len()
     }
 }
 
