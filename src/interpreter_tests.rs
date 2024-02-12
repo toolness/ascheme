@@ -157,13 +157,15 @@ fn set_works_in_closures() {
                 n
               )
             )
+            (define foo (make-incrementer)) 
+            (define bar (make-incrementer)) 
             ",
             "",
         ),
-        ("(define foo (make-incrementer)) (foo)", "1"),
+        ("(foo)", "1"),
         ("(foo)", "2"),
         ("(foo)", "3"),
-        ("(define bar (make-incrementer)) (bar)", "1"),
+        ("(bar)", "1"),
         ("(bar)", "2"),
     ]);
 }
