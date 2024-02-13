@@ -308,7 +308,7 @@ impl Interpreter {
         match self.parse(source_id) {
             Ok(expressions) => {
                 let mut last_value: SourceValue = Value::Undefined.into();
-                for expression in self.stack_traversal_root.root(expressions) {
+                for expression in self.stack_traversal_root.root_many(expressions) {
                     last_value = self.eval_expression(expression.deref())?;
                 }
                 Ok(last_value)
