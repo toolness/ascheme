@@ -128,6 +128,18 @@ struct ObjectTrackerInner<T: CycleBreaker> {
 }
 
 impl<T: CycleBreaker> ObjectTrackerInner<T> {
+    fn all(&self) -> Vec<Tracked<T>> {
+        let mut result = Vec::with_capacity(self.objects.len());
+        for object in &self.objects {
+            if let Some(weak) = object {
+                if let Some(obj) = weak.upgrade() {
+                    result.push(Tracked(obj));
+                }
+            }
+        }
+        result
+    }
+
     fn track(&mut self, object: T, weak_self: Weak<RefCell<Self>>) -> Tracked<T> {
         if let Some(id) = self.free_objects.pop() {
             let rc = Rc::new(TrackedInner {
@@ -242,6 +254,10 @@ impl<T: CycleBreaker> ObjectTracker<T> {
         // borrow the tracker to notify it that they've been dropped.
         let objs_in_cycles = self.0.borrow_mut().sweep();
         objs_in_cycles.len()
+    }
+
+    pub fn all(&self) -> Vec<Tracked<T>> {
+        self.0.borrow().all()
     }
 
     pub fn stats(&self) -> String {
