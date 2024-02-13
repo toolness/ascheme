@@ -339,6 +339,14 @@ impl Interpreter {
     }
 
     pub fn gc(&mut self, debug: bool) -> usize {
+        if self.stack.len() > 1 {
+            // It would be nice to support this at some point, but right now we can't
+            // because we're not pinning temporary objects in the call stack to the GC
+            // root--as a result, unexpected things would be considered unreachable and
+            // GC'd.
+            println!("Cannot currently collect garbage when call stack is non-empty.");
+            return 0;
+        }
         let mut visitor = Visitor::default();
         visitor.debug = debug;
         self.environment.begin_mark();
