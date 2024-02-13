@@ -34,6 +34,10 @@ impl<T: Traverser> GCRootManager<T> {
             .map(|object| self.root(object))
             .collect()
     }
+
+    pub fn stats(&self) -> String {
+        self.tracker.stats()
+    }
 }
 
 pub struct GCRooted<T: Traverser>(T);

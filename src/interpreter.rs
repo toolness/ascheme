@@ -122,6 +122,10 @@ impl Interpreter {
     pub fn print_stats(&self) {
         self.pair_manager.print_stats();
         self.environment.print_stats();
+        println!(
+            "Objects in call stack: {}",
+            self.stack_traversal_root.stats()
+        );
         println!("Interned strings: {}", self.string_interner.len());
     }
 
