@@ -81,7 +81,7 @@ pub struct Interpreter {
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
     next_id: u32,
     stack: Vec<SourceRange>,
-    stack_traversal_root: StackTraversalRoot,
+    stack_traversal_root: GCRootManager<SourceValue>,
 }
 
 impl Interpreter {
@@ -101,7 +101,7 @@ impl Interpreter {
             keyboard_interrupt_channel: None,
             next_id: 1,
             stack: vec![],
-            stack_traversal_root: StackTraversalRoot::default(),
+            stack_traversal_root: GCRootManager::default(),
         }
     }
 
@@ -351,39 +351,46 @@ impl Interpreter {
     }
 }
 
-#[derive(Default)]
-pub struct StackTraversalRoot {
-    tracker: ObjectTracker<SourceValueHolder>,
+pub struct GCRootManager<T: Traverser> {
+    tracker: ObjectTracker<GCRooted<T>>,
 }
 
-impl StackTraversalRoot {
-    pub fn root(&mut self, expressions: Vec<SourceValue>) -> Vec<Tracked<SourceValueHolder>> {
+impl<T: Traverser> Default for GCRootManager<T> {
+    fn default() -> Self {
+        Self {
+            tracker: Default::default(),
+        }
+    }
+}
+
+impl<T: Traverser> GCRootManager<T> {
+    pub fn root(&mut self, expressions: Vec<T>) -> Vec<Tracked<GCRooted<T>>> {
         expressions
             .into_iter()
-            .map(|expr| self.tracker.track(SourceValueHolder(expr)))
+            .map(|expr| self.tracker.track(GCRooted(expr)))
             .collect()
     }
 }
 
-pub struct SourceValueHolder(SourceValue);
+pub struct GCRooted<T: Traverser>(T);
 
-impl Traverser for SourceValueHolder {
+impl<T: Traverser> Traverser for GCRooted<T> {
     fn traverse(&self, visitor: &Visitor) {
         visitor.traverse(&self.0)
     }
 }
 
-impl Deref for SourceValueHolder {
-    type Target = SourceValue;
+impl<T: Traverser> Deref for GCRooted<T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl CycleBreaker for SourceValueHolder {
+impl<T: Traverser> CycleBreaker for GCRooted<T> {
     fn debug_name(&self) -> &'static str {
-        return "SourceValueHolder";
+        return "GCRooted";
     }
 
     fn break_cycles(&self) {
@@ -391,7 +398,7 @@ impl CycleBreaker for SourceValueHolder {
     }
 }
 
-impl Traverser for StackTraversalRoot {
+impl<T: Traverser> Traverser for GCRootManager<T> {
     fn traverse(&self, visitor: &Visitor) {
         for tracked in self.tracker.all() {
             visitor.traverse(&tracked)
