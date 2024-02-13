@@ -25,6 +25,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
 fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     vec![
         ("+", add),
+        ("-", subtract),
         ("*", multiply),
         ("/", divide),
         ("<", less_than),
@@ -65,6 +66,21 @@ fn add(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 0.0;
     for number in number_args(&mut ctx)? {
         result += number
+    }
+    Ok(result.into())
+}
+
+fn subtract(mut ctx: ProcedureContext) -> ProcedureResult {
+    let numbers = number_args(&mut ctx)?;
+    if numbers.len() == 0 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let mut result = numbers[0];
+    if numbers.len() == 1 {
+        return Ok((-result).into());
+    }
+    for number in &numbers[1..] {
+        result -= number
     }
     Ok(result.into())
 }

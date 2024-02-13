@@ -79,6 +79,11 @@ fn basic_arithmetic_works() {
     test_eval_success("(/ 2.0)", "0.5");
     test_eval_success("(/ 1.0 2.0)", "0.5");
     test_eval_success("(/ 1.0 2.0 2.0)", "0.25");
+
+    test_eval_success("(- 2)", "-2");
+    test_eval_success("(- 5 2)", "3");
+    test_eval_success("(- 5 2 1)", "2");
+    test_eval_success("(- 5 2 10)", "-7");
 }
 
 #[test]
