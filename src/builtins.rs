@@ -26,6 +26,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     vec![
         ("+", add),
         ("*", multiply),
+        ("/", divide),
         ("<", less_than),
         ("=", numeric_eq),
         ("define", define),
@@ -72,6 +73,22 @@ fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 1.0;
     for number in number_args(&mut ctx)? {
         result *= number
+    }
+    Ok(result.into())
+}
+
+fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
+    let numbers = number_args(&mut ctx)?;
+    if numbers.len() == 0 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let mut result = 1.0;
+    for number in numbers {
+        if number == 0.0 {
+            // Ideally we'd point at the specific argument that's zero, but this is good enough for now.
+            return Err(RuntimeErrorType::DivisionByZero.source_mapped(ctx.combination.1));
+        }
+        result = result / number;
     }
     Ok(result.into())
 }

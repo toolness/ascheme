@@ -29,6 +29,7 @@ pub enum RuntimeErrorType {
     WrongNumberOfArguments,
     StackOverflow,
     KeyboardInterrupt,
+    DivisionByZero,
     // Unimplemented(&'static str),
 }
 
