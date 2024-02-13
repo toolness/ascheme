@@ -140,6 +140,11 @@ fn gc_finds_cycles() {
 }
 
 #[test]
+fn gc_does_not_collect_objects_yet_to_be_evaluated() {
+    test_eval_success("(define (x) 1) (gc) (x)", "1");
+}
+
+#[test]
 fn set_works_with_globals() {
     test_eval_success("(define x 1) (set! x 2) x", "2");
     test_eval_success("(define x 1) (set! x (+ x 1)) x", "2");
