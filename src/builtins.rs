@@ -37,6 +37,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("lambda", lambda),
         ("quote", quote),
         ("if", _if),
+        ("not", not),
         ("cond", cond),
         ("set!", set),
         ("set-car!", set_car),
@@ -145,6 +146,14 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
             Ok(Value::Undefined.into())
         }
     }
+}
+
+fn not(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 1 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let result = ctx.interpreter.eval_expression(&ctx.operands[0])?.0;
+    Ok((!result.as_bool()).into())
 }
 
 fn cond(ctx: ProcedureContext) -> ProcedureResult {
