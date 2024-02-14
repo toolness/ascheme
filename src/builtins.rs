@@ -141,8 +141,17 @@ fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
     if numbers.len() == 0 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }
-    let mut result = 1.0;
-    for number in numbers {
+    // Why are scheme's math operators so weird? This is how tryscheme.org's behaves, at least,
+    // and I find it baffling.
+    if numbers.len() == 1 {
+        if numbers[0] == 0.0 {
+            // Ideally we'd point at the specific argument that's zero, but this is good enough for now.
+            return Err(RuntimeErrorType::DivisionByZero.source_mapped(ctx.combination.1));
+        }
+        return Ok((1.0 / numbers[0]).into());
+    }
+    let mut result = numbers[0];
+    for &number in &numbers[1..] {
         if number == 0.0 {
             // Ideally we'd point at the specific argument that's zero, but this is good enough for now.
             return Err(RuntimeErrorType::DivisionByZero.source_mapped(ctx.combination.1));
