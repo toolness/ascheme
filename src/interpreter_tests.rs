@@ -141,6 +141,17 @@ fn less_than_works() {
 }
 
 #[test]
+fn greater_than_works() {
+    test_eval_success("(>)", "#t");
+    test_eval_success("(> 1)", "#t");
+    test_eval_success("(> 1 0)", "#t");
+    test_eval_success("(> 0 1)", "#f");
+    test_eval_success("(> 1 1)", "#f");
+    test_eval_success("(> 2 1 0)", "#t");
+    test_eval_success("(< 3 2 1 0 1)", "#f");
+}
+
+#[test]
 fn numeric_eq_works() {
     test_eval_success("(=)", "#t");
     test_eval_success("(= 1)", "#t");
