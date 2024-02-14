@@ -92,6 +92,7 @@ fn and_works() {
     test_eval_success("(and 1)", "1");
     test_eval_success("(and 1 2)", "2");
     test_eval_success("(and #f 2)", "#f");
+    test_eval_success("(and #f lololol)", "#f");
 }
 
 #[test]
@@ -100,6 +101,7 @@ fn or_works() {
     test_eval_success("(or 1)", "1");
     test_eval_success("(or 1 2)", "1");
     test_eval_success("(or #f 2)", "2");
+    test_eval_success("(or 1 lololol)", "1");
 }
 
 #[test]
@@ -117,6 +119,7 @@ fn cond_works() {
     test_eval_success("(cond (#f))", "");
     test_eval_success("(cond (1 2 3 4))", "4");
     test_eval_success("(cond (#f 1) (else (+ 1 1)))", "2");
+    test_eval_success("(cond (1) (lolol))", "1");
 }
 
 #[test]
