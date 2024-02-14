@@ -20,6 +20,9 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
             Value::Procedure(Procedure::Builtin(builtin, interned_name)).into(),
         );
     }
+    // TODO: Technically 'else' is just part of how the 'cond' special form is evaluated,
+    // but just aliasing it to 'true' is easier for now.
+    environment.define(interner.intern("else"), Value::Boolean(true).into());
 }
 
 fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
@@ -34,6 +37,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("lambda", lambda),
         ("quote", quote),
         ("if", _if),
+        ("cond", cond),
         ("set!", set),
         ("set-car!", set_car),
         ("set-cdr!", set_cdr),
@@ -141,6 +145,32 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
             Ok(Value::Undefined.into())
         }
     }
+}
+
+fn cond(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() == 0 {
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+    }
+
+    for clause in ctx.operands.iter() {
+        let SourceMapped(Value::Pair(pair), range) = clause else {
+            return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(clause.1));
+        };
+        let Some(clause) = pair.try_as_rc_list() else {
+            return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(*range));
+        };
+        let test = ctx.interpreter.eval_expression(&clause[0])?.0;
+        if test.as_bool() {
+            if clause.len() == 1 {
+                return Ok(test.into());
+            }
+            return ctx
+                .interpreter
+                .eval_expressions_in_tail_context(&clause[1..]);
+        }
+    }
+
+    Ok(Value::Undefined.into())
 }
 
 fn define(ctx: ProcedureContext) -> ProcedureResult {

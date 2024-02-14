@@ -87,6 +87,15 @@ fn basic_arithmetic_works() {
 }
 
 #[test]
+fn cond_works() {
+    test_eval_success("(cond (1))", "1");
+    test_eval_success("(cond (0))", "0");
+    test_eval_success("(cond (#f))", "");
+    test_eval_success("(cond (1 2 3 4))", "4");
+    test_eval_success("(cond (#f 1) (else (+ 1 1)))", "2");
+}
+
+#[test]
 fn variable_definitions_work() {
     test_eval_success("(define x 3) x", "3");
     test_eval_success("(define x 3) (define y (+ x 1)) (+ x y)", "7");

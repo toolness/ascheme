@@ -143,6 +143,10 @@ impl Pair {
         }
     }
 
+    /// If the pair represents a list, returns it, otherwise returns None.
+    ///
+    /// Note that the list is guaranteed not to be empty, since it's being
+    /// derived from a Pair.
     pub fn try_as_rc_list(&self) -> Option<Rc<Vec<SourceValue>>> {
         match self.get_type() {
             PairType::List => Some(self.as_list().into()),
