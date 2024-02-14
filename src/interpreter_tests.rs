@@ -141,6 +141,18 @@ fn less_than_works() {
 }
 
 #[test]
+fn less_than_or_equal_to_works() {
+    test_eval_success("(<=)", "#t");
+    test_eval_success("(<= 1)", "#t");
+    test_eval_success("(<= 1 0)", "#f");
+    test_eval_success("(<= 0 1)", "#t");
+    test_eval_success("(<= 1 1)", "#t");
+    test_eval_success("(<= 0 1 2)", "#t");
+    test_eval_success("(<= 0 1 2 3 1)", "#f");
+    test_eval_success("(<= 0 1 1 1 1)", "#t");
+}
+
+#[test]
 fn greater_than_works() {
     test_eval_success("(>)", "#t");
     test_eval_success("(> 1)", "#t");
@@ -149,6 +161,18 @@ fn greater_than_works() {
     test_eval_success("(> 1 1)", "#f");
     test_eval_success("(> 2 1 0)", "#t");
     test_eval_success("(< 3 2 1 0 1)", "#f");
+}
+
+#[test]
+fn greater_than_or_equal_to_works() {
+    test_eval_success("(>=)", "#t");
+    test_eval_success("(>= 1)", "#t");
+    test_eval_success("(>= 1 0)", "#t");
+    test_eval_success("(>= 0 1)", "#f");
+    test_eval_success("(>= 1 1)", "#t");
+    test_eval_success("(>= 2 1 0)", "#t");
+    test_eval_success("(<= 3 2 1 0 1)", "#f");
+    test_eval_success("(>= 2 1 1 1 1)", "#t");
 }
 
 #[test]

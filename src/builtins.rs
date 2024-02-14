@@ -32,7 +32,9 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("*", multiply),
         ("/", divide),
         ("<", less_than),
+        ("<=", less_than_or_equal_to),
         (">", greater_than),
+        (">=", greater_than_or_equal_to),
         ("=", numeric_eq),
         ("define", define),
         ("lambda", lambda),
@@ -68,10 +70,32 @@ fn less_than(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(true.into())
 }
 
+fn less_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
+    let mut latest: f64 = -INFINITY;
+    for number in number_args(&mut ctx)? {
+        if number < latest {
+            return Ok(false.into());
+        }
+        latest = number;
+    }
+    Ok(true.into())
+}
+
 fn greater_than(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut latest: f64 = INFINITY;
     for number in number_args(&mut ctx)? {
         if number >= latest {
+            return Ok(false.into());
+        }
+        latest = number;
+    }
+    Ok(true.into())
+}
+
+fn greater_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
+    let mut latest: f64 = INFINITY;
+    for number in number_args(&mut ctx)? {
+        if number > latest {
             return Ok(false.into());
         }
         latest = number;
