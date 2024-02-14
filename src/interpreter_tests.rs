@@ -87,6 +87,14 @@ fn basic_arithmetic_works() {
 }
 
 #[test]
+fn and_works() {
+    test_eval_success("(and)", "#t");
+    test_eval_success("(and 1)", "1");
+    test_eval_success("(and 1 2)", "2");
+    test_eval_success("(and #f 2)", "#f");
+}
+
+#[test]
 fn not_works() {
     test_eval_success("(not #t)", "#f");
     test_eval_success("(not 0)", "#f");
