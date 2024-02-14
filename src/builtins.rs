@@ -41,6 +41,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("quote", quote),
         ("if", _if),
         ("and", and),
+        ("or", or),
         ("not", not),
         ("cond", cond),
         ("set!", set),
@@ -193,6 +194,20 @@ fn and(ctx: ProcedureContext) -> ProcedureResult {
         }
         latest = ctx.interpreter.eval_expression(operand)?.0;
         if !latest.as_bool() {
+            break;
+        }
+    }
+    Ok(latest.into())
+}
+
+fn or(ctx: ProcedureContext) -> ProcedureResult {
+    let mut latest = false.into();
+    for (i, operand) in ctx.operands.iter().enumerate() {
+        if i == ctx.operands.len() - 1 {
+            return ctx.interpreter.eval_expression_in_tail_context(operand);
+        }
+        latest = ctx.interpreter.eval_expression(operand)?.0;
+        if latest.as_bool() {
             break;
         }
     }

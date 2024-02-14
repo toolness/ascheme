@@ -95,6 +95,14 @@ fn and_works() {
 }
 
 #[test]
+fn or_works() {
+    test_eval_success("(or)", "#f");
+    test_eval_success("(or 1)", "1");
+    test_eval_success("(or 1 2)", "1");
+    test_eval_success("(or #f 2)", "2");
+}
+
+#[test]
 fn not_works() {
     test_eval_success("(not #t)", "#f");
     test_eval_success("(not 0)", "#f");
