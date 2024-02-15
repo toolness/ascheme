@@ -131,6 +131,9 @@ impl Pair {
             }
             visited.insert(latest);
 
+            // TODO: I think we have to look at the 'car' value too, as we
+            // might contain pairs that cyclically refer back to us... ugh.
+
             // It's unfortunate we have to resort to unsafe code just
             // to iterate through the chain of pairs. The only alternative
             // I could find was to clone every single item of the list,
