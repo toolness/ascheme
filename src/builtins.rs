@@ -50,6 +50,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("rust-backtrace", rust_backtrace),
         ("stats", stats),
         ("gc", gc),
+        ("test-eq", test_eq),
     ]
 }
 
@@ -382,4 +383,22 @@ fn stats(ctx: ProcedureContext) -> ProcedureResult {
 fn gc(ctx: ProcedureContext) -> ProcedureResult {
     let objs_found_in_cycles = ctx.interpreter.gc(true);
     Ok((objs_found_in_cycles as f64).into())
+}
+
+fn test_eq(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 2 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let operand_0_repr = ctx.operands[0].to_string();
+    let operand_1_repr = ctx.operands[1].to_string();
+    let operand_0_value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    let operand_1_value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
+
+    if operand_0_value == operand_1_value {
+        println!("OK {} = {}", operand_0_repr, operand_1_repr);
+    } else {
+        println!("ERR {} != {}", operand_0_repr, operand_1_repr);
+    }
+
+    Ok(Value::Undefined.into())
 }
