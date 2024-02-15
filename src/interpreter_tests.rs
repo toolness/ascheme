@@ -39,6 +39,14 @@ fn quote_works() {
     test_eval_success("(quote #f)", "#f");
     test_eval_success("(quote ())", "()");
     test_eval_success("(quote blarg)", "blarg");
+
+    test_eval_success("'1", "1");
+    test_eval_success("'(1   2    3  )", "(1 2 3)");
+    test_eval_success("'(1 2 3 (4))", "(1 2 3 (4))");
+    test_eval_success("'#t", "#t");
+    test_eval_success("'#f", "#f");
+    test_eval_success("'()", "()");
+    test_eval_success("'blarg", "blarg");
 }
 
 #[test]

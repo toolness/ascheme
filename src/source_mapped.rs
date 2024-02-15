@@ -18,10 +18,10 @@ impl<T> SourceMapped<T> {
     }
 
     /// Returns a range extending from the beginning of this item's
-    /// range to the end of the given item's range.
-    pub fn extend_range(&self, other: &SourceMapped<T>) -> SourceRange {
-        assert_eq!(self.1 .2, other.1 .2, "Ranges must be from the same file");
-        (self.1 .0, other.1 .1, self.1 .2)
+    /// range to the end of the given range.
+    pub fn extend_range(&self, other: &SourceRange) -> SourceRange {
+        assert_eq!(self.1 .2, other.2, "Ranges must be from the same file");
+        (self.1 .0, other.1, self.1 .2)
     }
 }
 

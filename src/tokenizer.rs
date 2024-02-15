@@ -19,6 +19,7 @@ pub enum TokenType {
     Boolean(bool),
     Identifier,
     Dot,
+    Apostrophe,
 }
 
 pub type Token = SourceMapped<TokenType>;
@@ -122,6 +123,7 @@ impl<'a> Tokenizer<'a> {
                 && char != ')'
                 && char != ';'
                 && char != '#'
+                && char != '\''
         };
         if !self.accept(|char: char| !char.is_numeric() && is_ident_char(char)) {
             return false;
@@ -162,6 +164,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             Ok(TokenType::LeftParen)
         } else if self.accept_char(')') {
             Ok(TokenType::RightParen)
+        } else if self.accept_char('\'') {
+            Ok(TokenType::Apostrophe)
         } else if let Some(result) = self.try_accept_number() {
             result
         } else if let Some(result) = self.try_accept_sharp() {

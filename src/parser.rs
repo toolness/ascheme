@@ -82,7 +82,7 @@ impl<'a> Parser<'a> {
                                 return Ok(self
                                     .pair_manager
                                     .vec_to_list(expressions)
-                                    .source_mapped(token.extend_range(&nested_token)));
+                                    .source_mapped(token.extend_range(&nested_token.1)));
                             } else if nested_token.0 == TokenType::Dot {
                                 if expressions.is_empty() {
                                     return Err(ParseErrorType::Unexpected(TokenType::Dot)
@@ -107,6 +107,18 @@ impl<'a> Parser<'a> {
             }
             TokenType::RightParen => {
                 Err(ParseErrorType::Unexpected(TokenType::RightParen).source_mapped(token.1))
+            }
+            TokenType::Apostrophe => {
+                let quoted_expression = self.expect_expression()?;
+                let end_range = quoted_expression.1;
+                let expressions = vec![
+                    Value::Symbol(self.interner.intern("quote")).source_mapped(token.1),
+                    quoted_expression,
+                ];
+                Ok(self
+                    .pair_manager
+                    .vec_to_list(expressions)
+                    .source_mapped(token.extend_range(&end_range)))
             }
             TokenType::Dot => {
                 Err(ParseErrorType::Unexpected(TokenType::Dot).source_mapped(token.1))
