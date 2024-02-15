@@ -34,7 +34,7 @@ impl<T: Into<Value>> From<T> for SourceValue {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Undefined,
     EmptyList,

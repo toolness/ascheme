@@ -7,7 +7,7 @@ use crate::gc::{Traverser, Visitor};
 use crate::object_tracker::{CycleBreaker, ObjectTracker, Tracked};
 use crate::value::{SourceValue, Value};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum VecPair {
     List(Rc<Vec<SourceValue>>),
     ImproperList(Rc<Vec<SourceValue>>),
@@ -51,7 +51,7 @@ pub enum PairType {
     Cyclic,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Pair(Tracked<RefCell<PairInner>>);
 
 impl CycleBreaker for RefCell<PairInner> {
@@ -65,7 +65,7 @@ impl CycleBreaker for RefCell<PairInner> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct PairInner {
     pub car: SourceValue,
     pub cdr: SourceValue,
@@ -98,6 +98,10 @@ impl Pair {
         let mut list = self.iter().collect::<Vec<SourceValue>>();
         list.pop();
         list.into()
+    }
+
+    pub fn points_at_same_memory_as(&self, other: &Pair) -> bool {
+        self.as_ptr() == other.as_ptr()
     }
 
     pub fn set_car(&mut self, value: SourceValue) {
@@ -270,8 +274,11 @@ mod tests {
 
         assert_eq!(list.get_type(), PairType::List);
         assert_eq!(
-            list.iter().collect::<Vec<SourceValue>>(),
-            vec![1.0.into(), 2.0.into(), Value::EmptyList.into(),]
+            format!("{:?}", list.iter().collect::<Vec<SourceValue>>()),
+            format!(
+                "{:?}",
+                vec![1.0.into(), 2.0.into(), Value::EmptyList.into(),] as Vec<SourceValue>
+            )
         );
     }
 

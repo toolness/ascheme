@@ -4,7 +4,8 @@ use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
     interpreter::{
-        Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
+        Interpreter, Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError,
+        RuntimeErrorType,
     },
     pair::Pair,
     source_mapped::{SourceMappable, SourceMapped},
@@ -39,6 +40,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("define", define),
         ("lambda", lambda),
         ("quote", quote),
+        ("eq?", eq),
         ("if", _if),
         ("and", and),
         ("or", or),
@@ -385,20 +387,64 @@ fn gc(ctx: ProcedureContext) -> ProcedureResult {
     Ok((objs_found_in_cycles as f64).into())
 }
 
-fn test_eq(ctx: ProcedureContext) -> ProcedureResult {
+fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() != 2 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }
     let operand_0_repr = ctx.operands[0].to_string();
     let operand_1_repr = ctx.operands[1].to_string();
-    let operand_0_value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
-    let operand_1_value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
 
-    if operand_0_value == operand_1_value {
+    if is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])? {
         println!("OK {} = {}", operand_0_repr, operand_1_repr);
     } else {
         println!("ERR {} != {}", operand_0_repr, operand_1_repr);
     }
 
     Ok(Value::Undefined.into())
+}
+
+fn is_eq(
+    interpreter: &mut Interpreter,
+    a: &SourceValue,
+    b: &SourceValue,
+) -> Result<bool, RuntimeError> {
+    let a = interpreter.eval_expression(&a)?;
+    let b = interpreter.eval_expression(&b)?;
+
+    Ok(match a.0 {
+        Value::Undefined => matches!(b.0, Value::Undefined),
+        Value::EmptyList => matches!(b.0, Value::EmptyList),
+        Value::Number(a) => match b.0 {
+            Value::Number(b) => a == b,
+            _ => false,
+        },
+        Value::Symbol(a) => match &b.0 {
+            Value::Symbol(b) => &a == b,
+            _ => false,
+        },
+        Value::Boolean(a) => match b.0 {
+            Value::Boolean(b) => a == b,
+            _ => false,
+        },
+        Value::Procedure(Procedure::Builtin(a, _)) => match &b.0 {
+            Value::Procedure(Procedure::Builtin(b, _)) => a == *b,
+            _ => false,
+        },
+        Value::Procedure(Procedure::Compound(a)) => match &b.0 {
+            Value::Procedure(Procedure::Compound(b)) => a.id() == b.id(),
+            _ => false,
+        },
+        Value::Pair(a) => match &b.0 {
+            Value::Pair(b) => a.points_at_same_memory_as(b),
+            _ => false,
+        },
+    })
+}
+
+fn eq(mut ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() < 2 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+
+    Ok(is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])?.into())
 }
