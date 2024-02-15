@@ -110,6 +110,12 @@ fn main() {
         if !args.interactive {
             process::exit(if success { 0 } else { 1 });
         }
+    } else {
+        println!(
+            "Welcome to Atul's Scheme Interpreter v{}.",
+            env!("CARGO_PKG_VERSION")
+        );
+        println!("Press CTRL-C to exit.");
     }
 
     let Ok(mut rl) = Editor::new() else {
