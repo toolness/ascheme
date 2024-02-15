@@ -218,6 +218,12 @@ fn cyclic_lists_work() {
     // TODO: Eventually we should implement proper display of cyclic lists, at which point
     // the expected value will need to change.
     test_eval_success("(define x '(1 . 2)) (set-cdr! x x) x", "<CYCLIC LIST>");
+
+    // TODO: Fix this so it doesn't overflow its stack.
+    // test_eval_success(
+    //     "(define y '(1)) (define x '(1)) (set-car! y x) (set-car! x y) x",
+    //     "<CYCLIC LIST>",
+    // );
 }
 
 #[test]
