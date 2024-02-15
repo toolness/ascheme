@@ -53,7 +53,7 @@ pub struct ProcedureContext<'a> {
     pub operands: &'a [SourceValue],
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum Procedure {
     Builtin(ProcedureFn, InternedString),
     Compound(CompoundProcedure),

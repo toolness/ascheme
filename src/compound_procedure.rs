@@ -140,11 +140,3 @@ fn parse_signature(
     }
     Ok(arg_bindings)
 }
-
-impl PartialEq for CompoundProcedure {
-    /// Just compare pointers of the underlying value.
-    fn eq(&self, other: &Self) -> bool {
-        &*self.definition.0 as *const CombinationBody
-            == &*other.definition.0 as *const CombinationBody
-    }
-}
