@@ -80,6 +80,7 @@ pub struct Interpreter {
     pub tracing: bool,
     pub max_stack_size: usize,
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
+    has_evaluated_library: bool,
     next_id: u32,
     stack: Vec<SourceRange>,
     stack_traversal_root: GCRootManager<SourceValue>,
@@ -103,6 +104,7 @@ impl Interpreter {
             next_id: 1,
             stack: vec![],
             stack_traversal_root: GCRootManager::default(),
+            has_evaluated_library: false,
         }
     }
 
@@ -305,6 +307,18 @@ impl Interpreter {
     }
 
     pub fn evaluate(&mut self, source_id: SourceId) -> Result<SourceValue, RuntimeError> {
+        if !self.has_evaluated_library {
+            let library_contents = include_str!("../library/library.sch");
+            let library_source_id = self
+                .source_mapper
+                .add("library.sch".to_string(), library_contents.to_string());
+            self.evaluate_source_id(library_source_id)?;
+            self.has_evaluated_library = true;
+        }
+        self.evaluate_source_id(source_id)
+    }
+
+    pub fn evaluate_source_id(&mut self, source_id: SourceId) -> Result<SourceValue, RuntimeError> {
         // TODO: The method isn't re-entrant, we should raise an error or
         // something if we detect we're being called in a re-entrant way (or
         // alternatively, make this method re-entrant).

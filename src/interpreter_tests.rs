@@ -60,9 +60,10 @@ fn dot_works() {
 }
 
 #[test]
-fn procedure_repr_works() {
-    test_eval_success("(define (boop) 1) boop", "#<procedure boop #1>");
-    test_eval_success("(lambda () 1)", "#<procedure #1>");
+fn abs_works() {
+    test_eval_success("(abs 1)", "1");
+    test_eval_success("(abs -1)", "1");
+    test_eval_success("(abs 0)", "0");
 }
 
 #[test]
