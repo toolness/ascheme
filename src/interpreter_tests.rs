@@ -214,6 +214,13 @@ fn eq_works() {
 }
 
 #[test]
+fn cyclic_lists_work() {
+    // TODO: Eventually we should implement proper display of cyclic lists, at which point
+    // the expected value will need to change.
+    test_eval_success("(define x '(1 . 2)) (set-cdr! x x) x", "<CYCLIC LIST>");
+}
+
+#[test]
 fn greater_than_or_equal_to_works() {
     test_eval_success("(>=)", "#t");
     test_eval_success("(>= 1)", "#t");
