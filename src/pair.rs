@@ -122,17 +122,13 @@ impl Pair {
         }
     }
 
-    pub fn get_type(&self) -> PairType {
+    fn get_type_recursive(&self, visited: &mut HashSet<*const PairInner>) -> PairType {
         let mut latest = self.as_ptr();
-        let mut visited: HashSet<*const PairInner> = HashSet::new();
         loop {
             if visited.contains(&latest) {
                 return PairType::Cyclic;
             }
             visited.insert(latest);
-
-            // TODO: I think we have to look at the 'car' value too, as we
-            // might contain pairs that cyclically refer back to us... ugh.
 
             // It's unfortunate we have to resort to unsafe code just
             // to iterate through the chain of pairs. The only alternative
@@ -140,6 +136,13 @@ impl Pair {
             // which felt like overkill, and this use of unsafe doesn't seem
             // terribly risky.
             let cdr = unsafe { &(*latest).cdr.0 };
+            let car = unsafe { &(*latest).car.0 };
+
+            if let Value::Pair(child) = car {
+                if child.get_type_recursive(visited) == PairType::Cyclic {
+                    return PairType::Cyclic;
+                }
+            }
 
             let new_latest = match cdr {
                 Value::EmptyList => return PairType::List,
@@ -148,6 +151,11 @@ impl Pair {
             };
             latest = new_latest;
         }
+    }
+
+    pub fn get_type(&self) -> PairType {
+        let mut visited: HashSet<*const PairInner> = HashSet::new();
+        self.get_type_recursive(&mut visited)
     }
 
     /// If the pair represents a list, returns it, otherwise returns None.
