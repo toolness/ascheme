@@ -53,6 +53,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("stats", stats),
         ("gc", gc),
         ("test-eq", test_eq),
+        ("print-and-eval", print_and_eval),
     ]
 }
 
@@ -385,6 +386,16 @@ fn stats(ctx: ProcedureContext) -> ProcedureResult {
 fn gc(ctx: ProcedureContext) -> ProcedureResult {
     let objs_found_in_cycles = ctx.interpreter.gc(true);
     Ok((objs_found_in_cycles as f64).into())
+}
+
+fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 1 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let operand_repr = ctx.operands[0].to_string();
+    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    println!("{} = {}", operand_repr, value);
+    Ok(value.into())
 }
 
 fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {

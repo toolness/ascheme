@@ -20,5 +20,5 @@
 (define (sqrt x)
   (sqrt-iter 1.0 x))
 
-(sqrt 9)
-(square (sqrt 1000))
+(print-and-eval (sqrt 9))
+(print-and-eval (square (sqrt 1000)))
