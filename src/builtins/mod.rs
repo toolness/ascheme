@@ -13,6 +13,7 @@ use crate::{
     value::{SourceValue, Value},
 };
 
+mod logic;
 mod math;
 mod ord;
 mod util;
@@ -46,9 +47,9 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("quote", quote),
         ("eq?", eq),
         ("if", _if),
-        ("and", and),
-        ("or", or),
-        ("not", not),
+        ("and", logic::and),
+        ("or", logic::or),
+        ("not", logic::not),
         ("cond", cond),
         ("set!", set),
         ("set-car!", set_car),
@@ -78,42 +79,6 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
             Ok(Value::Undefined.into())
         }
     }
-}
-
-fn and(ctx: ProcedureContext) -> ProcedureResult {
-    let mut latest = true.into();
-    for (i, operand) in ctx.operands.iter().enumerate() {
-        if i == ctx.operands.len() - 1 {
-            return ctx.interpreter.eval_expression_in_tail_context(operand);
-        }
-        latest = ctx.interpreter.eval_expression(operand)?.0;
-        if !latest.as_bool() {
-            break;
-        }
-    }
-    Ok(latest.into())
-}
-
-fn or(ctx: ProcedureContext) -> ProcedureResult {
-    let mut latest = false.into();
-    for (i, operand) in ctx.operands.iter().enumerate() {
-        if i == ctx.operands.len() - 1 {
-            return ctx.interpreter.eval_expression_in_tail_context(operand);
-        }
-        latest = ctx.interpreter.eval_expression(operand)?.0;
-        if latest.as_bool() {
-            break;
-        }
-    }
-    Ok(latest.into())
-}
-
-fn not(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 1 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
-    let result = ctx.interpreter.eval_expression(&ctx.operands[0])?.0;
-    Ok((!result.as_bool()).into())
 }
 
 fn cond(ctx: ProcedureContext) -> ProcedureResult {
