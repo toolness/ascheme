@@ -10,7 +10,7 @@ use parser::{parse, ParseErrorType};
 use rustyline::{Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
 use string_interner::StringInterner;
-use tokenizer::Tokenizer;
+use tokenizer::{TokenType, Tokenizer};
 use value::Value;
 
 use crate::interpreter::Interpreter;
@@ -71,6 +71,9 @@ impl Completer for SchemeInputValidator {
             let Ok(token) = token else {
                 continue;
             };
+            if token.0 != TokenType::Identifier {
+                continue;
+            }
             let range = token.1;
             if range.0 <= pos && range.1 >= pos {
                 let token_str = token.source(&line);
