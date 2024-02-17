@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::mpsc::channel;
 use std::{fs::read_to_string, process};
 
@@ -5,13 +7,15 @@ use clap::Parser;
 use ctrlc;
 use pair::PairManager;
 use parser::{parse, ParseErrorType};
-use rustyline::{Completer, Editor, Helper, Highlighter, Hinter};
+use rustyline::{Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
 use string_interner::StringInterner;
+use tokenizer::Tokenizer;
 use value::Value;
 
 use crate::interpreter::Interpreter;
 
+use rustyline::completion::Completer;
 use rustyline::error::ReadlineError;
 use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 
@@ -50,8 +54,35 @@ pub struct CliArgs {
     pub interactive: bool,
 }
 
-#[derive(Completer, Helper, Highlighter, Hinter)]
-struct SchemeInputValidator();
+#[derive(Helper, Highlighter, Hinter)]
+struct SchemeInputValidator(Rc<RefCell<Interpreter>>);
+
+impl Completer for SchemeInputValidator {
+    type Candidate = String;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
+        let tokenizer = Tokenizer::new(&line, None);
+        for token in tokenizer {
+            let Ok(token) = token else {
+                continue;
+            };
+            let range = token.1;
+            if range.0 <= pos && range.1 >= pos {
+                let token_str = token.source(&line);
+                let interpreter = self.0.borrow();
+                let matches = interpreter.environment.find_global_matches(&token_str);
+                return Ok((range.0, matches));
+            }
+        }
+
+        Ok((0, vec![]))
+    }
+}
 
 impl Validator for SchemeInputValidator {
     fn validate(&self, ctx: &mut ValidationContext<'_>) -> rustyline::Result<ValidationResult> {
@@ -123,7 +154,8 @@ fn main() {
         process::exit(1);
     };
 
-    rl.set_helper(Some(SchemeInputValidator()));
+    let interpreter: Rc<RefCell<Interpreter>> = RefCell::new(interpreter).into();
+    rl.set_helper(Some(SchemeInputValidator(interpreter.clone())));
 
     // Note that we're ignoring the result here, which is generally OK--if it
     // errors, it's probably because the file doesn't exist, and even then
@@ -139,6 +171,7 @@ fn main() {
 
                 i += 1;
                 let filename = format!("<Input#{i}>");
+                let mut interpreter = interpreter.borrow_mut();
                 let source_id = interpreter.source_mapper.add(filename, line);
                 evaluate(&mut interpreter, source_id);
             }

@@ -155,6 +155,16 @@ impl Environment {
             self.globals.bindings.borrow_mut().insert(identifier, value);
         }
     }
+
+    pub fn find_global_matches(&self, query: &str) -> Vec<String> {
+        let mut results = vec![];
+        for key in self.globals.bindings.borrow().keys() {
+            if key.as_ref().starts_with(query) {
+                results.push(key.as_ref().to_string())
+            }
+        }
+        results
+    }
 }
 
 impl Traverser for Environment {
