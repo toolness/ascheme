@@ -14,7 +14,7 @@ use crate::{
     value::{SourceValue, Value},
 };
 
-const DEFAULT_MAX_STACK_SIZE: usize = 32;
+const DEFAULT_MAX_STACK_SIZE: usize = 128;
 
 #[derive(Debug)]
 pub enum RuntimeErrorType {
