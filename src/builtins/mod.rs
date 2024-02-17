@@ -1,4 +1,4 @@
-use std::{backtrace::Backtrace, f64::INFINITY};
+use std::backtrace::Backtrace;
 
 use crate::{
     compound_procedure::CompoundProcedure,
@@ -12,6 +12,10 @@ use crate::{
     string_interner::StringInterner,
     value::{SourceValue, Value},
 };
+
+mod math;
+mod ord;
+mod util;
 
 pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {
     for (name, builtin) in get_builtins() {
@@ -28,15 +32,15 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
 
 fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
     vec![
-        ("+", add),
-        ("-", subtract),
-        ("*", multiply),
-        ("/", divide),
-        ("<", less_than),
-        ("<=", less_than_or_equal_to),
-        (">", greater_than),
-        (">=", greater_than_or_equal_to),
-        ("=", numeric_eq),
+        ("+", math::add),
+        ("-", math::subtract),
+        ("*", math::multiply),
+        ("/", math::divide),
+        ("<", ord::less_than),
+        ("<=", ord::less_than_or_equal_to),
+        (">", ord::greater_than),
+        (">=", ord::greater_than_or_equal_to),
+        ("=", ord::numeric_eq),
         ("define", define),
         ("lambda", lambda),
         ("quote", quote),
@@ -55,130 +59,6 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("test-eq", test_eq),
         ("print-and-eval", print_and_eval),
     ]
-}
-
-fn number_args(ctx: &mut ProcedureContext) -> Result<Vec<f64>, RuntimeError> {
-    let mut numbers = Vec::with_capacity(ctx.operands.len());
-    for expr in ctx.operands.iter() {
-        numbers.push(ctx.interpreter.expect_number(expr)?);
-    }
-    Ok(numbers)
-}
-
-fn less_than(mut ctx: ProcedureContext) -> ProcedureResult {
-    let mut latest: f64 = -INFINITY;
-    for number in number_args(&mut ctx)? {
-        if number <= latest {
-            return Ok(false.into());
-        }
-        latest = number;
-    }
-    Ok(true.into())
-}
-
-fn less_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
-    let mut latest: f64 = -INFINITY;
-    for number in number_args(&mut ctx)? {
-        if number < latest {
-            return Ok(false.into());
-        }
-        latest = number;
-    }
-    Ok(true.into())
-}
-
-fn greater_than(mut ctx: ProcedureContext) -> ProcedureResult {
-    let mut latest: f64 = INFINITY;
-    for number in number_args(&mut ctx)? {
-        if number >= latest {
-            return Ok(false.into());
-        }
-        latest = number;
-    }
-    Ok(true.into())
-}
-
-fn greater_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
-    let mut latest: f64 = INFINITY;
-    for number in number_args(&mut ctx)? {
-        if number > latest {
-            return Ok(false.into());
-        }
-        latest = number;
-    }
-    Ok(true.into())
-}
-
-fn add(mut ctx: ProcedureContext) -> ProcedureResult {
-    let mut result = 0.0;
-    for number in number_args(&mut ctx)? {
-        result += number
-    }
-    Ok(result.into())
-}
-
-fn subtract(mut ctx: ProcedureContext) -> ProcedureResult {
-    let numbers = number_args(&mut ctx)?;
-    if numbers.len() == 0 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
-    let mut result = numbers[0];
-    if numbers.len() == 1 {
-        return Ok((-result).into());
-    }
-    for number in &numbers[1..] {
-        result -= number
-    }
-    Ok(result.into())
-}
-
-fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
-    let mut result = 1.0;
-    for number in number_args(&mut ctx)? {
-        result *= number
-    }
-    Ok(result.into())
-}
-
-fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
-    let numbers = number_args(&mut ctx)?;
-
-    let divide_two = |a: f64, b: f64| -> Result<f64, RuntimeError> {
-        if b == 0.0 {
-            // Ideally we'd point at the specific argument that's zero, but this is good enough for now.
-            return Err(RuntimeErrorType::DivisionByZero.source_mapped(ctx.combination.1));
-        }
-        Ok(a / b)
-    };
-
-    if numbers.len() == 0 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
-    // Why are scheme's math operators so weird? This is how tryscheme.org's behaves, at least,
-    // and I find it baffling.
-    if numbers.len() == 1 {
-        return Ok(divide_two(1.0, numbers[0])?.into());
-    }
-    let mut result = numbers[0];
-    for &number in &numbers[1..] {
-        result = divide_two(result, number)?;
-    }
-    Ok(result.into())
-}
-
-fn numeric_eq(mut ctx: ProcedureContext) -> ProcedureResult {
-    let numbers = number_args(&mut ctx)?;
-    if numbers.len() < 2 {
-        Ok(true.into())
-    } else {
-        let number = numbers[0];
-        for other_number in &numbers[1..] {
-            if *other_number != number {
-                return Ok(false.into());
-            }
-        }
-        Ok(true.into())
-    }
 }
 
 fn _if(ctx: ProcedureContext) -> ProcedureResult {
