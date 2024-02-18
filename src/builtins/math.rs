@@ -61,3 +61,11 @@ pub fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
     }
     Ok(result.into())
 }
+
+pub fn remainder(mut ctx: ProcedureContext) -> ProcedureResult {
+    let numbers = number_args(&mut ctx)?;
+    if numbers.len() != 2 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    Ok((numbers[0] % numbers[1]).into())
+}

@@ -36,6 +36,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("-", math::subtract),
         ("*", math::multiply),
         ("/", math::divide),
+        ("remainder", math::remainder),
         ("<", ord::less_than),
         ("<=", ord::less_than_or_equal_to),
         (">", ord::greater_than),

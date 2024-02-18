@@ -97,6 +97,15 @@ fn basic_arithmetic_works() {
 }
 
 #[test]
+fn remainder_works() {
+    // From R5RS 6.2.5.
+    test_eval_success("(remainder 13 4)", "1");
+    test_eval_success("(remainder -13 4)", "-1");
+    test_eval_success("(remainder 13 -4)", "1");
+    test_eval_success("(remainder -13 -4)", "-1");
+}
+
+#[test]
 fn and_works() {
     test_eval_success("(and)", "#t");
     test_eval_success("(and 1)", "1");
