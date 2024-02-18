@@ -44,7 +44,7 @@
 (print-and-eval (sine-count-p 1000000))
 
 ; as for part (b), it looks like the O(n) of space and number of steps is
-; the same (the function is not tail recursive) and appears to increase by
+; the same (the function is linear recursive) and appears to increase by
 ; 2 for every power of 10. I think this means that it's approximately O(log n).
 
 ; of note: the book hasn't actually taught `set!` or `display` or, as far
