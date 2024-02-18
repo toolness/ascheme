@@ -46,3 +46,9 @@
 ; as for part (b), it looks like the O(n) of space and number of steps is
 ; the same (the function is not tail recursive) and appears to increase by
 ; 2 for every power of 10. I think this means that it's approximately O(log n).
+
+; of note: the book hasn't actually taught `set!` or `display` or, as far
+; as I can tell, any other mechanism that would allow students to actually
+; track how many times `p` has been called. I'm not sure if this means that
+; it's left up to the student to learn how to do that, or if the student is
+; supposed to run the program in their head (which seems painful).
