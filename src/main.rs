@@ -10,7 +10,7 @@ use parser::{parse, ParseErrorType};
 use rustyline::{Editor, Helper, Highlighter, Hinter};
 use source_mapper::SourceId;
 use string_interner::StringInterner;
-use tokenizer::{TokenType, Tokenizer};
+use tokenizer::{TokenType, TokenizeErrorType, Tokenizer};
 use value::Value;
 
 use crate::interpreter::Interpreter;
@@ -98,6 +98,9 @@ impl Validator for SchemeInputValidator {
         };
 
         match err.0 {
+            ParseErrorType::Tokenize(TokenizeErrorType::UnterminatedString) => {
+                Ok(ValidationResult::Incomplete)
+            }
             ParseErrorType::MissingRightParen => Ok(ValidationResult::Incomplete),
             // There's an error, but the interpreter will show it to the user--we just want to let
             // rustyline know whether to let the user continue typing.
