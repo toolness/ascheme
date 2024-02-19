@@ -72,6 +72,11 @@ pub enum ProcedureSuccess {
     TailCall(TailCallContext),
 }
 
+#[derive(Default, Debug)]
+pub struct TrackedStats {
+    max_call_stack_depth: usize,
+}
+
 pub struct Interpreter {
     pub environment: Environment,
     pub string_interner: StringInterner,
@@ -80,6 +85,7 @@ pub struct Interpreter {
     pub tracing: bool,
     pub max_stack_size: usize,
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
+    tracked_stats: Option<TrackedStats>,
     has_evaluated_library: bool,
     next_id: u32,
     stack: Vec<SourceRange>,
@@ -105,6 +111,7 @@ impl Interpreter {
             stack: vec![],
             stack_traversal_root: GCRootManager::default(),
             has_evaluated_library: false,
+            tracked_stats: None,
         }
     }
 
@@ -151,6 +158,11 @@ impl Interpreter {
             return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
         }
         self.stack.push(source_range);
+        if let Some(ref mut stats) = &mut self.tracked_stats {
+            if self.stack.len() > stats.max_call_stack_depth {
+                stats.max_call_stack_depth = self.stack.len()
+            }
+        }
         let ctx = ProcedureContext {
             interpreter: self,
             combination,
@@ -375,5 +387,13 @@ impl Interpreter {
             println!("Pairs reclaimed: {}", pair_cycles);
         }
         env_cycles + pair_cycles
+    }
+
+    pub fn start_tracking_stats(&mut self) {
+        self.tracked_stats = Some(TrackedStats::default())
+    }
+
+    pub fn take_tracked_stats(&mut self) -> Option<TrackedStats> {
+        self.tracked_stats.take()
     }
 }

@@ -56,3 +56,15 @@ pub fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
     ctx.interpreter
         .eval_expressions_in_tail_context(ctx.operands)
 }
+
+pub fn track_call_stats(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 1 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    ctx.interpreter.start_tracking_stats();
+    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    if let Some(stats) = ctx.interpreter.take_tracked_stats() {
+        println!("{stats:#?}");
+    }
+    Ok(value.into())
+}

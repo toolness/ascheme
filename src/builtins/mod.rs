@@ -59,6 +59,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("gc", non_standard::gc),
         ("test-eq", non_standard::test_eq),
         ("print-and-eval", non_standard::print_and_eval),
+        ("track-call-stats", non_standard::track_call_stats),
     ]
 }
 
