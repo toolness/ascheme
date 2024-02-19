@@ -55,3 +55,35 @@ pub fn eq(mut ctx: ProcedureContext) -> ProcedureResult {
 
     Ok(is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])?.into())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_util::test_eval_success;
+
+    #[test]
+    fn eq_works() {
+        // From R5RS section 6.1.
+        test_eval_success("(eq? (quote a) (quote a))", "#t");
+        test_eval_success("(eq? (quote a) (quote b))", "#f");
+        test_eval_success("(eq? (quote ()) (quote ()))", "#t");
+        test_eval_success("(eq? + +)", "#t");
+        test_eval_success("(eq? 2 2)", "#t");
+        test_eval_success("(eq? 2 1)", "#f");
+        test_eval_success("(define (x) (x)) (eq? x x)", "#t");
+        test_eval_success("(eq? #t #f)", "#f");
+        test_eval_success("(eq? #t #t)", "#t");
+        test_eval_success("(eq? #f #f)", "#t");
+
+        // Stuff specific to our implementation.
+        test_eval_success("(eq? (quote (a)) (quote (a)))", "#f");
+        test_eval_success("(eq? (quote (1 . 2)) (quote (1 . 2)))", "#f");
+        test_eval_success("(define x (quote (a))) (eq? x x)", "#t");
+        test_eval_success("(eq? (lambda (x) (x)) (lambda (x) (x)))", "#f");
+    }
+
+    #[test]
+    fn strings_work() {
+        test_eval_success(r#"(eq? "blarg" "blarg")"#, "#f");
+        test_eval_success(r#"(define x "blarg") (eq? x x)"#, "#t");
+    }
+}

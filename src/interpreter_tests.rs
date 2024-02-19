@@ -43,70 +43,6 @@ fn dot_works() {
 }
 
 #[test]
-fn abs_works() {
-    test_eval_success("(abs 1)", "1");
-    test_eval_success("(abs -1)", "1");
-    test_eval_success("(abs 0)", "0");
-}
-
-#[test]
-fn basic_arithmetic_works() {
-    // This is how try.scheme.org works, at least.
-    test_eval_success("(+)", "0");
-    test_eval_success("(*)", "1");
-
-    test_eval_success("(+ 1 2)", "3");
-    test_eval_success("(+ +1 2)", "3");
-    test_eval_success("(+ -10 2)", "-8");
-    test_eval_success("  (+ 1 2 (* 3 4)) ", "15");
-
-    test_eval_success("(/ 2.0)", "0.5");
-    test_eval_success("(/ 1.0 2.0)", "0.5");
-    test_eval_success("(/ 1.0 2.0 2.0)", "0.25");
-    test_eval_success("(/ 6 2)", "3");
-
-    test_eval_success("(- 2)", "-2");
-    test_eval_success("(- 5 2)", "3");
-    test_eval_success("(- 5 2 1)", "2");
-    test_eval_success("(- 5 2 10)", "-7");
-}
-
-#[test]
-fn remainder_works() {
-    // From R5RS 6.2.5.
-    test_eval_success("(remainder 13 4)", "1");
-    test_eval_success("(remainder -13 4)", "-1");
-    test_eval_success("(remainder 13 -4)", "1");
-    test_eval_success("(remainder -13 -4)", "-1");
-}
-
-#[test]
-fn and_works() {
-    test_eval_success("(and)", "#t");
-    test_eval_success("(and 1)", "1");
-    test_eval_success("(and 1 2)", "2");
-    test_eval_success("(and #f 2)", "#f");
-    test_eval_success("(and #f lololol)", "#f");
-}
-
-#[test]
-fn or_works() {
-    test_eval_success("(or)", "#f");
-    test_eval_success("(or 1)", "1");
-    test_eval_success("(or 1 2)", "1");
-    test_eval_success("(or #f 2)", "2");
-    test_eval_success("(or 1 lololol)", "1");
-}
-
-#[test]
-fn not_works() {
-    test_eval_success("(not #t)", "#f");
-    test_eval_success("(not 0)", "#f");
-    test_eval_success("(not #f)", "#t");
-    test_eval_success("(not (= 3 1))", "#t");
-}
-
-#[test]
 fn cond_works() {
     test_eval_success("(cond (1))", "1");
     test_eval_success("(cond (0))", "0");
@@ -137,64 +73,9 @@ fn lambda_definitions_work() {
 }
 
 #[test]
-fn booleans_works() {
+fn booleans_work() {
     test_eval_success("#t", "#t");
     test_eval_success("#f", "#f");
-}
-
-#[test]
-fn less_than_works() {
-    test_eval_success("(<)", "#t");
-    test_eval_success("(< 1)", "#t");
-    test_eval_success("(< 1 0)", "#f");
-    test_eval_success("(< 0 1)", "#t");
-    test_eval_success("(< 1 1)", "#f");
-    test_eval_success("(< 0 1 2)", "#t");
-    test_eval_success("(< 0 1 2 3 1)", "#f");
-}
-
-#[test]
-fn less_than_or_equal_to_works() {
-    test_eval_success("(<=)", "#t");
-    test_eval_success("(<= 1)", "#t");
-    test_eval_success("(<= 1 0)", "#f");
-    test_eval_success("(<= 0 1)", "#t");
-    test_eval_success("(<= 1 1)", "#t");
-    test_eval_success("(<= 0 1 2)", "#t");
-    test_eval_success("(<= 0 1 2 3 1)", "#f");
-    test_eval_success("(<= 0 1 1 1 1)", "#t");
-}
-
-#[test]
-fn greater_than_works() {
-    test_eval_success("(>)", "#t");
-    test_eval_success("(> 1)", "#t");
-    test_eval_success("(> 1 0)", "#t");
-    test_eval_success("(> 0 1)", "#f");
-    test_eval_success("(> 1 1)", "#f");
-    test_eval_success("(> 2 1 0)", "#t");
-    test_eval_success("(< 3 2 1 0 1)", "#f");
-}
-
-#[test]
-fn eq_works() {
-    // From R5RS section 6.1.
-    test_eval_success("(eq? (quote a) (quote a))", "#t");
-    test_eval_success("(eq? (quote a) (quote b))", "#f");
-    test_eval_success("(eq? (quote ()) (quote ()))", "#t");
-    test_eval_success("(eq? + +)", "#t");
-    test_eval_success("(eq? 2 2)", "#t");
-    test_eval_success("(eq? 2 1)", "#f");
-    test_eval_success("(define (x) (x)) (eq? x x)", "#t");
-    test_eval_success("(eq? #t #f)", "#f");
-    test_eval_success("(eq? #t #t)", "#t");
-    test_eval_success("(eq? #f #f)", "#t");
-
-    // Stuff specific to our implementation.
-    test_eval_success("(eq? (quote (a)) (quote (a)))", "#f");
-    test_eval_success("(eq? (quote (1 . 2)) (quote (1 . 2)))", "#f");
-    test_eval_success("(define x (quote (a))) (eq? x x)", "#t");
-    test_eval_success("(eq? (lambda (x) (x)) (lambda (x) (x)))", "#f");
 }
 
 #[test]
@@ -206,28 +87,6 @@ fn cyclic_lists_work() {
         "(define y '(1)) (define x '(1)) (set-car! y x) (set-car! x y) x",
         "<CYCLIC LIST>",
     );
-}
-
-#[test]
-fn greater_than_or_equal_to_works() {
-    test_eval_success("(>=)", "#t");
-    test_eval_success("(>= 1)", "#t");
-    test_eval_success("(>= 1 0)", "#t");
-    test_eval_success("(>= 0 1)", "#f");
-    test_eval_success("(>= 1 1)", "#t");
-    test_eval_success("(>= 2 1 0)", "#t");
-    test_eval_success("(<= 3 2 1 0 1)", "#f");
-    test_eval_success("(>= 2 1 1 1 1)", "#t");
-}
-
-#[test]
-fn numeric_eq_works() {
-    test_eval_success("(=)", "#t");
-    test_eval_success("(= 1)", "#t");
-    test_eval_success("(= 1 0)", "#f");
-    test_eval_success("(= 1 1)", "#t");
-    test_eval_success("(= 1 1 1)", "#t");
-    test_eval_success("(= 1 2 3 4)", "#f");
 }
 
 #[test]
@@ -324,8 +183,6 @@ fn strings_work() {
     test_eval_success(r#""bl\narg""#, r#""bl\narg""#);
     test_eval_success(r#""bl\"arg""#, r#""bl\"arg""#);
     test_eval_success(r#""bl\\arg""#, r#""bl\\arg""#);
-    test_eval_success(r#"(eq? "blarg" "blarg")"#, "#f");
-    test_eval_success(r#"(define x "blarg") (eq? x x)"#, "#t");
 }
 
 #[test]

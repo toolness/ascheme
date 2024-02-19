@@ -69,3 +69,39 @@ pub fn remainder(mut ctx: ProcedureContext) -> ProcedureResult {
     }
     Ok((numbers[0] % numbers[1]).into())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_util::test_eval_success;
+
+    #[test]
+    fn basic_arithmetic_works() {
+        // This is how try.scheme.org works, at least.
+        test_eval_success("(+)", "0");
+        test_eval_success("(*)", "1");
+
+        test_eval_success("(+ 1 2)", "3");
+        test_eval_success("(+ +1 2)", "3");
+        test_eval_success("(+ -10 2)", "-8");
+        test_eval_success("  (+ 1 2 (* 3 4)) ", "15");
+
+        test_eval_success("(/ 2.0)", "0.5");
+        test_eval_success("(/ 1.0 2.0)", "0.5");
+        test_eval_success("(/ 1.0 2.0 2.0)", "0.25");
+        test_eval_success("(/ 6 2)", "3");
+
+        test_eval_success("(- 2)", "-2");
+        test_eval_success("(- 5 2)", "3");
+        test_eval_success("(- 5 2 1)", "2");
+        test_eval_success("(- 5 2 10)", "-7");
+    }
+
+    #[test]
+    fn remainder_works() {
+        // From R5RS 6.2.5.
+        test_eval_success("(remainder 13 4)", "1");
+        test_eval_success("(remainder -13 4)", "-1");
+        test_eval_success("(remainder 13 -4)", "1");
+        test_eval_success("(remainder -13 -4)", "-1");
+    }
+}
