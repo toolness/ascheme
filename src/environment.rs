@@ -88,8 +88,8 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn print_stats(&self) {
-        println!("Lexical scopes: {}", self.tracker.stats());
+    pub fn get_stats_as_string(&self) -> String {
+        format!("Lexical scopes: {}", self.tracker.stats())
     }
 
     pub fn begin_mark(&mut self) {

@@ -4,3 +4,5 @@
     x
   )
 )
+
+(define (newline) (display "\n"))

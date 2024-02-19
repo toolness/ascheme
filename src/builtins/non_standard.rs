@@ -24,7 +24,9 @@ pub fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
     }
     let operand_repr = ctx.operands[0].to_string();
     let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
-    println!("{} = {}", operand_repr, value);
+    ctx.interpreter
+        .printer
+        .println(format!("{} = {}", operand_repr, value));
     Ok(value.into())
 }
 
@@ -35,24 +37,29 @@ pub fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
     let operand_0_repr = ctx.operands[0].to_string();
     let operand_1_repr = ctx.operands[1].to_string();
 
-    if is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])? {
-        println!("OK {} = {}", operand_0_repr, operand_1_repr);
+    let msg = if is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])? {
+        "OK"
     } else {
-        println!("ERR {} != {}", operand_0_repr, operand_1_repr);
-    }
+        "ERR"
+    };
+
+    ctx.interpreter
+        .printer
+        .println(format!("{msg} {operand_0_repr} = {operand_1_repr}"));
 
     Ok(Value::Undefined.into())
 }
 
 pub fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
-    println!(
-        "Rust backtrace at {}",
-        ctx.interpreter
-            .source_mapper
-            .trace(&ctx.combination.1)
-            .join("\n")
-    );
-    println!("{}", Backtrace::force_capture());
+    let location = ctx
+        .interpreter
+        .source_mapper
+        .trace(&ctx.combination.1)
+        .join("\n");
+    let backtrace = Backtrace::force_capture();
+    ctx.interpreter
+        .printer
+        .println(format!("Rust backtrace at {location}\n{backtrace}"));
     ctx.interpreter
         .eval_expressions_in_tail_context(ctx.operands)
 }

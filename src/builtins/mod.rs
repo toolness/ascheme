@@ -217,8 +217,6 @@ fn display(ctx: ProcedureContext) -> ProcedureResult {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }
     let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
-    // TODO: As per R5RS, we shouldn't append a newline here... but if we don't, then
-    // rustyline will overwrite the output, so for now we'll just add a newline.
-    println!("{:#}", value);
+    ctx.interpreter.printer.print(format!("{:#}", value));
     Ok(Value::Undefined.into())
 }

@@ -188,8 +188,8 @@ impl PairManager {
         self.make(PairInner { car, cdr })
     }
 
-    pub fn print_stats(&self) {
-        println!("Pairs: {}", self.0.stats());
+    pub fn get_stats_as_string(&self) -> String {
+        format!("Pairs: {}", self.0.stats())
     }
 
     fn make(&mut self, inner: PairInner) -> Pair {

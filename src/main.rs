@@ -31,6 +31,7 @@ mod pair;
 mod parser;
 mod source_mapped;
 mod source_mapper;
+mod stdio_printer;
 mod string_interner;
 mod tokenizer;
 mod value;
@@ -114,17 +115,17 @@ fn evaluate(interpreter: &mut Interpreter, source_id: SourceId) -> bool {
     match interpreter.evaluate(source_id) {
         Ok(value) => {
             if !matches!(value.0, Value::Undefined) {
-                println!("{}", value);
+                interpreter.printer.println(format!("{}", value));
             }
             true
         }
         Err(err) => {
-            println!(
+            interpreter.printer.eprintln(format!(
                 "Error: {:?} in {}",
                 err.0,
                 interpreter.source_mapper.trace(&err.1).join("\n")
-            );
-            println!("{}", interpreter.traceback());
+            ));
+            interpreter.printer.eprintln(interpreter.traceback());
             false
         }
     }
@@ -171,6 +172,7 @@ fn main() {
     let mut i = 0;
 
     loop {
+        interpreter.borrow().printer.print_buffered_output();
         match rl.readline("> ") {
             Ok(line) => {
                 // Again, we're ignoring the result here, see above for rationale.
@@ -183,14 +185,20 @@ fn main() {
                 evaluate(&mut interpreter, source_id);
             }
             Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C pressed, exiting.");
+                interpreter
+                    .borrow()
+                    .printer
+                    .eprintln("CTRL-C pressed, exiting.");
                 break;
             }
             Err(ReadlineError::Eof) => {
                 break;
             }
             Err(err) => {
-                eprintln!("Error: {:?}", err);
+                interpreter
+                    .borrow()
+                    .printer
+                    .eprintln(format!("Error: {:?}", err));
                 process::exit(1);
             }
         }

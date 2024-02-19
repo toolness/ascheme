@@ -10,6 +10,7 @@ use crate::{
     parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     source_mapper::{SourceId, SourceMapper},
+    stdio_printer::StdioPrinter,
     string_interner::{InternedString, StringInterner},
     value::{SourceValue, Value},
 };
@@ -117,6 +118,7 @@ pub struct Interpreter {
     pub tracing: bool,
     pub max_stack_size: usize,
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
+    pub printer: StdioPrinter,
     tracked_stats: Option<TrackedStats>,
     has_evaluated_library: bool,
     next_id: u32,
@@ -144,6 +146,7 @@ impl Interpreter {
             stack_traversal_root: GCRootManager::default(),
             has_evaluated_library: false,
             tracked_stats: None,
+            printer: StdioPrinter::new(),
         }
     }
 
@@ -162,13 +165,15 @@ impl Interpreter {
     }
 
     pub fn print_stats(&self) {
-        self.pair_manager.print_stats();
-        self.environment.print_stats();
-        println!(
+        self.printer
+            .println(self.pair_manager.get_stats_as_string());
+        self.printer.println(self.environment.get_stats_as_string());
+        self.printer.println(format!(
             "Objects in call stack: {}",
             self.stack_traversal_root.stats()
-        );
-        println!("Interned strings: {}", self.string_interner.len());
+        ));
+        self.printer
+            .println(format!("Interned strings: {}", self.string_interner.len()));
     }
 
     fn expect_procedure(&mut self, expression: &SourceValue) -> Result<Procedure, RuntimeError> {
@@ -231,10 +236,10 @@ impl Interpreter {
                 match procedure {
                     Procedure::Compound(compound) => {
                         if self.tracing {
-                            println!(
+                            self.printer.println(format!(
                                 "Creating tail call context {}",
                                 self.source_mapper.trace(&combination.1).join("\n")
-                            );
+                            ))
                         }
                         let mut ctx = ProcedureContext {
                             interpreter: self,
@@ -285,10 +290,10 @@ impl Interpreter {
                 let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 if self.tracing {
-                    println!(
+                    self.printer.println(format!(
                         "Evaluating {}",
                         self.source_mapper.trace(&combination.1).join("\n")
-                    );
+                    ));
                 }
                 self.eval_procedure(procedure, combination, operands, operator.1)
             }
@@ -408,7 +413,8 @@ impl Interpreter {
             // because we're not pinning temporary objects in the call stack to the GC
             // root--as a result, unexpected things would be considered unreachable and
             // GC'd.
-            println!("Cannot currently collect garbage when call stack is non-empty.");
+            self.printer
+                .println("Cannot currently collect garbage when call stack is non-empty.");
             return 0;
         }
         let mut visitor = Visitor::default();
@@ -420,8 +426,9 @@ impl Interpreter {
         let env_cycles = self.environment.sweep();
         let pair_cycles = self.pair_manager.sweep();
         if visitor.debug {
-            println!("Lexical scopes reclaimed: {}", env_cycles);
-            println!("Pairs reclaimed: {}", pair_cycles);
+            self.printer.println(format!(
+                "Lexical scopes reclaimed: {env_cycles}\nPairs reclaimed: {pair_cycles}",
+            ));
         }
         env_cycles + pair_cycles
     }
