@@ -3,6 +3,7 @@ use std::{fmt::Display, rc::Rc};
 use crate::{
     gc::{Traverser, Visitor},
     interpreter::{Procedure, RuntimeError, RuntimeErrorType},
+    mutable_string::MutableString,
     pair::Pair,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
@@ -41,6 +42,7 @@ pub enum Value {
     Number(f64),
     Symbol(InternedString),
     Boolean(bool),
+    String(MutableString),
     Procedure(Procedure),
     Pair(Pair),
 }
@@ -96,6 +98,7 @@ impl Display for Value {
             Value::EmptyList => write!(f, "()"),
             Value::Number(value) => write!(f, "{}", value),
             Value::Symbol(name) => write!(f, "{}", name),
+            Value::String(string) => write!(f, "{}", string.repr()),
             Value::Pair(pair) => {
                 match pair.try_get_vec_pair() {
                     Some(vec_pair) => write!(f, "{}", vec_pair),

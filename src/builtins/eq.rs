@@ -29,6 +29,10 @@ pub fn is_eq(
             Value::Boolean(b) => a == b,
             _ => false,
         },
+        Value::String(a) => match &b.0 {
+            Value::String(b) => a.points_at_same_memory_as(b),
+            _ => false,
+        },
         Value::Procedure(Procedure::Builtin(a, _)) => match &b.0 {
             Value::Procedure(Procedure::Builtin(b, _)) => a == *b,
             _ => false,

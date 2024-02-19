@@ -266,6 +266,7 @@ impl Interpreter {
             }
             Value::Number(number) => Ok(Value::Number(*number).into()),
             Value::Boolean(boolean) => Ok(Value::Boolean(*boolean).into()),
+            Value::String(string) => Ok(Value::String(string.clone()).into()),
             Value::Symbol(identifier) => {
                 if let Some(value) = self.environment.get(identifier) {
                     Ok(value.into())

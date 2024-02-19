@@ -20,6 +20,7 @@ pub enum TokenType {
     Identifier,
     Dot,
     Apostrophe,
+    String,
 }
 
 pub type Token = SourceMapped<TokenType>;
@@ -28,6 +29,8 @@ pub type Token = SourceMapped<TokenType>;
 pub enum TokenizeErrorType {
     InvalidNumber,
     UnexpectedCharacter,
+    UnterminatedString,
+    UnsupportedEscapeSequence,
 }
 
 pub type TokenizeError = SourceMapped<TokenizeErrorType>;
@@ -57,6 +60,10 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    fn chomp(&mut self) {
+        self.accept(|_char| true);
+    }
+
     fn accept<F: Fn(char) -> bool>(&mut self, predicate: F) -> bool {
         if let Some(&(pos, next_char)) = self.chars.peek() {
             if predicate(next_char) {
@@ -83,6 +90,26 @@ impl<'a> Tokenizer<'a> {
                 Some(Ok(TokenType::Boolean(false)))
             } else {
                 Some(Err(TokenizeErrorType::UnexpectedCharacter))
+            }
+        } else {
+            None
+        }
+    }
+
+    fn try_accept_string(&mut self) -> Option<Result<TokenType, TokenizeErrorType>> {
+        if self.accept_char('"') {
+            loop {
+                if self.accept_char('\\') {
+                    if !(self.accept_char('\\') || self.accept_char('"')) {
+                        return Some(Err(TokenizeErrorType::UnsupportedEscapeSequence));
+                    }
+                } else if self.accept_char('"') {
+                    return Some(Ok(TokenType::String));
+                } else if self.is_at_end() {
+                    return Some(Err(TokenizeErrorType::UnterminatedString));
+                } else {
+                    self.chomp();
+                }
             }
         } else {
             None
@@ -166,6 +193,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             Ok(TokenType::RightParen)
         } else if self.accept_char('\'') {
             Ok(TokenType::Apostrophe)
+        } else if let Some(result) = self.try_accept_string() {
+            result
         } else if let Some(result) = self.try_accept_number() {
             result
         } else if let Some(result) = self.try_accept_sharp() {
@@ -267,5 +296,23 @@ mod tests {
             "hi ; here is a comment\n there ",
             &[(Ok(Identifier), "hi"), (Ok(Identifier), "there")],
         )
+    }
+
+    #[test]
+    fn string_works() {
+        test_tokenize(r#"  "hello"  "#, &[(Ok(String), r#""hello""#)]);
+        test_tokenize(r#"  "hi \" bub"  "#, &[(Ok(String), r#""hi \" bub""#)]);
+        test_tokenize(r#"  "hi \\ bub"  "#, &[(Ok(String), r#""hi \\ bub""#)]);
+        test_tokenize(
+            r#"  "hi \"#,
+            &[(
+                Err(TokenizeErrorType::UnsupportedEscapeSequence),
+                r#""hi \"#,
+            )],
+        );
+        test_tokenize(
+            r#"  "hi "#,
+            &[(Err(TokenizeErrorType::UnterminatedString), r#""hi "#)],
+        );
     }
 }

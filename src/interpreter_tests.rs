@@ -342,3 +342,12 @@ fn compound_procedues_use_lexical_scope() {
         "4",
     );
 }
+
+#[test]
+fn strings_work() {
+    test_eval_success(r#""blarg""#, r#""blarg""#);
+    test_eval_success(r#""bl\"arg""#, r#""bl\"arg""#);
+    test_eval_success(r#""bl\\arg""#, r#""bl\\arg""#);
+    test_eval_success(r#"(eq? "blarg" "blarg")"#, "#f");
+    test_eval_success(r#"(define x "blarg") (eq? x x)"#, "#t");
+}

@@ -25,6 +25,7 @@ mod environment;
 mod gc;
 mod gc_rooted;
 mod interpreter;
+mod mutable_string;
 mod object_tracker;
 mod pair;
 mod parser;

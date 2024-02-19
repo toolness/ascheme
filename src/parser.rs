@@ -1,4 +1,5 @@
 use crate::{
+    mutable_string::MutableString,
     pair::PairManager,
     source_mapped::{SourceMappable, SourceMapped},
     source_mapper::SourceId,
@@ -128,11 +129,36 @@ impl<'a> Parser<'a> {
                 Ok(number) => Ok(Value::Number(number).source_mapped(token.1)),
                 Err(_) => Err(ParseErrorType::InvalidNumber.source_mapped(token.1)),
             },
+            TokenType::String => {
+                Ok(Value::String(self.parse_string(token.source(&self.string)))
+                    .source_mapped(token.1))
+            }
             TokenType::Identifier => {
                 let string = self.interner.intern(token.source(&self.string));
                 Ok(Value::Symbol(string).source_mapped(token.1))
             }
         }
+    }
+
+    fn parse_string(&self, repr: &str) -> MutableString {
+        let mut chars: Vec<char> = Vec::with_capacity(repr.len());
+        // The `skip(1)` skips the opening quote.
+        let mut is_escaped = false;
+        for char in repr.chars().skip(1) {
+            if is_escaped {
+                chars.push(char);
+                is_escaped = false;
+            } else {
+                if char == '\\' {
+                    is_escaped = true;
+                } else {
+                    chars.push(char);
+                }
+            }
+        }
+        chars.pop(); // Remove closing quote.
+        let string: String = chars.into_iter().collect();
+        MutableString::new(string)
     }
 
     pub fn parse_all(self) -> Result<Vec<SourceValue>, ParseError> {

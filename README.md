@@ -41,6 +41,7 @@ Note that this list isn't exhaustive.
 * Compound procedures
 * Pairs
 * Booleans
+* Strings
 * Floating-point numbers
 * Symbols
 
@@ -54,7 +55,6 @@ There's a lot of things that haven't been implemented, some of which include:
 * Cyclic garbage collection can only be run manually from top-level code via the `gc` function.
   It can't be run when the call stack isn't empty.
 * Characters
-* Strings
 * Vectors
 * Ports
 * `call-with-current-continuation` (call/cc)
