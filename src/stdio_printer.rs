@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Display, io::Write};
+use std::{cell::RefCell, fmt::Display};
 
 /// If we don't get a newline for these many characters, flush the output
 /// to stdout.
@@ -21,9 +21,7 @@ impl StdioPrinter {
     }
 
     fn flush_line_buffer(&self) {
-        std::io::stdout()
-            .write(self.line_buffer.borrow_mut().as_bytes())
-            .unwrap();
+        print!("{}", self.line_buffer.borrow());
         self.line_buffer.borrow_mut().clear();
     }
 
