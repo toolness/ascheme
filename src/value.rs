@@ -92,16 +92,28 @@ impl Traverser for Value {
 }
 
 impl Display for Value {
+    /// This displays a representation of the value as it would
+    /// ordinarily be shown in a REPL.
+    ///
+    /// If in alternate mode (i.e., the `#` flag was specified), displays
+    /// a representation that would be shown via the `display` function (e.g.,
+    /// strings are not shown with quotes around them).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Undefined => write!(f, ""),
+            Value::Undefined => write!(f, "#!void"),
             Value::EmptyList => write!(f, "()"),
             Value::Number(value) => write!(f, "{}", value),
             Value::Symbol(name) => write!(f, "{}", name),
-            Value::String(string) => write!(f, "{}", string.repr()),
+            Value::String(string) => {
+                if f.alternate() {
+                    string.fmt(f)
+                } else {
+                    write!(f, "{}", string.repr())
+                }
+            }
             Value::Pair(pair) => {
                 match pair.try_get_vec_pair() {
-                    Some(vec_pair) => write!(f, "{}", vec_pair),
+                    Some(vec_pair) => vec_pair.fmt(f),
                     None => {
                         // TODO: Implement display for cyclic lists.
                         write!(f, "<CYCLIC LIST>")

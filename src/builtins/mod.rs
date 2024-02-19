@@ -45,6 +45,7 @@ fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
         ("define", define),
         ("lambda", lambda),
         ("quote", quote),
+        ("display", display),
         ("eq?", eq::eq),
         ("if", _if),
         ("and", logic::and),
@@ -208,5 +209,16 @@ fn set_car(mut ctx: ProcedureContext) -> ProcedureResult {
 fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
     let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
     pair.set_cdr(value);
+    Ok(Value::Undefined.into())
+}
+
+fn display(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 1 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    // TODO: As per R5RS, we shouldn't append a newline here... but if we don't, then
+    // rustyline will overwrite the output, so for now we'll just add a newline.
+    println!("{:#}", value);
     Ok(Value::Undefined.into())
 }

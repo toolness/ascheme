@@ -20,7 +20,7 @@ impl Display for VecPair {
                 write!(f, "(")?;
                 let len = items.len();
                 for (i, item) in items.iter().enumerate() {
-                    write!(f, "{}", item)?;
+                    item.fmt(f)?;
                     if i < len - 1 {
                         write!(f, " ")?;
                     }
@@ -31,7 +31,7 @@ impl Display for VecPair {
                 write!(f, "(")?;
                 let len = items.len();
                 for (i, item) in items.iter().enumerate() {
-                    write!(f, "{}", item)?;
+                    item.fmt(f)?;
                     if i == len - 2 {
                         write!(f, " . ")?;
                     } else if i < len - 1 {

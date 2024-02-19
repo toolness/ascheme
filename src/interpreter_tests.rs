@@ -1,4 +1,4 @@
-use crate::interpreter::Interpreter;
+use crate::{interpreter::Interpreter, value::Value};
 
 fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
     let mut interpreter = Interpreter::new();
@@ -8,11 +8,11 @@ fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
             .add(format!("<code[{i}]>"), code.into());
         match interpreter.evaluate(source_id) {
             Ok(value) => {
-                assert_eq!(
-                    value.to_string(),
-                    expected_value,
-                    "Evaluating code #{i} '{code}'"
-                );
+                let value = match value.0 {
+                    Value::Undefined => "".to_string(),
+                    _ => value.to_string(),
+                };
+                assert_eq!(value, expected_value, "Evaluating code #{i} '{code}'");
             }
             Err(err) => {
                 panic!("Evaluating code #{i} '{code}' raised error {err:?}");
@@ -350,4 +350,17 @@ fn strings_work() {
     test_eval_success(r#""bl\\arg""#, r#""bl\\arg""#);
     test_eval_success(r#"(eq? "blarg" "blarg")"#, "#f");
     test_eval_success(r#"(define x "blarg") (eq? x x)"#, "#t");
+}
+
+#[test]
+fn undefined_stringifies() {
+    test_eval_success(
+        "
+    (define y 1)
+    (define x '(1))
+    (set-car! x (set! y 2))
+    x
+    ",
+        "(#!void)",
+    )
 }
