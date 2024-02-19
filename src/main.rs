@@ -39,6 +39,9 @@ mod value;
 #[cfg(test)]
 mod interpreter_tests;
 
+#[cfg(test)]
+mod test_util;
+
 const HISTORY_FILENAME: &'static str = ".interpreter-history.txt";
 
 #[derive(Parser)]
