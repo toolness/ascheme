@@ -1,4 +1,7 @@
-use crate::{interpreter::Interpreter, value::Value};
+use crate::{
+    interpreter::{Interpreter, RuntimeErrorType},
+    value::Value,
+};
 
 pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
     let mut interpreter = Interpreter::new();
@@ -23,4 +26,17 @@ pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
 
 pub fn test_eval_success(code: &'static str, expected_value: &'static str) {
     test_eval_successes(&[(code, expected_value)]);
+}
+
+pub fn test_eval_err(code: &'static str, expected_err: RuntimeErrorType) {
+    let mut interpreter = Interpreter::new();
+    let source_id = interpreter.source_mapper.add("<code>".into(), code.into());
+    match interpreter.evaluate(source_id) {
+        Ok(value) => {
+            panic!("Evaluating code '{code}' did not raise error and returned {value}");
+        }
+        Err(err) => {
+            assert_eq!(err.0, expected_err);
+        }
+    }
 }

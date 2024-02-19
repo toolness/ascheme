@@ -102,11 +102,19 @@ fn track_call_stats(ctx: ProcedureContext) -> ProcedureResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_util::test_eval_success;
+    use crate::{
+        interpreter::RuntimeErrorType,
+        test_util::{test_eval_err, test_eval_success},
+    };
 
     #[test]
     fn assert_does_nothing_when_operand_is_true() {
         test_eval_success("(assert #t)", "");
         test_eval_success("(assert (+ 0 0))", "");
+    }
+
+    #[test]
+    fn assert_errors_when_operand_is_false() {
+        test_eval_err("(assert #f)", RuntimeErrorType::AssertionFailure);
     }
 }

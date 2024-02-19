@@ -82,7 +82,10 @@ fn remainder(mut ctx: ProcedureContext) -> ProcedureResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_util::test_eval_success;
+    use crate::{
+        interpreter::RuntimeErrorType,
+        test_util::{test_eval_err, test_eval_success},
+    };
 
     #[test]
     fn basic_arithmetic_works() {
@@ -113,5 +116,10 @@ mod tests {
         test_eval_success("(remainder -13 4)", "-1");
         test_eval_success("(remainder 13 -4)", "1");
         test_eval_success("(remainder -13 -4)", "-1");
+    }
+
+    #[test]
+    fn division_by_zero_raises_err() {
+        test_eval_err("(/ 5 0)", RuntimeErrorType::DivisionByZero);
     }
 }

@@ -8,7 +8,7 @@ use crate::{
     value::{SourceValue, Value},
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseErrorType {
     Tokenize(TokenizeErrorType),
     InvalidNumber,

@@ -17,7 +17,7 @@ use crate::{
 
 const DEFAULT_MAX_STACK_SIZE: usize = 128;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RuntimeErrorType {
     Parse(ParseErrorType),
     UnboundVariable(InternedString),
