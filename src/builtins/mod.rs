@@ -33,38 +33,26 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
     environment.define(interner.intern("else"), Value::Boolean(true).into());
 }
 
-fn get_builtins() -> Vec<(&'static str, ProcedureFn)> {
-    vec![
-        ("+", math::add),
-        ("-", math::subtract),
-        ("*", math::multiply),
-        ("/", math::divide),
-        ("remainder", math::remainder),
-        ("<", ord::less_than),
-        ("<=", ord::less_than_or_equal_to),
-        (">", ord::greater_than),
-        (">=", ord::greater_than_or_equal_to),
-        ("=", ord::numeric_eq),
+pub type Builtins = Vec<(&'static str, ProcedureFn)>;
+
+fn get_builtins() -> Builtins {
+    let mut builtins: Builtins = vec![
         ("define", define),
         ("lambda", lambda),
         ("quote", quote),
         ("display", display),
-        ("eq?", eq::eq),
         ("if", _if),
-        ("and", logic::and),
-        ("or", logic::or),
-        ("not", logic::not),
         ("cond", cond),
         ("set!", set),
         ("set-car!", set_car),
         ("set-cdr!", set_cdr),
-        ("rust-backtrace", non_standard::rust_backtrace),
-        ("stats", non_standard::stats),
-        ("gc", non_standard::gc),
-        ("test-eq", non_standard::test_eq),
-        ("print-and-eval", non_standard::print_and_eval),
-        ("track-call-stats", non_standard::track_call_stats),
-    ]
+    ];
+    builtins.extend(math::get_builtins());
+    builtins.extend(eq::get_builtins());
+    builtins.extend(ord::get_builtins());
+    builtins.extend(logic::get_builtins());
+    builtins.extend(non_standard::get_builtins());
+    builtins
 }
 
 fn _if(ctx: ProcedureContext) -> ProcedureResult {

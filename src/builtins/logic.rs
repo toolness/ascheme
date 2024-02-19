@@ -3,7 +3,11 @@ use crate::{
     source_mapped::SourceMappable,
 };
 
-pub fn and(ctx: ProcedureContext) -> ProcedureResult {
+pub fn get_builtins() -> super::Builtins {
+    vec![("and", and), ("or", or), ("not", not)]
+}
+
+fn and(ctx: ProcedureContext) -> ProcedureResult {
     let mut latest = true.into();
     for (i, operand) in ctx.operands.iter().enumerate() {
         if i == ctx.operands.len() - 1 {
@@ -17,7 +21,7 @@ pub fn and(ctx: ProcedureContext) -> ProcedureResult {
     Ok(latest.into())
 }
 
-pub fn or(ctx: ProcedureContext) -> ProcedureResult {
+fn or(ctx: ProcedureContext) -> ProcedureResult {
     let mut latest = false.into();
     for (i, operand) in ctx.operands.iter().enumerate() {
         if i == ctx.operands.len() - 1 {
@@ -31,7 +35,7 @@ pub fn or(ctx: ProcedureContext) -> ProcedureResult {
     Ok(latest.into())
 }
 
-pub fn not(ctx: ProcedureContext) -> ProcedureResult {
+fn not(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() != 1 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }

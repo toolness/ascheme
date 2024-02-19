@@ -4,7 +4,17 @@ use crate::interpreter::{ProcedureContext, ProcedureResult};
 
 use super::util::number_args;
 
-pub fn less_than(mut ctx: ProcedureContext) -> ProcedureResult {
+pub fn get_builtins() -> super::Builtins {
+    vec![
+        ("<", less_than),
+        ("<=", less_than_or_equal_to),
+        (">", greater_than),
+        (">=", greater_than_or_equal_to),
+        ("=", numeric_eq),
+    ]
+}
+
+fn less_than(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut latest: f64 = -INFINITY;
     for number in number_args(&mut ctx)? {
         if number <= latest {
@@ -15,7 +25,7 @@ pub fn less_than(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(true.into())
 }
 
-pub fn less_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
+fn less_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut latest: f64 = -INFINITY;
     for number in number_args(&mut ctx)? {
         if number < latest {
@@ -26,7 +36,7 @@ pub fn less_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(true.into())
 }
 
-pub fn greater_than(mut ctx: ProcedureContext) -> ProcedureResult {
+fn greater_than(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut latest: f64 = INFINITY;
     for number in number_args(&mut ctx)? {
         if number >= latest {
@@ -37,7 +47,7 @@ pub fn greater_than(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(true.into())
 }
 
-pub fn greater_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
+fn greater_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut latest: f64 = INFINITY;
     for number in number_args(&mut ctx)? {
         if number > latest {
@@ -48,7 +58,7 @@ pub fn greater_than_or_equal_to(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(true.into())
 }
 
-pub fn numeric_eq(mut ctx: ProcedureContext) -> ProcedureResult {
+fn numeric_eq(mut ctx: ProcedureContext) -> ProcedureResult {
     let numbers = number_args(&mut ctx)?;
     if numbers.len() < 2 {
         Ok(true.into())

@@ -8,17 +8,28 @@ use crate::{
 
 use super::eq::is_eq;
 
-pub fn stats(ctx: ProcedureContext) -> ProcedureResult {
+pub fn get_builtins() -> super::Builtins {
+    vec![
+        ("rust-backtrace", rust_backtrace),
+        ("stats", stats),
+        ("gc", gc),
+        ("test-eq", test_eq),
+        ("print-and-eval", print_and_eval),
+        ("track-call-stats", track_call_stats),
+    ]
+}
+
+fn stats(ctx: ProcedureContext) -> ProcedureResult {
     ctx.interpreter.print_stats();
     Ok(Value::Undefined.into())
 }
 
-pub fn gc(ctx: ProcedureContext) -> ProcedureResult {
+fn gc(ctx: ProcedureContext) -> ProcedureResult {
     let objs_found_in_cycles = ctx.interpreter.gc(true);
     Ok((objs_found_in_cycles as f64).into())
 }
 
-pub fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
+fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() != 1 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }
@@ -30,7 +41,7 @@ pub fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
     Ok(value.into())
 }
 
-pub fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
+fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() != 2 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }
@@ -50,7 +61,7 @@ pub fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(Value::Undefined.into())
 }
 
-pub fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
+fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
     let location = ctx
         .interpreter
         .source_mapper
@@ -64,7 +75,7 @@ pub fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
         .eval_expressions_in_tail_context(ctx.operands)
 }
 
-pub fn track_call_stats(ctx: ProcedureContext) -> ProcedureResult {
+fn track_call_stats(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() != 1 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }

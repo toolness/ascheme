@@ -6,6 +6,10 @@ use crate::{
     value::{SourceValue, Value},
 };
 
+pub fn get_builtins() -> super::Builtins {
+    vec![("eq?", eq)]
+}
+
 pub fn is_eq(
     interpreter: &mut Interpreter,
     a: &SourceValue,
@@ -48,7 +52,7 @@ pub fn is_eq(
     })
 }
 
-pub fn eq(mut ctx: ProcedureContext) -> ProcedureResult {
+fn eq(mut ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() < 2 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
     }

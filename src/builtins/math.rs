@@ -5,7 +5,17 @@ use crate::{
 
 use super::util::number_args;
 
-pub fn add(mut ctx: ProcedureContext) -> ProcedureResult {
+pub fn get_builtins() -> super::Builtins {
+    vec![
+        ("+", add),
+        ("-", subtract),
+        ("*", multiply),
+        ("/", divide),
+        ("remainder", remainder),
+    ]
+}
+
+fn add(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 0.0;
     for number in number_args(&mut ctx)? {
         result += number
@@ -13,7 +23,7 @@ pub fn add(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-pub fn subtract(mut ctx: ProcedureContext) -> ProcedureResult {
+fn subtract(mut ctx: ProcedureContext) -> ProcedureResult {
     let numbers = number_args(&mut ctx)?;
     if numbers.len() == 0 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
@@ -28,7 +38,7 @@ pub fn subtract(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-pub fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
+fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
     let mut result = 1.0;
     for number in number_args(&mut ctx)? {
         result *= number
@@ -36,7 +46,7 @@ pub fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-pub fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
+fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
     let numbers = number_args(&mut ctx)?;
 
     let divide_two = |a: f64, b: f64| -> Result<f64, RuntimeError> {
@@ -62,7 +72,7 @@ pub fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-pub fn remainder(mut ctx: ProcedureContext) -> ProcedureResult {
+fn remainder(mut ctx: ProcedureContext) -> ProcedureResult {
     let numbers = number_args(&mut ctx)?;
     if numbers.len() != 2 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
