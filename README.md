@@ -54,6 +54,7 @@ There's a lot of things that haven't been implemented, some of which include:
 * Radix prefixes for numbers
 * Cyclic garbage collection can only be run manually from top-level code via the `gc` function.
   It can't be run when the call stack isn't empty.
+* Symbol names, implemented as interned strings, aren't garbage collected.
 * Characters
 * Vectors
 * Ports
