@@ -146,7 +146,11 @@ impl<'a> Parser<'a> {
         let mut is_escaped = false;
         for char in repr.chars().skip(1) {
             if is_escaped {
-                chars.push(char);
+                if char == 'n' {
+                    chars.push('\n');
+                } else {
+                    chars.push(char);
+                }
                 is_escaped = false;
             } else {
                 if char == '\\' {

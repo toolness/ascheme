@@ -346,6 +346,7 @@ fn compound_procedues_use_lexical_scope() {
 #[test]
 fn strings_work() {
     test_eval_success(r#""blarg""#, r#""blarg""#);
+    test_eval_success(r#""bl\narg""#, r#""bl\narg""#);
     test_eval_success(r#""bl\"arg""#, r#""bl\"arg""#);
     test_eval_success(r#""bl\\arg""#, r#""bl\\arg""#);
     test_eval_success(r#"(eq? "blarg" "blarg")"#, "#f");

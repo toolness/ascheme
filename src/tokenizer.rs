@@ -100,7 +100,7 @@ impl<'a> Tokenizer<'a> {
         if self.accept_char('"') {
             loop {
                 if self.accept_char('\\') {
-                    if !(self.accept_char('\\') || self.accept_char('"')) {
+                    if !self.accept(|c| matches!(c, '\\' | '"' | 'n')) {
                         return Some(Err(TokenizeErrorType::UnsupportedEscapeSequence));
                     }
                 } else if self.accept_char('"') {
@@ -301,6 +301,7 @@ mod tests {
     #[test]
     fn string_works() {
         test_tokenize(r#"  "hello"  "#, &[(Ok(String), r#""hello""#)]);
+        test_tokenize(r#"  "hi \n bub"  "#, &[(Ok(String), r#""hi \n bub""#)]);
         test_tokenize(r#"  "hi \" bub"  "#, &[(Ok(String), r#""hi \" bub""#)]);
         test_tokenize(r#"  "hi \\ bub"  "#, &[(Ok(String), r#""hi \\ bub""#)]);
         test_tokenize(
