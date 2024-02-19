@@ -1,4 +1,4 @@
-use std::{ops::Deref, rc::Rc, sync::mpsc::Receiver};
+use std::{collections::HashMap, ops::Deref, rc::Rc, sync::mpsc::Receiver};
 
 use crate::{
     builtins,
@@ -59,6 +59,15 @@ pub enum Procedure {
     Compound(CompoundProcedure),
 }
 
+impl Procedure {
+    fn name(&self) -> Option<&InternedString> {
+        match self {
+            Procedure::Builtin(_, name) => Some(name),
+            Procedure::Compound(compond) => compond.name.as_ref(),
+        }
+    }
+}
+
 pub type ProcedureResult = Result<ProcedureSuccess, RuntimeError>;
 
 pub type ProcedureFn = fn(ProcedureContext) -> ProcedureResult;
@@ -73,8 +82,31 @@ pub enum ProcedureSuccess {
 }
 
 #[derive(Default, Debug)]
+pub struct TrackedProcedureStats {
+    calls: usize,
+    tail_calls: usize,
+}
+
+#[derive(Default, Debug)]
 pub struct TrackedStats {
     max_call_stack_depth: usize,
+    procedure_calls: HashMap<InternedString, TrackedProcedureStats>,
+}
+
+impl TrackedStats {
+    fn track_tail_call(&mut self, name: Option<&InternedString>) {
+        if let Some(name) = name {
+            let stats = self.procedure_calls.entry(name.clone()).or_default();
+            stats.tail_calls += 1;
+        }
+    }
+
+    fn track_call(&mut self, name: Option<&InternedString>) {
+        if let Some(name) = name {
+            let stats = self.procedure_calls.entry(name.clone()).or_default();
+            stats.calls += 1;
+        }
+    }
 }
 
 pub struct Interpreter {
@@ -162,6 +194,7 @@ impl Interpreter {
             if self.stack.len() > stats.max_call_stack_depth {
                 stats.max_call_stack_depth = self.stack.len()
             }
+            stats.track_call(procedure.name())
         }
         let ctx = ProcedureContext {
             interpreter: self,
@@ -275,6 +308,9 @@ impl Interpreter {
             match result {
                 ProcedureSuccess::Value(value) => return Ok(value),
                 ProcedureSuccess::TailCall(tail_call_context) => {
+                    if let Some(ref mut stats) = &mut self.tracked_stats {
+                        stats.track_tail_call(tail_call_context.bound_procedure.name())
+                    }
                     result = tail_call_context.bound_procedure.call(self)?;
                 }
             }

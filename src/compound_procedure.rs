@@ -95,6 +95,10 @@ pub struct BoundProcedure {
 }
 
 impl BoundProcedure {
+    pub fn name(&self) -> Option<&InternedString> {
+        self.procedure.name.as_ref()
+    }
+
     pub fn call(self, interpreter: &mut Interpreter) -> ProcedureResult {
         interpreter.environment.push(
             self.procedure.captured_lexical_scope.clone(),
