@@ -11,11 +11,14 @@ use crate::{
 };
 
 mod eq;
+mod library;
 mod logic;
 mod math;
 mod non_standard;
 mod ord;
 mod util;
+
+pub use library::add_library_source;
 
 pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {
     for (name, builtin) in get_builtins() {

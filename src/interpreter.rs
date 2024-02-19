@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Deref, rc::Rc, sync::mpsc::Receiver};
 
 use crate::{
-    builtins,
+    builtins::{self, add_library_source},
     compound_procedure::{BoundProcedure, CompoundProcedure},
     environment::Environment,
     gc::Visitor,
@@ -362,10 +362,7 @@ impl Interpreter {
 
     pub fn evaluate(&mut self, source_id: SourceId) -> Result<SourceValue, RuntimeError> {
         if !self.has_evaluated_library {
-            let library_contents = include_str!("../library/library.sch");
-            let library_source_id = self
-                .source_mapper
-                .add("library.sch".to_string(), library_contents.to_string());
+            let library_source_id = add_library_source(&mut self.source_mapper);
             self.evaluate_source_id(library_source_id)?;
             self.has_evaluated_library = true;
         }
