@@ -14,6 +14,7 @@ pub fn get_builtins() -> super::Builtins {
         ("stats", stats),
         ("gc", gc),
         ("test-eq", test_eq),
+        ("assert", assert),
         ("print-and-eval", print_and_eval),
         ("track-call-stats", track_call_stats),
     ]
@@ -39,6 +40,18 @@ fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
         .printer
         .println(format!("{} = {}", operand_repr, value));
     Ok(value.into())
+}
+
+fn assert(ctx: ProcedureContext) -> ProcedureResult {
+    if ctx.operands.len() != 1 {
+        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
+    }
+    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?.0;
+    if !value.as_bool() {
+        Err(RuntimeErrorType::AssertionFailure.source_mapped(ctx.combination.1))
+    } else {
+        Ok(Value::Undefined.into())
+    }
 }
 
 fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
@@ -85,4 +98,15 @@ fn track_call_stats(ctx: ProcedureContext) -> ProcedureResult {
         println!("{stats:#?}");
     }
     Ok(value.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_util::test_eval_success;
+
+    #[test]
+    fn assert_does_nothing_when_operand_is_true() {
+        test_eval_success("(assert #t)", "");
+        test_eval_success("(assert (+ 0 0))", "");
+    }
 }

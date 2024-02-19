@@ -31,7 +31,7 @@ pub enum RuntimeErrorType {
     StackOverflow,
     KeyboardInterrupt,
     DivisionByZero,
-    // Unimplemented(&'static str),
+    AssertionFailure,
 }
 
 pub type RuntimeError = SourceMapped<RuntimeErrorType>;
