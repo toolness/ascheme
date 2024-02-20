@@ -1,5 +1,7 @@
 use std::backtrace::Backtrace;
 
+use colored::Colorize;
+
 use crate::{
     interpreter::{ProcedureContext, ProcedureResult, RuntimeErrorType},
     source_mapped::SourceMappable,
@@ -62,9 +64,9 @@ fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
     let operand_1_repr = ctx.operands[1].to_string();
 
     let msg = if is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])? {
-        "OK"
+        "OK".green()
     } else {
-        "ERR"
+        "ERR".red()
     };
 
     ctx.interpreter
