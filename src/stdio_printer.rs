@@ -20,6 +20,11 @@ impl StdioPrinter {
         }
     }
 
+    #[cfg(test)]
+    pub fn take_buffered_output(&self) -> String {
+        self.line_buffer.take()
+    }
+
     fn flush_line_buffer(&self) {
         print!("{}", self.line_buffer.borrow());
         self.line_buffer.borrow_mut().clear();
@@ -37,6 +42,8 @@ impl StdioPrinter {
     pub fn print<T: AsRef<str>>(&self, value: T) {
         for ch in value.as_ref().chars() {
             self.line_buffer.borrow_mut().push(ch);
+
+            #[cfg(not(test))]
             if ch == '\n' || self.line_buffer.borrow().len() == MAX_BUFFER_SIZE {
                 self.flush_line_buffer();
             }

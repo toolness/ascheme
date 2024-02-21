@@ -14,6 +14,7 @@ pub fn get_builtins() -> super::Builtins {
         ("rust-backtrace", rust_backtrace),
         ("stats", stats),
         ("gc", gc),
+        ("gc-verbose", gc_verbose),
         ("test-eq", test_eq),
         ("assert", assert),
         ("print-and-eval", print_and_eval),
@@ -27,6 +28,11 @@ fn stats(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn gc(ctx: ProcedureContext) -> ProcedureResult {
+    let objs_found_in_cycles = ctx.interpreter.gc(false);
+    Ok((objs_found_in_cycles as f64).into())
+}
+
+fn gc_verbose(ctx: ProcedureContext) -> ProcedureResult {
     let objs_found_in_cycles = ctx.interpreter.gc(true);
     Ok((objs_found_in_cycles as f64).into())
 }

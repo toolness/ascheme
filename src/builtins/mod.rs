@@ -335,4 +335,11 @@ mod tests {
             "4",
         );
     }
+
+    #[test]
+    fn display_works() {
+        test_eval_success(r#"(display "boop")"#, "boop");
+        test_eval_success(r#"(display '("boop"))"#, "(boop)");
+        test_eval_success(r#"(display 1)"#, "1");
+    }
 }

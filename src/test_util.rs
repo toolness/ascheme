@@ -15,7 +15,9 @@ pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
                     Value::Undefined => "".to_string(),
                     _ => value.to_string(),
                 };
-                assert_eq!(value, expected_value, "Evaluating code #{i} '{code}'");
+                let output = interpreter.printer.take_buffered_output();
+                let final_value = format!("{output}{value}");
+                assert_eq!(final_value, expected_value, "Evaluating code #{i} '{code}'");
             }
             Err(err) => {
                 panic!("Evaluating code #{i} '{code}' raised error {err:?}");

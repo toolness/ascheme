@@ -15,4 +15,9 @@ mod tests {
         test_eval_success("(abs -1)", "1");
         test_eval_success("(abs 0)", "0");
     }
+
+    #[test]
+    fn newline_works() {
+        test_eval_success("(newline)", "\n");
+    }
 }
