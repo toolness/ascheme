@@ -100,6 +100,8 @@ fn cond(ctx: ProcedureContext) -> ProcedureResult {
     ctx.undefined()
 }
 
+// TODO: According to R5RS section 5.2, definitions are only allowed at the top level
+// of a program file, and at the beginning of a body. Currently we support it anywhere.
 fn define(ctx: ProcedureContext) -> ProcedureResult {
     match ctx.operands.get(0) {
         Some(SourceMapped(Value::Symbol(name), ..)) => {
