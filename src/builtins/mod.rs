@@ -257,6 +257,7 @@ mod tests {
     fn variable_definitions_work() {
         test_eval_success("(define x 3) x", "3");
         test_eval_success("(define x 3) (define y (+ x 1)) (+ x y)", "7");
+        test_eval_success("(define x) x", "");
     }
 
     #[test]
@@ -272,6 +273,11 @@ mod tests {
     }
 
     #[test]
+    fn define_errors_on_no_body() {
+        test_eval_err("(define (a))", RuntimeErrorType::MalformedSpecialForm);
+    }
+
+    #[test]
     fn lambda_definitions_work() {
         test_eval_success("(define x (lambda () 3))", "");
         test_eval_success("(define x (lambda () 3)) (x)", "3");
@@ -281,6 +287,11 @@ mod tests {
     #[test]
     fn lambda_errors_on_duplicate_parameters() {
         test_eval_err("(lambda (a a) 3)", RuntimeErrorType::DuplicateParameter);
+    }
+
+    #[test]
+    fn lambda_errors_on_no_body() {
+        test_eval_err("(lambda (a))", RuntimeErrorType::MalformedSpecialForm);
     }
 
     #[test]
