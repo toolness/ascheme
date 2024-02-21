@@ -167,9 +167,7 @@ fn quote(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue), RuntimeError> {
-    if ctx.operands.len() != 2 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
+    ctx.ensure_operands_len(2)?;
     let pair = ctx
         .interpreter
         .eval_expression(&ctx.operands[0])?
@@ -179,9 +177,7 @@ fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue)
 }
 
 fn set(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 2 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
+    ctx.ensure_operands_len(2)?;
     let identifier = ctx.operands[0].expect_identifier()?;
     let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
     if let Err(err) = ctx.interpreter.environment.change(&identifier, value) {
@@ -204,9 +200,7 @@ fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn display(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 1 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
+    ctx.ensure_operands_len(1)?;
     let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
     ctx.interpreter.printer.print(format!("{:#}", value));
     Ok(Value::Undefined.into())

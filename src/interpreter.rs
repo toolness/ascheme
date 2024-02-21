@@ -54,6 +54,16 @@ pub struct ProcedureContext<'a> {
     pub operands: &'a [SourceValue],
 }
 
+impl<'a> ProcedureContext<'a> {
+    pub fn ensure_operands_len(&self, len: usize) -> Result<(), RuntimeError> {
+        if self.operands.len() != len {
+            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.combination.1))
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Procedure {
     Builtin(ProcedureFn, InternedString),
