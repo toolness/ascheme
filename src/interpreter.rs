@@ -62,6 +62,11 @@ impl<'a> ProcedureContext<'a> {
             Ok(())
         }
     }
+
+    pub fn eval_unary(&mut self) -> Result<SourceValue, RuntimeError> {
+        self.ensure_operands_len(1)?;
+        Ok(self.interpreter.eval_expression(&self.operands[0])?)
+    }
 }
 
 #[derive(Debug, Clone)]

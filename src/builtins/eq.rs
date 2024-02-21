@@ -1,8 +1,5 @@
 use crate::{
-    interpreter::{
-        Interpreter, Procedure, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType,
-    },
-    source_mapped::SourceMappable,
+    interpreter::{Interpreter, Procedure, ProcedureContext, ProcedureResult, RuntimeError},
     value::{SourceValue, Value},
 };
 
@@ -53,10 +50,7 @@ pub fn is_eq(
 }
 
 fn eq(mut ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() < 2 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
-
+    ctx.ensure_operands_len(2)?;
     Ok(is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])?.into())
 }
 

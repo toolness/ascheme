@@ -1,7 +1,4 @@
-use crate::{
-    interpreter::{ProcedureContext, ProcedureResult, RuntimeErrorType},
-    source_mapped::SourceMappable,
-};
+use crate::interpreter::{ProcedureContext, ProcedureResult};
 
 pub fn get_builtins() -> super::Builtins {
     vec![("and", and), ("or", or), ("not", not)]
@@ -35,11 +32,8 @@ fn or(ctx: ProcedureContext) -> ProcedureResult {
     Ok(latest.into())
 }
 
-fn not(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 1 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
-    let result = ctx.interpreter.eval_expression(&ctx.operands[0])?.0;
+fn not(mut ctx: ProcedureContext) -> ProcedureResult {
+    let result = ctx.eval_unary()?.0;
     Ok((!result.as_bool()).into())
 }
 

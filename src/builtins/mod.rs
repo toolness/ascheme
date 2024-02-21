@@ -199,9 +199,8 @@ fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(Value::Undefined.into())
 }
 
-fn display(ctx: ProcedureContext) -> ProcedureResult {
-    ctx.ensure_operands_len(1)?;
-    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+fn display(mut ctx: ProcedureContext) -> ProcedureResult {
+    let value = ctx.eval_unary()?;
     ctx.interpreter.printer.print(format!("{:#}", value));
     Ok(Value::Undefined.into())
 }

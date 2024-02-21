@@ -33,9 +33,7 @@ fn gc(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 1 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
+    ctx.ensure_operands_len(1)?;
     let operand_repr = ctx.operands[0].to_string();
     let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
     ctx.interpreter
@@ -44,12 +42,9 @@ fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
     Ok(value.into())
 }
 
-fn assert(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 1 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
-    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?.0;
-    if !value.as_bool() {
+fn assert(mut ctx: ProcedureContext) -> ProcedureResult {
+    let value = ctx.eval_unary()?;
+    if !value.0.as_bool() {
         Err(RuntimeErrorType::AssertionFailure.source_mapped(ctx.combination.1))
     } else {
         Ok(Value::Undefined.into())
@@ -57,9 +52,7 @@ fn assert(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 2 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
+    ctx.ensure_operands_len(2)?;
     let operand_0_repr = ctx.operands[0].to_string();
     let operand_1_repr = ctx.operands[1].to_string();
 
@@ -90,12 +83,9 @@ fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
         .eval_expressions_in_tail_context(ctx.operands)
 }
 
-fn track_call_stats(ctx: ProcedureContext) -> ProcedureResult {
-    if ctx.operands.len() != 1 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-    }
+fn track_call_stats(mut ctx: ProcedureContext) -> ProcedureResult {
     ctx.interpreter.start_tracking_stats();
-    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    let value = ctx.eval_unary()?;
     if let Some(stats) = ctx.interpreter.take_tracked_stats() {
         println!("{stats:#?}");
     }
