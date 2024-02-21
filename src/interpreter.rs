@@ -67,6 +67,10 @@ impl<'a> ProcedureContext<'a> {
         self.ensure_operands_len(1)?;
         Ok(self.interpreter.eval_expression(&self.operands[0])?)
     }
+
+    pub fn undefined(&self) -> ProcedureResult {
+        Ok(Value::Undefined.source_mapped(self.combination.1).into())
+    }
 }
 
 #[derive(Debug, Clone)]

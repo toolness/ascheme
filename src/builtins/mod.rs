@@ -69,7 +69,7 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
             ctx.interpreter
                 .eval_expression_in_tail_context(alternate_expr)
         } else {
-            Ok(Value::Undefined.into())
+            ctx.undefined()
         }
     }
 }
@@ -97,7 +97,7 @@ fn cond(ctx: ProcedureContext) -> ProcedureResult {
         }
     }
 
-    Ok(Value::Undefined.into())
+    ctx.undefined()
 }
 
 fn define(ctx: ProcedureContext) -> ProcedureResult {
@@ -110,7 +110,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
                 }
             }
             ctx.interpreter.environment.define(name.clone(), value);
-            Ok(Value::Undefined.into())
+            ctx.undefined()
         }
         Some(SourceMapped(Value::Pair(pair), range)) => {
             let Some(expressions) = pair.try_as_rc_list() else {
@@ -132,7 +132,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
                 name,
                 Value::Procedure(Procedure::Compound(proc)).source_mapped(*range),
             );
-            Ok(Value::Undefined.into())
+            ctx.undefined()
         }
         _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
     }
@@ -183,26 +183,26 @@ fn set(ctx: ProcedureContext) -> ProcedureResult {
     if let Err(err) = ctx.interpreter.environment.change(&identifier, value) {
         Err(err.source_mapped(ctx.operands[0].1))
     } else {
-        Ok(Value::Undefined.into())
+        ctx.undefined()
     }
 }
 
 fn set_car(mut ctx: ProcedureContext) -> ProcedureResult {
     let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
     pair.set_car(value);
-    Ok(Value::Undefined.into())
+    ctx.undefined()
 }
 
 fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
     let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
     pair.set_cdr(value);
-    Ok(Value::Undefined.into())
+    ctx.undefined()
 }
 
 fn display(mut ctx: ProcedureContext) -> ProcedureResult {
     let value = ctx.eval_unary()?;
     ctx.interpreter.printer.print(format!("{:#}", value));
-    Ok(Value::Undefined.into())
+    ctx.undefined()
 }
 
 #[cfg(test)]

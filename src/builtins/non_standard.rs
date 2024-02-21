@@ -5,7 +5,6 @@ use colored::Colorize;
 use crate::{
     interpreter::{ProcedureContext, ProcedureResult, RuntimeErrorType},
     source_mapped::SourceMappable,
-    value::Value,
 };
 
 use super::eq::is_eq;
@@ -24,7 +23,7 @@ pub fn get_builtins() -> super::Builtins {
 
 fn stats(ctx: ProcedureContext) -> ProcedureResult {
     ctx.interpreter.print_stats();
-    Ok(Value::Undefined.into())
+    ctx.undefined()
 }
 
 fn gc(ctx: ProcedureContext) -> ProcedureResult {
@@ -47,7 +46,7 @@ fn assert(mut ctx: ProcedureContext) -> ProcedureResult {
     if !value.0.as_bool() {
         Err(RuntimeErrorType::AssertionFailure.source_mapped(ctx.combination.1))
     } else {
-        Ok(Value::Undefined.into())
+        ctx.undefined()
     }
 }
 
@@ -66,7 +65,7 @@ fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
         .printer
         .println(format!("{msg} {operand_0_repr} = {operand_1_repr}"));
 
-    Ok(Value::Undefined.into())
+    ctx.undefined()
 }
 
 fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
