@@ -59,8 +59,9 @@ There's a lot of things that haven't been implemented, some of which include:
 - Characters
 - Vectors
 - Ports
+- Macros
 - `call-with-current-continuation` (call/cc)
-- `let`, `let*`, `letrec*`
+- `let`, `let*`, `letrec`
 
 ## Other notes, learnings, etc.
 
