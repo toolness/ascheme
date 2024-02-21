@@ -49,6 +49,12 @@ impl<T: Into<SourceValue>> From<T> for ProcedureSuccess {
     }
 }
 
+/// Encapsulates all the details of a procedure or special
+/// form invocation required for evaluation.
+///
+/// Note that the name is a bit of a misnomer: it doesn't
+/// actually evaluate its operands, so it can be used
+/// to implement special forms as well as procedures.
 pub struct ProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
     pub combination: SourceMapped<&'a Rc<Vec<SourceValue>>>,
