@@ -180,9 +180,6 @@ impl Traverser for Pair {
 pub struct PairManager(ObjectTracker<RefCell<PairInner>>);
 
 impl PairManager {
-    // TODO: Implement cyclic garbage collection, otherwise we'll have leaks when
-    // cycles are created.
-
     #[cfg(test)]
     pub fn pair(&mut self, car: SourceValue, cdr: SourceValue) -> Pair {
         self.make(PairInner { car, cdr })
