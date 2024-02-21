@@ -207,7 +207,10 @@ fn display(mut ctx: ProcedureContext) -> ProcedureResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_util::{test_eval_success, test_eval_successes};
+    use crate::{
+        interpreter::RuntimeErrorType,
+        test_util::{test_eval_err, test_eval_success, test_eval_successes},
+    };
 
     #[test]
     fn quote_works() {
@@ -262,10 +265,20 @@ mod tests {
     }
 
     #[test]
+    fn define_errors_on_duplicate_parameters() {
+        test_eval_err("(define (foo x x) 3)", RuntimeErrorType::DuplicateParameter);
+    }
+
+    #[test]
     fn lambda_definitions_work() {
         test_eval_success("(define x (lambda () 3))", "");
         test_eval_success("(define x (lambda () 3)) (x)", "3");
         test_eval_success("(define add-three (lambda (n) (+ 3 n))) (add-three 1)", "4");
+    }
+
+    #[test]
+    fn lambda_errors_on_duplicate_parameters() {
+        test_eval_err("(lambda (a a) 3)", RuntimeErrorType::DuplicateParameter);
     }
 
     #[test]

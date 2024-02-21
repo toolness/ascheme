@@ -140,7 +140,11 @@ fn parse_signature(
 ) -> Result<Vec<InternedString>, RuntimeError> {
     let mut arg_bindings: Vec<InternedString> = vec![];
     for arg_name in &signature.0[first_arg_index..] {
-        arg_bindings.push(arg_name.expect_identifier()?);
+        let id = arg_name.expect_identifier()?;
+        if arg_bindings.contains(&id) {
+            return Err(RuntimeErrorType::DuplicateParameter.source_mapped(arg_name.1));
+        }
+        arg_bindings.push(id);
     }
     Ok(arg_bindings)
 }
