@@ -17,6 +17,7 @@ mod math;
 mod non_standard;
 mod ord;
 mod util;
+mod _let;
 
 pub use library::add_library_source;
 
@@ -52,6 +53,7 @@ fn get_builtins() -> Builtins {
     builtins.extend(ord::get_builtins());
     builtins.extend(logic::get_builtins());
     builtins.extend(non_standard::get_builtins());
+    builtins.extend(_let::get_builtins());
     builtins
 }
 
