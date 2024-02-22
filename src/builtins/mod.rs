@@ -265,6 +265,10 @@ mod tests {
         test_eval_success("(define (x) 3)", "");
         test_eval_success("(define (x) 3) (x)", "3");
         test_eval_success("(define (add-three n) (+ 3 n)) (add-three 1)", "4");
+        test_eval_success(
+            "(define x 9) (define (boop x y) (+ x y)) (boop 1 (+ x 1))",
+            "11",
+        );
     }
 
     #[test]
@@ -282,6 +286,10 @@ mod tests {
         test_eval_success("(define x (lambda () 3))", "");
         test_eval_success("(define x (lambda () 3)) (x)", "3");
         test_eval_success("(define add-three (lambda (n) (+ 3 n))) (add-three 1)", "4");
+        test_eval_success(
+            "(define x 9) (define boop (lambda (x y) (+ x y))) (boop 1 (+ x 1))",
+            "11",
+        );
     }
 
     #[test]
