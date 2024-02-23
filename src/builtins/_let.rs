@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    interpreter::{ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
+    interpreter::{
+        ProcedureContext, ProcedureResult, ProcedureSuccess, RuntimeError, RuntimeErrorType,
+    },
     source_mapped::SourceMappable,
     string_interner::InternedString,
     value::SourceValue,
@@ -48,33 +50,28 @@ fn parse_bindings(ctx: &mut ProcedureContext) -> Result<Vec<LetBinding>, Runtime
     Ok(result)
 }
 
-fn validate_body(ctx: &ProcedureContext) -> Result<(), RuntimeError> {
+fn eval_body(ctx: &mut ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     let body = &ctx.operands[1..];
     if body.is_empty() {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
     }
-    Ok(())
+    ctx.interpreter.eval_expressions_in_tail_context(body)
 }
 
 fn _let(mut ctx: ProcedureContext) -> ProcedureResult {
     let bindings = parse_bindings(&mut ctx)?;
-    validate_body(&ctx)?;
-    let body = &ctx.operands[1..];
-
     let mut binding_map = HashMap::new();
-
     for binding in bindings.into_iter() {
         let value = ctx.interpreter.eval_expression(&binding.init)?;
         binding_map.insert(binding.variable, value);
     }
-
     let scope = ctx.interpreter.environment.capture_lexical_scope();
     ctx.interpreter.environment.push(scope, ctx.combination.1);
     for (variable, value) in binding_map {
         ctx.interpreter.environment.define(variable, value);
     }
 
-    let result = ctx.interpreter.eval_expressions_in_tail_context(body)?;
+    let result = eval_body(&mut ctx)?;
 
     // Note that the environment won't have been popped if an error occured above--this is
     // so we can examine it afterwards, if needed. It's up to the caller to clean things
