@@ -20,4 +20,11 @@ mod tests {
     fn newline_works() {
         test_eval_success("(newline)", "\n");
     }
+
+    #[test]
+    fn zero_works() {
+        test_eval_success("(zero? 0)", "#t");
+        test_eval_success("(zero? 0.0)", "#t");
+        test_eval_success("(zero? 1)", "#f");
+    }
 }
