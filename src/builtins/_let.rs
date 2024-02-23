@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn get_builtins() -> super::Builtins {
-    vec![("let", _let)]
+    vec![("let", _let), ("letrec", letrec)]
 }
 
 struct LetBinding {
@@ -81,6 +81,25 @@ fn _let(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result)
 }
 
+fn letrec(mut ctx: ProcedureContext) -> ProcedureResult {
+    let bindings = parse_bindings(&mut ctx)?;
+    let scope = ctx.interpreter.environment.capture_lexical_scope();
+    ctx.interpreter.environment.push(scope, ctx.combination.1);
+    for binding in bindings.into_iter() {
+        let value = ctx.interpreter.eval_expression(&binding.init)?;
+        ctx.interpreter.environment.define(binding.variable, value);
+    }
+
+    let result = eval_body(&mut ctx)?;
+
+    // Note that the environment won't have been popped if an error occured above--this is
+    // so we can examine it afterwards, if needed. It's up to the caller to clean things
+    // up after an error.
+    ctx.interpreter.environment.pop();
+
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -122,6 +141,43 @@ mod tests {
         test_eval_err("(let ((1 1)) x)", RuntimeErrorType::ExpectedIdentifier);
         test_eval_err(
             "(let ((x 1) (x 2)) x)",
+            RuntimeErrorType::DuplicateVariableInBindings,
+        );
+    }
+
+    #[test]
+    fn letrec_works() {
+        // From R5RS section 4.2.2.
+        test_eval_success(
+            "
+        (letrec ((even?
+                  (lambda (n)
+                    (if (zero? n)
+                        #t
+                        (odd? (- n 1)))))
+                 (odd?
+                  (lambda (n)
+                    (if (zero? n)
+                        #f
+                        (even? (- n 1))))))
+          (even? 88))
+        ",
+            "#t",
+        )
+    }
+
+    #[test]
+    fn letrec_errors_on_bad_syntax() {
+        test_eval_err("(letrec)", RuntimeErrorType::MalformedSpecialForm);
+        test_eval_err("(letrec (x 1) x)", RuntimeErrorType::MalformedBindingList);
+        test_eval_err(
+            "(letrec ((x 1 2)) x)",
+            RuntimeErrorType::MalformedBindingList,
+        );
+        test_eval_err("(letrec ((x 1)))", RuntimeErrorType::MalformedSpecialForm);
+        test_eval_err("(letrec ((1 1)) x)", RuntimeErrorType::ExpectedIdentifier);
+        test_eval_err(
+            "(letrec ((x 1) (x 2)) x)",
             RuntimeErrorType::DuplicateVariableInBindings,
         );
     }

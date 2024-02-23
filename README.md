@@ -39,7 +39,7 @@ Note that this list isn't exhaustive.
 - Garbage collection (with caveats, see below)
 - Lexical scoping
 - `lambda`
-- `let`
+- `let`, `letrec`
 - Compound procedures
 - Pairs
 - Booleans
@@ -62,7 +62,7 @@ There's a lot of things that haven't been implemented, some of which include:
 - Ports
 - Macros
 - `call-with-current-continuation` (call/cc)
-- `let*`, `letrec`
+- `let*`
 
 ## Other notes, learnings, etc.
 
