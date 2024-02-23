@@ -1,16 +1,19 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    interpreter::{ProcedureContext, ProcedureResult, RuntimeErrorType},
+    interpreter::{ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
     source_mapped::{SourceMappable, SourceMapped},
+    value::SourceValue,
 };
 
 pub fn get_builtins() -> super::Builtins {
     vec![("let", _let)]
 }
 
-fn _let(ctx: ProcedureContext) -> ProcedureResult {
-    let Some(SourceMapped(bindings, _range)) = ctx
+fn parse_bindings(
+    ctx: &mut ProcedureContext,
+) -> Result<SourceMapped<Rc<Vec<SourceValue>>>, RuntimeError> {
+    let Some(bindings) = ctx
         .operands
         .get(0)
         .map(|value| value.try_into_list())
@@ -18,14 +21,26 @@ fn _let(ctx: ProcedureContext) -> ProcedureResult {
     else {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
     };
+
+    Ok(bindings)
+}
+
+fn validate_body(ctx: &ProcedureContext) -> Result<(), RuntimeError> {
     let body = &ctx.operands[1..];
     if body.is_empty() {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
     }
+    Ok(())
+}
+
+fn _let(mut ctx: ProcedureContext) -> ProcedureResult {
+    let bindings = parse_bindings(&mut ctx)?;
+    validate_body(&ctx)?;
+    let body = &ctx.operands[1..];
 
     let mut binding_map = HashMap::new();
 
-    for binding in bindings.iter() {
+    for binding in bindings.0.iter() {
         let Some(binding) = binding.try_into_list() else {
             return Err(RuntimeErrorType::MalformedBindingList.source_mapped(binding.1));
         };
