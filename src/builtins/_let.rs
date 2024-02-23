@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn get_builtins() -> super::Builtins {
-    vec![("let", _let), ("letrec", letrec)]
+    vec![("let", _let), ("let*", let_star), ("letrec", letrec)]
 }
 
 struct LetBinding {
@@ -18,7 +18,10 @@ struct LetBinding {
     init: SourceValue,
 }
 
-fn parse_bindings(ctx: &mut ProcedureContext) -> Result<Vec<LetBinding>, RuntimeError> {
+fn parse_bindings(
+    ctx: &mut ProcedureContext,
+    allow_duplicates: bool,
+) -> Result<Vec<LetBinding>, RuntimeError> {
     let Some(bindings) = ctx
         .operands
         .get(0)
@@ -40,7 +43,7 @@ fn parse_bindings(ctx: &mut ProcedureContext) -> Result<Vec<LetBinding>, Runtime
         }
         let variable = binding.0[0].expect_identifier()?;
         let init = binding.0[1].clone();
-        if !variables.insert(variable.clone()) {
+        if !allow_duplicates && !variables.insert(variable.clone()) {
             return Err(RuntimeErrorType::DuplicateVariableInBindings.source_mapped(binding.0[0].1));
         }
 
@@ -59,7 +62,7 @@ fn eval_body(ctx: &mut ProcedureContext) -> Result<ProcedureSuccess, RuntimeErro
 }
 
 fn _let(mut ctx: ProcedureContext) -> ProcedureResult {
-    let bindings = parse_bindings(&mut ctx)?;
+    let bindings = parse_bindings(&mut ctx, false)?;
     let mut binding_map = HashMap::new();
     for binding in bindings.into_iter() {
         let value = ctx.interpreter.eval_expression(&binding.init)?;
@@ -81,8 +84,30 @@ fn _let(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result)
 }
 
+fn let_star(mut ctx: ProcedureContext) -> ProcedureResult {
+    let bindings = parse_bindings(&mut ctx, true)?;
+    let num_bindings = bindings.len();
+    for binding in bindings.into_iter() {
+        let value = ctx.interpreter.eval_expression(&binding.init)?;
+        let scope = ctx.interpreter.environment.capture_lexical_scope();
+        ctx.interpreter.environment.push(scope, binding.init.1);
+        ctx.interpreter.environment.define(binding.variable, value);
+    }
+
+    let result = eval_body(&mut ctx)?;
+
+    // Note that the environment won't have been popped if an error occured above--this is
+    // so we can examine it afterwards, if needed. It's up to the caller to clean things
+    // up after an error.
+    for _ in 0..num_bindings {
+        ctx.interpreter.environment.pop();
+    }
+
+    Ok(result)
+}
+
 fn letrec(mut ctx: ProcedureContext) -> ProcedureResult {
-    let bindings = parse_bindings(&mut ctx)?;
+    let bindings = parse_bindings(&mut ctx, false)?;
     let scope = ctx.interpreter.environment.capture_lexical_scope();
     ctx.interpreter.environment.push(scope, ctx.combination.1);
     for binding in bindings.into_iter() {
@@ -143,6 +168,32 @@ mod tests {
             "(let ((x 1) (x 2)) x)",
             RuntimeErrorType::DuplicateVariableInBindings,
         );
+    }
+
+    #[test]
+    fn let_star_works() {
+        // Note that duplicates are OK!
+        test_eval_success("(let* ((x 1) (x 2)) x)", "2");
+
+        // From R5RS section 4.2.2.
+        test_eval_success(
+            "
+            (let ((x 2) (y 3))
+              (let* ((x 7)
+                     (z (+ x y)))
+                (* z x)))
+            ",
+            "70",
+        );
+    }
+
+    #[test]
+    fn let_star_errors_on_bad_syntax() {
+        test_eval_err("(let*)", RuntimeErrorType::MalformedSpecialForm);
+        test_eval_err("(let* (x 1) x)", RuntimeErrorType::MalformedBindingList);
+        test_eval_err("(let* ((x 1 2)) x)", RuntimeErrorType::MalformedBindingList);
+        test_eval_err("(let* ((x 1)))", RuntimeErrorType::MalformedSpecialForm);
+        test_eval_err("(let* ((1 1)) x)", RuntimeErrorType::ExpectedIdentifier);
     }
 
     #[test]
