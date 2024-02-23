@@ -1,8 +1,9 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     interpreter::{ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
-    source_mapped::{SourceMappable, SourceMapped},
+    source_mapped::SourceMappable,
+    string_interner::InternedString,
     value::SourceValue,
 };
 
@@ -10,9 +11,12 @@ pub fn get_builtins() -> super::Builtins {
     vec![("let", _let)]
 }
 
-fn parse_bindings(
-    ctx: &mut ProcedureContext,
-) -> Result<SourceMapped<Rc<Vec<SourceValue>>>, RuntimeError> {
+struct LetBinding {
+    variable: InternedString,
+    init: SourceValue,
+}
+
+fn parse_bindings(ctx: &mut ProcedureContext) -> Result<Vec<LetBinding>, RuntimeError> {
     let Some(bindings) = ctx
         .operands
         .get(0)
@@ -22,7 +26,26 @@ fn parse_bindings(
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
     };
 
-    Ok(bindings)
+    let mut result = Vec::with_capacity(bindings.0.len());
+    let mut variables: HashSet<InternedString> = HashSet::with_capacity(bindings.0.len());
+
+    for binding in bindings.0.iter() {
+        let Some(binding) = binding.try_into_list() else {
+            return Err(RuntimeErrorType::MalformedBindingList.source_mapped(binding.1));
+        };
+        if binding.0.len() != 2 {
+            return Err(RuntimeErrorType::MalformedBindingList.source_mapped(binding.1));
+        }
+        let variable = binding.0[0].expect_identifier()?;
+        let init = binding.0[1].clone();
+        if !variables.insert(variable.clone()) {
+            return Err(RuntimeErrorType::DuplicateVariableInBindings.source_mapped(binding.0[0].1));
+        }
+
+        result.push(LetBinding { variable, init })
+    }
+
+    Ok(result)
 }
 
 fn validate_body(ctx: &ProcedureContext) -> Result<(), RuntimeError> {
@@ -40,18 +63,9 @@ fn _let(mut ctx: ProcedureContext) -> ProcedureResult {
 
     let mut binding_map = HashMap::new();
 
-    for binding in bindings.0.iter() {
-        let Some(binding) = binding.try_into_list() else {
-            return Err(RuntimeErrorType::MalformedBindingList.source_mapped(binding.1));
-        };
-        if binding.0.len() != 2 {
-            return Err(RuntimeErrorType::MalformedBindingList.source_mapped(binding.1));
-        }
-        let variable = binding.0[0].expect_identifier()?;
-        let value = ctx.interpreter.eval_expression(&binding.0[1])?;
-        if binding_map.insert(variable, value).is_some() {
-            return Err(RuntimeErrorType::DuplicateVariableInBindings.source_mapped(binding.0[0].1));
-        }
+    for binding in bindings.into_iter() {
+        let value = ctx.interpreter.eval_expression(&binding.init)?;
+        binding_map.insert(binding.variable, value);
     }
 
     let scope = ctx.interpreter.environment.capture_lexical_scope();
