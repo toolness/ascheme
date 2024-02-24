@@ -1,15 +1,16 @@
-use std::rc::Rc;
+use std::{collections::HashSet, rc::Rc};
 
 use crate::{
-    environment::CapturedLexicalScope,
+    environment::{CapturedLexicalScope, Environment},
     gc::{Traverser, Visitor},
     interpreter::{Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
     pair::PairVisitedSet,
-    source_mapped::{SourceMappable, SourceMapped},
+    source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
     value::{SourceValue, Value},
 };
 
+#[derive(Debug)]
 pub enum Signature {
     FixedArgs(Vec<SourceMapped<InternedString>>),
     MinArgs(
@@ -22,19 +23,30 @@ pub enum Signature {
 impl Signature {
     pub fn parse(value: SourceValue) -> Result<Self, RuntimeError> {
         match value.0 {
+            Value::EmptyList => Ok(Signature::FixedArgs(vec![])),
             Value::Symbol(name) => Ok(Signature::AnyArgs(name.source_mapped(value.1))),
             Value::Pair(mut pair) => {
                 let mut visited = PairVisitedSet::default();
                 let mut args: Vec<SourceMapped<InternedString>> = vec![];
+                let mut args_set: HashSet<InternedString> = HashSet::default();
                 loop {
                     visited.add(&pair);
                     let car = pair.car();
-                    args.push(car.expect_identifier()?.source_mapped(car.1));
+                    let name = car.expect_identifier()?;
+                    if !args_set.insert(name.clone()) {
+                        return Err(RuntimeErrorType::DuplicateParameter.source_mapped(car.1));
+                    }
+                    args.push(name.source_mapped(car.1));
                     let cdr = pair.cdr();
                     match cdr.0 {
                         Value::EmptyList => return Ok(Signature::FixedArgs(args)),
                         Value::Symbol(name) => {
-                            return Ok(Signature::MinArgs(args, name.source_mapped(cdr.1)))
+                            if args_set.contains(&name) {
+                                return Err(
+                                    RuntimeErrorType::DuplicateParameter.source_mapped(cdr.1)
+                                );
+                            }
+                            return Ok(Signature::MinArgs(args, name.source_mapped(cdr.1)));
                         }
                         Value::Pair(next) => {
                             if visited.contains(&next) {
@@ -53,6 +65,31 @@ impl Signature {
             _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(value.1)),
         }
     }
+
+    fn check_arity(&self, args_len: usize, range: SourceRange) -> Result<(), RuntimeError> {
+        let is_valid = match self {
+            Signature::FixedArgs(args) => args_len == args.len(),
+            Signature::MinArgs(args, _) => args_len >= args.len(),
+            Signature::AnyArgs(_) => true,
+        };
+        if is_valid {
+            Ok(())
+        } else {
+            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(range))
+        }
+    }
+
+    fn bind_args(&self, operands: Vec<SourceValue>, environment: &mut Environment) {
+        match self {
+            Signature::FixedArgs(arg_names) => {
+                for (name, value) in arg_names.iter().zip(operands) {
+                    environment.define(name.0.clone(), value);
+                }
+            }
+            Signature::MinArgs(_, _) => todo!("IMPLEMENT MIN ARGS BINDING"),
+            Signature::AnyArgs(_) => todo!("IMPLEMENT ANY ARGS BINDING"),
+        }
+    }
 }
 
 type CombinationBody = Vec<SourceValue>;
@@ -61,9 +98,7 @@ type CombinationBody = Vec<SourceValue>;
 pub struct CompoundProcedure {
     pub name: Option<InternedString>,
     id: u32,
-    // This isn't technically needed, since the signature is the second element of the definition.
-    signature: SourceMapped<Rc<CombinationBody>>,
-    signature_first_arg_index: usize,
+    signature: Rc<Signature>,
     definition: SourceMapped<Rc<CombinationBody>>,
     captured_lexical_scope: CapturedLexicalScope,
 }
@@ -71,18 +106,15 @@ pub struct CompoundProcedure {
 impl CompoundProcedure {
     pub fn create(
         id: u32,
-        signature: SourceMapped<Rc<CombinationBody>>,
-        signature_first_arg_index: usize,
+        signature: Signature,
         definition: SourceMapped<Rc<CombinationBody>>,
         captured_lexical_scope: CapturedLexicalScope,
     ) -> Result<Self, RuntimeError> {
-        parse_signature(&signature, signature_first_arg_index)?;
         get_body(&definition)?;
         Ok(CompoundProcedure {
             name: None,
             id,
-            signature,
-            signature_first_arg_index,
+            signature: Rc::new(signature),
             definition,
             captured_lexical_scope,
         })
@@ -98,9 +130,8 @@ impl CompoundProcedure {
     }
 
     pub fn bind(self, ctx: &mut ProcedureContext) -> Result<BoundProcedure, RuntimeError> {
-        if ctx.operands.len() != self.arity() {
-            return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.combination.1));
-        }
+        self.signature
+            .check_arity(ctx.operands.len(), ctx.combination.1)?;
         let mut operands = Vec::with_capacity(ctx.operands.len());
         for expr in ctx.operands.iter() {
             let value = ctx.interpreter.eval_expression(expr)?;
@@ -116,21 +147,11 @@ impl CompoundProcedure {
         // We're unwrapping these because we already validated them upon construction.
         get_body(&self.definition).unwrap()
     }
-
-    fn arg_bindings(&self) -> Vec<InternedString> {
-        // We're unwrapping these because we already validated them upon construction.
-        parse_signature(&self.signature, self.signature_first_arg_index).unwrap()
-    }
-
-    fn arity(&self) -> usize {
-        self.signature.0.len() - self.signature_first_arg_index
-    }
 }
 
 impl Traverser for CompoundProcedure {
     fn traverse(&self, visitor: &Visitor) {
         visitor.traverse(&self.definition);
-        visitor.traverse(&self.signature);
         visitor.traverse(&self.captured_lexical_scope);
     }
 }
@@ -148,15 +169,13 @@ impl BoundProcedure {
     pub fn call(self, interpreter: &mut Interpreter) -> ProcedureResult {
         interpreter.environment.push(
             self.procedure.captured_lexical_scope.clone(),
-            self.procedure.signature.1,
+            self.procedure.definition.1,
         );
 
         let body = self.procedure.body();
-        let arg_bindings = self.procedure.arg_bindings();
-
-        for (name, value) in arg_bindings.into_iter().zip(self.operands) {
-            interpreter.environment.define(name, value);
-        }
+        self.procedure
+            .signature
+            .bind_args(self.operands, &mut interpreter.environment);
 
         let result = interpreter.eval_expressions_in_tail_context(body)?;
 
@@ -178,19 +197,4 @@ fn get_body(
     } else {
         Ok(body)
     }
-}
-
-fn parse_signature(
-    signature: &SourceMapped<Rc<CombinationBody>>,
-    first_arg_index: usize,
-) -> Result<Vec<InternedString>, RuntimeError> {
-    let mut arg_bindings: Vec<InternedString> = vec![];
-    for arg_name in &signature.0[first_arg_index..] {
-        let id = arg_name.expect_identifier()?;
-        if arg_bindings.contains(&id) {
-            return Err(RuntimeErrorType::DuplicateParameter.source_mapped(arg_name.1));
-        }
-        arg_bindings.push(id);
-    }
-    Ok(arg_bindings)
 }

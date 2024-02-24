@@ -1,5 +1,5 @@
 use crate::{
-    compound_procedure::CompoundProcedure,
+    compound_procedure::{CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType},
     source_mapped::{SourceMappable, SourceMapped},
@@ -115,17 +115,11 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
             ctx.undefined()
         }
         Some(SourceMapped(Value::Pair(pair), range)) => {
-            let Some(expressions) = pair.try_as_rc_list() else {
-                return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(*range));
-            };
-            let signature = SourceMapped(expressions, *range);
-            // We can just unwrap this b/c it's from a pair.
-            let first = signature.0.get(0).unwrap();
-            let name = first.expect_identifier()?;
+            let name = pair.car().expect_identifier()?;
+            let signature = Signature::parse(pair.cdr())?;
             let mut proc = CompoundProcedure::create(
                 ctx.interpreter.new_id(),
                 signature,
-                1,
                 SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
                 ctx.interpreter.environment.capture_lexical_scope(),
             )?;
@@ -141,19 +135,13 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn lambda(ctx: ProcedureContext) -> ProcedureResult {
-    let Some(SourceMapped(expressions, range)) = ctx
-        .operands
-        .get(0)
-        .map(|value| value.try_into_list())
-        .flatten()
-    else {
+    if ctx.operands.len() < 2 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
-    };
-    let signature = SourceMapped(expressions.clone(), range);
+    }
+    let signature = Signature::parse(ctx.operands[0].clone())?;
     let proc = CompoundProcedure::create(
         ctx.interpreter.new_id(),
         signature,
-        0,
         SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
         ctx.interpreter.environment.capture_lexical_scope(),
     )?;
