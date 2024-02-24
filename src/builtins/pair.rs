@@ -1,13 +1,14 @@
 use crate::{
     interpreter::{ProcedureContext, ProcedureResult, RuntimeError},
     pair::Pair,
-    value::SourceValue,
+    source_mapped::SourceMappable,
+    value::{SourceValue, Value},
 };
 
 use super::Builtins;
 
 pub fn get_builtins() -> Builtins {
-    vec![("set-car!", set_car), ("set-cdr!", set_cdr)]
+    vec![("set-car!", set_car), ("set-cdr!", set_cdr), ("cons", cons)]
 }
 
 fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue), RuntimeError> {
@@ -32,6 +33,13 @@ fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
     ctx.undefined()
 }
 
+fn cons(mut ctx: ProcedureContext) -> ProcedureResult {
+    let (car, cdr) = ctx.eval_binary()?;
+    let pair =
+        Value::Pair(ctx.interpreter.pair_manager.pair(car, cdr)).source_mapped(ctx.combination.1);
+    Ok(pair.into())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test_util::test_eval_success;
@@ -44,5 +52,11 @@ mod tests {
     #[test]
     fn set_cdr_works() {
         test_eval_success("(define a (quote (1 . 2))) (set-cdr! a 5) a", "(1 . 5)");
+    }
+
+    #[test]
+    fn cons_works() {
+        test_eval_success("(cons 1 2)", "(1 . 2)");
+        test_eval_success("(cons 1 '())", "(1)");
     }
 }

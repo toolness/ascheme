@@ -77,6 +77,14 @@ impl<'a> ProcedureContext<'a> {
         Ok(self.interpreter.eval_expression(&self.operands[0])?)
     }
 
+    pub fn eval_binary(&mut self) -> Result<(SourceValue, SourceValue), RuntimeError> {
+        self.ensure_operands_len(2)?;
+        Ok((
+            self.interpreter.eval_expression(&self.operands[0])?,
+            self.interpreter.eval_expression(&self.operands[1])?,
+        ))
+    }
+
     pub fn undefined(&self) -> ProcedureResult {
         Ok(Value::Undefined.source_mapped(self.combination.1).into())
     }

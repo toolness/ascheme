@@ -180,7 +180,6 @@ impl Traverser for Pair {
 pub struct PairManager(ObjectTracker<RefCell<PairInner>>);
 
 impl PairManager {
-    #[cfg(test)]
     pub fn pair(&mut self, car: SourceValue, cdr: SourceValue) -> Pair {
         self.make(PairInner { car, cdr })
     }
