@@ -1,13 +1,10 @@
 use crate::{
     compound_procedure::CompoundProcedure,
     environment::Environment,
-    interpreter::{
-        Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeError, RuntimeErrorType,
-    },
-    pair::Pair,
+    interpreter::{Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType},
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
-    value::{SourceValue, Value},
+    value::Value,
 };
 
 mod _let;
@@ -17,6 +14,7 @@ mod logic;
 mod math;
 mod non_standard;
 mod ord;
+mod pair;
 mod util;
 
 pub use library::add_library_source;
@@ -46,8 +44,6 @@ fn get_builtins() -> Builtins {
         ("if", _if),
         ("cond", cond),
         ("set!", set),
-        ("set-car!", set_car),
-        ("set-cdr!", set_cdr),
     ];
     builtins.extend(math::get_builtins());
     builtins.extend(eq::get_builtins());
@@ -55,6 +51,7 @@ fn get_builtins() -> Builtins {
     builtins.extend(logic::get_builtins());
     builtins.extend(non_standard::get_builtins());
     builtins.extend(_let::get_builtins());
+    builtins.extend(pair::get_builtins());
     builtins
 }
 
@@ -176,16 +173,6 @@ fn begin(ctx: ProcedureContext) -> ProcedureResult {
         .eval_expressions_in_tail_context(&ctx.operands)
 }
 
-fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue), RuntimeError> {
-    ctx.ensure_operands_len(2)?;
-    let pair = ctx
-        .interpreter
-        .eval_expression(&ctx.operands[0])?
-        .expect_pair()?;
-    let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
-    Ok((pair, value))
-}
-
 fn set(ctx: ProcedureContext) -> ProcedureResult {
     ctx.ensure_operands_len(2)?;
     let identifier = ctx.operands[0].expect_identifier()?;
@@ -195,18 +182,6 @@ fn set(ctx: ProcedureContext) -> ProcedureResult {
     } else {
         ctx.undefined()
     }
-}
-
-fn set_car(mut ctx: ProcedureContext) -> ProcedureResult {
-    let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
-    pair.set_car(value);
-    ctx.undefined()
-}
-
-fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
-    let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
-    pair.set_cdr(value);
-    ctx.undefined()
 }
 
 fn display(mut ctx: ProcedureContext) -> ProcedureResult {
@@ -239,16 +214,6 @@ mod tests {
         test_eval_success("'#f", "#f");
         test_eval_success("'()", "()");
         test_eval_success("'blarg", "blarg");
-    }
-
-    #[test]
-    fn set_car_works() {
-        test_eval_success("(define a (quote (1 . 2))) (set-car! a 5) a", "(5 . 2)");
-    }
-
-    #[test]
-    fn set_cdr_works() {
-        test_eval_success("(define a (quote (1 . 2))) (set-cdr! a 5) a", "(1 . 5)");
     }
 
     #[test]
