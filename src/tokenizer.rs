@@ -27,7 +27,6 @@ pub type Token = SourceMapped<TokenType>;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TokenizeErrorType {
-    InvalidNumber,
     UnexpectedCharacter,
     UnterminatedString,
     UnsupportedEscapeSequence,
@@ -62,6 +61,18 @@ impl<'a> Tokenizer<'a> {
 
     fn chomp(&mut self) {
         self.accept(|_char| true);
+    }
+
+    fn peek<F: Fn(char) -> bool>(&mut self, predicate: F) -> bool {
+        if let Some(&(_pos, next_char)) = self.chars.peek() {
+            if predicate(next_char) {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 
     fn accept<F: Fn(char) -> bool>(&mut self, predicate: F) -> bool {
@@ -119,6 +130,7 @@ impl<'a> Tokenizer<'a> {
     fn try_accept_number(&mut self) -> Option<Result<TokenType, TokenizeErrorType>> {
         let mut found_decimals = 0;
         let mut found_digit = false;
+        let start_pos = self.curr_pos;
         let found_plus_or_minus = self.accept(|char| char == '+' || char == '-');
         loop {
             if self.accept_char('.') {
@@ -129,29 +141,19 @@ impl<'a> Tokenizer<'a> {
                 break;
             }
         }
-        if found_decimals > 1 {
-            Some(Err(TokenizeErrorType::InvalidNumber))
-        } else if found_digit {
+        if found_digit && found_decimals <= 1 {
             Some(Ok(TokenType::Number))
-        } else if found_plus_or_minus {
-            Some(Ok(TokenType::Identifier))
-        } else if found_decimals == 1 {
+        } else if found_decimals == 1 && !found_plus_or_minus && !self.peek(is_ident_char) {
             Some(Ok(TokenType::Dot))
+        } else if self.curr_pos > start_pos {
+            self.chomp_while(is_ident_char);
+            Some(Ok(TokenType::Identifier))
         } else {
             None
         }
     }
 
     fn accept_identifier(&mut self) -> bool {
-        let is_ident_char = |char: char| {
-            !char.is_whitespace()
-                && char != '.'
-                && char != '('
-                && char != ')'
-                && char != ';'
-                && char != '#'
-                && char != '\''
-        };
         if !self.accept(|char: char| !char.is_numeric() && is_ident_char(char)) {
             return false;
         }
@@ -171,6 +173,15 @@ impl<'a> Tokenizer<'a> {
             false
         }
     }
+}
+
+fn is_ident_char(char: char) -> bool {
+    !char.is_whitespace()
+        && char != '('
+        && char != ')'
+        && char != ';'
+        && char != '#'
+        && char != '\''
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
@@ -247,7 +258,7 @@ mod tests {
                 (Ok(Number), ".3"),
                 (Ok(Number), "5.2"),
                 (Ok(Number), "1"),
-                (Err(TokenizeErrorType::InvalidNumber), "..5"),
+                (Ok(Identifier), "..5"),
             ],
         )
     }
@@ -257,6 +268,14 @@ mod tests {
         test_tokenize(".", &[(Ok(Dot), ".")]);
         test_tokenize(". 32", &[(Ok(Dot), "."), (Ok(Number), "32")]);
         test_tokenize("1. .", &[(Ok(Number), "1."), (Ok(Dot), ".")]);
+    }
+
+    #[test]
+    fn identifiers_starting_with_periods_work() {
+        test_tokenize("..", &[(Ok(Identifier), "..")]);
+        test_tokenize("..5a+(", &[(Ok(Identifier), "..5a+"), (Ok(LeftParen), "(")]);
+        test_tokenize(".. 32", &[(Ok(Identifier), ".."), (Ok(Number), "32")]);
+        test_tokenize("1. ...", &[(Ok(Number), "1."), (Ok(Identifier), "...")]);
     }
 
     #[test]
