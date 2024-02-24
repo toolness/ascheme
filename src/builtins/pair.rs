@@ -95,6 +95,7 @@ mod tests {
 
     #[test]
     fn list_works() {
+        test_eval_success("(list)", "()");
         test_eval_success("(list 1 2 3)", "(1 2 3)");
     }
 }
