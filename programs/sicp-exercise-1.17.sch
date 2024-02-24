@@ -22,8 +22,8 @@
   ;(print-and-eval b)
   (cond
     ((= b 0) 0)
-    ((= b 2) (+ (double a)))
-    ((even? b) (+ (double a) (fast-mul a (halve b))))
+    ((= b 2) (double a))
+    ((even? b) (fast-mul (double a) (halve b)))
     (else (+ a (fast-mul a (- b 1))))
   )
 )
@@ -34,3 +34,6 @@
 (test-eq (fast-mul 5 3) 15)
 (test-eq (fast-mul 5 4) 20)
 (test-eq (fast-mul 5 5) 25)
+(test-eq (fast-mul 5 6) 30)
+(test-eq (fast-mul 5 7) 35)
+(test-eq (fast-mul 5 8) 40)
