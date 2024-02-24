@@ -222,13 +222,43 @@ mod tests {
     }
 
     #[test]
-    fn compound_procedure_definitions_work() {
+    fn compound_procedure_definitions_with_fixed_args_work() {
         test_eval_success("(define (x) 3)", "");
         test_eval_success("(define (x) 3) (x)", "3");
         test_eval_success("(define (add-three n) (+ 3 n)) (add-three 1)", "4");
         test_eval_success(
             "(define x 9) (define (boop x y) (+ x y)) (boop 1 (+ x 1))",
             "11",
+        );
+    }
+
+    #[test]
+    fn compound_procedure_definitions_with_any_args_work() {
+        test_eval_success("(define (n . z) z)", "");
+        test_eval_success("(define (n . z) z) (n)", "()");
+        test_eval_success("(define (n . z) z) (n 1 2)", "(1 2)");
+    }
+
+    #[test]
+    fn compound_procedure_definitions_with_min_args_work() {
+        test_eval_success("(define (n a . z) z) (n 1 2)", "(2)");
+        test_eval_success("(define (n a . z) z) (n 1)", "()");
+    }
+
+    #[test]
+    fn procedures_raise_wrong_number_of_args_errors() {
+        test_eval_err("((lambda (x) x))", RuntimeErrorType::WrongNumberOfArguments);
+        test_eval_err(
+            "((lambda (x y . z) 1) 1)",
+            RuntimeErrorType::WrongNumberOfArguments,
+        );
+        test_eval_err(
+            "(define (x a) a) (x)",
+            RuntimeErrorType::WrongNumberOfArguments,
+        );
+        test_eval_err(
+            "(define (x a b . c) a) (x 1)",
+            RuntimeErrorType::WrongNumberOfArguments,
         );
     }
 
@@ -243,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn lambda_definitions_work() {
+    fn lambda_fixed_arg_definitions_work() {
         test_eval_success("(define x (lambda () 3))", "");
         test_eval_success("(define x (lambda () 3)) (x)", "3");
         test_eval_success("(define add-three (lambda (n) (+ 3 n))) (add-three 1)", "4");
@@ -251,6 +281,20 @@ mod tests {
             "(define x 9) (define boop (lambda (x y) (+ x y))) (boop 1 (+ x 1))",
             "11",
         );
+    }
+
+    #[test]
+    fn lambda_any_arg_definitions_work() {
+        test_eval_success("(define x (lambda n n))", "");
+        test_eval_success("(define x (lambda n n)) (x)", "()");
+        test_eval_success("(define x (lambda n n)) (x 1 2 3)", "(1 2 3)");
+    }
+
+    #[test]
+    fn lambda_min_arg_definitions_work() {
+        test_eval_success("(define x (lambda (n . z) n))", "");
+        test_eval_success("(define x (lambda (n . z) n)) (x 5 4 3 2 1)", "5");
+        test_eval_success("(define x (lambda (n . z) z)) (x 5 4 3 2 1)", "(4 3 2 1)");
     }
 
     #[test]

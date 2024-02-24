@@ -1,7 +1,7 @@
 use std::{collections::HashSet, rc::Rc};
 
 use crate::{
-    environment::{CapturedLexicalScope, Environment},
+    environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
     interpreter::{Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
     pair::PairVisitedSet,
@@ -79,15 +79,35 @@ impl Signature {
         }
     }
 
-    fn bind_args(&self, operands: Vec<SourceValue>, environment: &mut Environment) {
+    fn bind_args(&self, mut operands: Vec<SourceValue>, interpreter: &mut Interpreter) {
         match self {
             Signature::FixedArgs(arg_names) => {
                 for (name, value) in arg_names.iter().zip(operands) {
-                    environment.define(name.0.clone(), value);
+                    interpreter.environment.define(name.0.clone(), value);
                 }
             }
-            Signature::MinArgs(_, _) => todo!("IMPLEMENT MIN ARGS BINDING"),
-            Signature::AnyArgs(_) => todo!("IMPLEMENT ANY ARGS BINDING"),
+            Signature::MinArgs(required_arg_names, rest_arg_name) => {
+                let rest_operands = operands.split_off(required_arg_names.len());
+                for (name, value) in required_arg_names.iter().zip(operands) {
+                    interpreter.environment.define(name.0.clone(), value);
+                }
+                interpreter.environment.define(
+                    rest_arg_name.0.clone(),
+                    interpreter
+                        .pair_manager
+                        .vec_to_list(rest_operands)
+                        .source_mapped(rest_arg_name.1),
+                );
+            }
+            Signature::AnyArgs(arg_name) => {
+                interpreter.environment.define(
+                    arg_name.0.clone(),
+                    interpreter
+                        .pair_manager
+                        .vec_to_list(operands)
+                        .source_mapped(arg_name.1),
+                );
+            }
         }
     }
 }
@@ -175,7 +195,7 @@ impl BoundProcedure {
         let body = self.procedure.body();
         self.procedure
             .signature
-            .bind_args(self.operands, &mut interpreter.environment);
+            .bind_args(self.operands, interpreter);
 
         let result = interpreter.eval_expressions_in_tail_context(body)?;
 
