@@ -10,6 +10,7 @@ use crate::{
     value::{SourceValue, Value},
 };
 
+mod _let;
 mod eq;
 mod library;
 mod logic;
@@ -17,7 +18,6 @@ mod math;
 mod non_standard;
 mod ord;
 mod util;
-mod _let;
 
 pub use library::add_library_source;
 
@@ -41,6 +41,7 @@ fn get_builtins() -> Builtins {
         ("define", define),
         ("lambda", lambda),
         ("quote", quote),
+        ("begin", begin),
         ("display", display),
         ("if", _if),
         ("cond", cond),
@@ -168,6 +169,11 @@ fn quote(ctx: ProcedureContext) -> ProcedureResult {
     } else {
         Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1))
     }
+}
+
+fn begin(ctx: ProcedureContext) -> ProcedureResult {
+    ctx.interpreter
+        .eval_expressions_in_tail_context(&ctx.operands)
 }
 
 fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue), RuntimeError> {
@@ -377,5 +383,13 @@ mod tests {
         test_eval_success(r#"(display "boop")"#, "boop");
         test_eval_success(r#"(display '("boop"))"#, "(boop)");
         test_eval_success(r#"(display 1)"#, "1");
+    }
+
+    #[test]
+    fn begin_works() {
+        test_eval_success("(begin)", "");
+        test_eval_success("(begin 1)", "1");
+        test_eval_success("(begin 1 2)", "2");
+        test_eval_success("(begin (+ 1 2))", "3");
     }
 }
