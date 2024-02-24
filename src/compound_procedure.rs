@@ -4,10 +4,56 @@ use crate::{
     environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
     interpreter::{Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
+    pair::PairVisitedSet,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
-    value::SourceValue,
+    value::{SourceValue, Value},
 };
+
+pub enum Signature {
+    FixedArgs(Vec<SourceMapped<InternedString>>),
+    MinArgs(
+        Vec<SourceMapped<InternedString>>,
+        SourceMapped<InternedString>,
+    ),
+    AnyArgs(SourceMapped<InternedString>),
+}
+
+impl Signature {
+    pub fn parse(value: SourceValue) -> Result<Self, RuntimeError> {
+        match value.0 {
+            Value::Symbol(name) => Ok(Signature::AnyArgs(name.source_mapped(value.1))),
+            Value::Pair(mut pair) => {
+                let mut visited = PairVisitedSet::default();
+                let mut args: Vec<SourceMapped<InternedString>> = vec![];
+                loop {
+                    visited.add(&pair);
+                    let car = pair.car();
+                    args.push(car.expect_identifier()?.source_mapped(car.1));
+                    let cdr = pair.cdr();
+                    match cdr.0 {
+                        Value::EmptyList => return Ok(Signature::FixedArgs(args)),
+                        Value::Symbol(name) => {
+                            return Ok(Signature::MinArgs(args, name.source_mapped(cdr.1)))
+                        }
+                        Value::Pair(next) => {
+                            if visited.contains(&next) {
+                                return Err(
+                                    RuntimeErrorType::MalformedSpecialForm.source_mapped(cdr.1)
+                                );
+                            }
+                            pair = next;
+                        }
+                        _ => {
+                            return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(cdr.1))
+                        }
+                    }
+                }
+            }
+            _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(value.1)),
+        }
+    }
+}
 
 type CombinationBody = Vec<SourceValue>;
 

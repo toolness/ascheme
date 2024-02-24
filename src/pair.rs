@@ -185,6 +185,19 @@ impl Traverser for Pair {
 }
 
 #[derive(Default)]
+pub struct PairVisitedSet(HashSet<*const PairInner>);
+
+impl PairVisitedSet {
+    pub fn contains(&self, pair: &Pair) -> bool {
+        self.0.contains(&pair.as_ptr())
+    }
+
+    pub fn add(&mut self, pair: &Pair) {
+        self.0.insert(pair.as_ptr());
+    }
+}
+
+#[derive(Default)]
 pub struct PairManager(ObjectTracker<RefCell<PairInner>>);
 
 impl PairManager {
