@@ -14,6 +14,7 @@ pub fn get_builtins() -> Builtins {
         ("cons", cons),
         ("car", car),
         ("cdr", cdr),
+        ("list", list),
     ]
 }
 
@@ -54,6 +55,14 @@ fn cons(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(pair.into())
 }
 
+fn list(ctx: ProcedureContext) -> ProcedureResult {
+    Ok(ctx
+        .interpreter
+        .pair_manager
+        .vec_to_list(ctx.operands.into())
+        .into())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test_util::test_eval_success;
@@ -82,5 +91,10 @@ mod tests {
     #[test]
     fn cdr_works() {
         test_eval_success("(cdr '(1 . 2))", "2");
+    }
+
+    #[test]
+    fn list_works() {
+        test_eval_success("(list 1 2 3)", "(1 2 3)");
     }
 }
