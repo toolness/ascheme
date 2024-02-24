@@ -104,6 +104,14 @@ impl Pair {
         self.as_ptr() == other.as_ptr()
     }
 
+    pub fn car(&self) -> SourceValue {
+        self.0.borrow().car.clone()
+    }
+
+    pub fn cdr(&self) -> SourceValue {
+        self.0.borrow().cdr.clone()
+    }
+
     pub fn set_car(&mut self, value: SourceValue) {
         self.0.borrow_mut().car = value;
     }

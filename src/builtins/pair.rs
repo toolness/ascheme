@@ -8,7 +8,13 @@ use crate::{
 use super::Builtins;
 
 pub fn get_builtins() -> Builtins {
-    vec![("set-car!", set_car), ("set-cdr!", set_cdr), ("cons", cons)]
+    vec![
+        ("set-car!", set_car),
+        ("set-cdr!", set_cdr),
+        ("cons", cons),
+        ("car", car),
+        ("cdr", cdr),
+    ]
 }
 
 fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue), RuntimeError> {
@@ -31,6 +37,14 @@ fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
     let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
     pair.set_cdr(value);
     ctx.undefined()
+}
+
+fn car(mut ctx: ProcedureContext) -> ProcedureResult {
+    Ok(ctx.eval_unary()?.expect_pair()?.car().into())
+}
+
+fn cdr(mut ctx: ProcedureContext) -> ProcedureResult {
+    Ok(ctx.eval_unary()?.expect_pair()?.cdr().into())
 }
 
 fn cons(mut ctx: ProcedureContext) -> ProcedureResult {
@@ -58,5 +72,15 @@ mod tests {
     fn cons_works() {
         test_eval_success("(cons 1 2)", "(1 . 2)");
         test_eval_success("(cons 1 '())", "(1)");
+    }
+
+    #[test]
+    fn car_works() {
+        test_eval_success("(car '(1 . 2))", "1");
+    }
+
+    #[test]
+    fn cdr_works() {
+        test_eval_success("(cdr '(1 . 2))", "2");
     }
 }
