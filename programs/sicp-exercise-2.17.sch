@@ -5,4 +5,4 @@
   )
 )
 
-(last-pair (list 23 72 149 34))
+(test-repr (last-pair (list 23 72 149 34)) '(34))
