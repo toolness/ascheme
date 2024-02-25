@@ -10,12 +10,14 @@ const MAX_BUFFER_SIZE: usize = 255;
 /// it's prompting, which requires us to pass buffered output to it
 /// so prompts work as expected when running programs.
 pub struct StdioPrinter {
+    pub disable_autoflush: bool,
     line_buffer: RefCell<String>,
 }
 
 impl StdioPrinter {
     pub fn new() -> Self {
         StdioPrinter {
+            disable_autoflush: false,
             line_buffer: String::with_capacity(MAX_BUFFER_SIZE).into(),
         }
     }
@@ -43,8 +45,9 @@ impl StdioPrinter {
         for ch in value.as_ref().chars() {
             self.line_buffer.borrow_mut().push(ch);
 
-            #[cfg(not(test))]
-            if ch == '\n' || self.line_buffer.borrow().len() == MAX_BUFFER_SIZE {
+            if !self.disable_autoflush && ch == '\n'
+                || self.line_buffer.borrow().len() == MAX_BUFFER_SIZE
+            {
                 self.flush_line_buffer();
             }
         }

@@ -7,7 +7,7 @@ pub fn add_library_source(source_mapper: &mut SourceMapper) -> SourceId {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_util::test_eval_success;
+    use crate::test_util::{eval_test_file, test_eval_success};
 
     #[test]
     fn abs_works() {
@@ -32,5 +32,10 @@ mod tests {
     fn null_works() {
         test_eval_success("(null? 0)", "#f");
         test_eval_success("(null? '())", "#t");
+    }
+
+    #[test]
+    fn test_file_works() {
+        eval_test_file("src/builtins/library.test.sch");
     }
 }

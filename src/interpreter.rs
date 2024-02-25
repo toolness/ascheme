@@ -180,6 +180,7 @@ pub struct Interpreter {
     pub max_stack_size: usize,
     pub keyboard_interrupt_channel: Option<Receiver<()>>,
     pub printer: StdioPrinter,
+    pub failed_tests: usize,
     tracked_stats: Option<TrackedStats>,
     has_evaluated_library: bool,
     next_id: u32,
@@ -208,6 +209,7 @@ impl Interpreter {
             has_evaluated_library: false,
             tracked_stats: None,
             printer: StdioPrinter::new(),
+            failed_tests: 0,
         }
     }
 
@@ -235,6 +237,15 @@ impl Interpreter {
         ));
         self.printer
             .println(format!("Interned strings: {}", self.string_interner.len()));
+    }
+
+    pub fn show_err_and_traceback(&self, err: RuntimeError) {
+        self.printer.eprintln(format!(
+            "Error: {:?} in {}",
+            err.0,
+            self.source_mapper.trace(&err.1).join("\n")
+        ));
+        self.printer.eprintln(self.traceback());
     }
 
     fn expect_procedure(&mut self, expression: &SourceValue) -> Result<Procedure, RuntimeError> {

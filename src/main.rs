@@ -120,12 +120,7 @@ fn evaluate(interpreter: &mut Interpreter, source_id: SourceId) -> bool {
             true
         }
         Err(err) => {
-            interpreter.printer.eprintln(format!(
-                "Error: {:?} in {}",
-                err.0,
-                interpreter.source_mapper.trace(&err.1).join("\n")
-            ));
-            interpreter.printer.eprintln(interpreter.traceback());
+            interpreter.show_err_and_traceback(err);
             false
         }
     }

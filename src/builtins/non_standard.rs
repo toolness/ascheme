@@ -71,6 +71,7 @@ fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
     let msg = if is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])? {
         "OK".green()
     } else {
+        ctx.interpreter.failed_tests += 1;
         "ERR".red()
     };
 
@@ -92,6 +93,7 @@ fn test_repr(ctx: ProcedureContext) -> ProcedureResult {
     let msg = if operand_0_value_repr == operand_1_value_repr {
         format!("{} {operand_0_repr} = {operand_1_value_repr}", "OK".green())
     } else {
+        ctx.interpreter.failed_tests += 1;
         format!(
             "{} {operand_0_repr} = {operand_0_value_repr} ≠ {operand_1_value_repr}",
             "ERR".red()

@@ -1,10 +1,31 @@
+use std::fs::read_to_string;
+
 use crate::{
     interpreter::{Interpreter, RuntimeErrorType},
     value::Value,
 };
 
+pub fn eval_test_file(filename: &str) {
+    let mut interpreter = Interpreter::new();
+    let code = read_to_string(filename).unwrap();
+    let source_id = interpreter.source_mapper.add(filename.into(), code);
+    match interpreter.evaluate(source_id) {
+        Ok(_value) => {
+            assert_eq!(
+                interpreter.failed_tests, 0,
+                "Evaluating '{filename}' should not fail any tests."
+            );
+        }
+        Err(err) => {
+            interpreter.show_err_and_traceback(err);
+            panic!("Evaluating '{filename}' raised error");
+        }
+    }
+}
+
 pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
     let mut interpreter = Interpreter::new();
+    interpreter.printer.disable_autoflush = true;
     for (i, &(code, expected_value)) in code_and_expected_values.iter().enumerate() {
         let source_id = interpreter
             .source_mapper
@@ -20,7 +41,9 @@ pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
                 assert_eq!(final_value, expected_value, "Evaluating code #{i} '{code}'");
             }
             Err(err) => {
-                panic!("Evaluating code #{i} '{code}' raised error {err:?}");
+                interpreter.printer.disable_autoflush = false;
+                interpreter.show_err_and_traceback(err);
+                panic!("Evaluating code #{i} '{code}' raised error");
             }
         }
     }
