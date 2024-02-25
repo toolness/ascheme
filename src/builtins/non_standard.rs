@@ -16,6 +16,7 @@ pub fn get_builtins() -> super::Builtins {
         ("gc", gc),
         ("gc-verbose", gc_verbose),
         ("test-eq", test_eq),
+        ("test-repr", test_repr),
         ("assert", assert),
         ("print-and-eval", print_and_eval),
         ("track-call-stats", track_call_stats),
@@ -71,6 +72,27 @@ fn test_eq(mut ctx: ProcedureContext) -> ProcedureResult {
         .printer
         .println(format!("{msg} {operand_0_repr} = {operand_1_repr}"));
 
+    ctx.undefined()
+}
+
+fn test_repr(ctx: ProcedureContext) -> ProcedureResult {
+    ctx.ensure_operands_len(2)?;
+    let operand_0_repr = ctx.operands[0].to_string();
+    let operand_0_value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    let operand_1_value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
+    let operand_0_value_repr = operand_0_value.to_string();
+    let operand_1_value_repr = operand_1_value.to_string();
+
+    let msg = if operand_0_value_repr == operand_1_value_repr {
+        format!("{} {operand_0_repr} = {operand_1_value_repr}", "OK".green())
+    } else {
+        format!(
+            "{} {operand_0_repr} = {operand_0_value_repr} ≠ {operand_1_value_repr}",
+            "ERR".red()
+        )
+    };
+
+    ctx.interpreter.printer.println(msg);
     ctx.undefined()
 }
 
