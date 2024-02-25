@@ -19,7 +19,7 @@ pub fn get_builtins() -> super::Builtins {
         ("test-repr", test_repr),
         ("assert", assert),
         ("print-and-eval", print_and_eval),
-        ("track-call-stats", track_call_stats),
+        ("track-stats", track_stats),
     ]
 }
 
@@ -116,13 +116,17 @@ fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
         .eval_expressions_in_tail_context(ctx.operands)
 }
 
-fn track_call_stats(mut ctx: ProcedureContext) -> ProcedureResult {
+fn track_stats(mut ctx: ProcedureContext) -> ProcedureResult {
+    ctx.ensure_operands_len(1)?;
+    let repr = ctx.operands[0].to_string();
     ctx.interpreter.start_tracking_stats();
-    let value = ctx.eval_unary()?;
+    let result = ctx.eval_unary();
+    println!("Statistics for evaluation of {}\n", repr.blue());
     if let Some(stats) = ctx.interpreter.take_tracked_stats() {
-        println!("{stats:#?}");
+        ctx.interpreter.printer.println(stats.as_table());
     }
-    Ok(value.into())
+    result?;
+    ctx.undefined()
 }
 
 #[cfg(test)]

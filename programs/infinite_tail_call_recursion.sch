@@ -1,3 +1,3 @@
 (define (x) (x))
 
-(x)
+(track-stats (x))

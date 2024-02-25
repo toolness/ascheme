@@ -118,13 +118,13 @@ pub enum ProcedureSuccess {
     TailCall(TailCallContext),
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct TrackedProcedureStats {
     calls: usize,
     tail_calls: usize,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct TrackedStats {
     max_call_stack_depth: usize,
     procedure_calls: HashMap<InternedString, TrackedProcedureStats>,
@@ -143,6 +143,31 @@ impl TrackedStats {
             let stats = self.procedure_calls.entry(name.clone()).or_default();
             stats.calls += 1;
         }
+    }
+
+    pub fn as_table(&self) -> String {
+        let mut lines = vec![];
+        lines.push(format!("{:40} {:8} {:12}", "Name", "Calls", "Tail calls"));
+        lines.push("-".repeat(60));
+        let mut table_lines = self
+            .procedure_calls
+            .iter()
+            .map(|(name, stats)| {
+                format!(
+                    "{:40} {:8} {:12}",
+                    name.to_string(),
+                    stats.calls.to_string(),
+                    stats.tail_calls.to_string()
+                )
+            })
+            .collect::<Vec<String>>();
+        table_lines.sort();
+        lines.extend(table_lines);
+        lines.push(format!(
+            "\nMaximum call stack depth: {}",
+            self.max_call_stack_depth
+        ));
+        lines.join("\n")
     }
 }
 
