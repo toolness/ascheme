@@ -3,6 +3,7 @@
 (test-eq (same-parity? 5 2) #f)
 (test-eq (same-parity? 4 2) #t)
 
+; This is linear recursive, it could be linear iterative.
 (define (filter x predicate)
   (cond ((null? x) '())
         ((predicate (car x)) (cons (car x) (filter (cdr x) predicate)))
