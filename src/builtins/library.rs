@@ -27,4 +27,10 @@ mod tests {
         test_eval_success("(zero? 0.0)", "#t");
         test_eval_success("(zero? 1)", "#f");
     }
+
+    #[test]
+    fn null_works() {
+        test_eval_success("(null? 0)", "#f");
+        test_eval_success("(null? '())", "#t");
+    }
 }
