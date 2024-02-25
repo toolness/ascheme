@@ -39,13 +39,19 @@ fn gc_verbose(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
-    ctx.ensure_operands_len(1)?;
-    let operand_repr = ctx.operands[0].to_string();
-    let value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
-    ctx.interpreter
-        .printer
-        .println(format!("{} = {}", operand_repr, value));
-    Ok(value.into())
+    for (i, operand) in ctx.operands.iter().enumerate() {
+        let operand_repr = operand.to_string();
+        let value = ctx.interpreter.eval_expression(&operand)?;
+        let end = if i == ctx.operands.len() - 1 {
+            "\n"
+        } else {
+            ", "
+        };
+        ctx.interpreter
+            .printer
+            .print(format!("{} = {value}{end}", operand_repr.blue()));
+    }
+    ctx.undefined()
 }
 
 fn assert(mut ctx: ProcedureContext) -> ProcedureResult {
