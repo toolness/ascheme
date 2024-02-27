@@ -1,5 +1,5 @@
 use crate::{
-    compound_procedure::{CompoundProcedure, Signature},
+    compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType},
     source_mapped::{SourceMappable, SourceMapped},
@@ -117,12 +117,13 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
         Some(SourceMapped(Value::Pair(pair), range)) => {
             let name = pair.car().expect_identifier()?;
             let signature = Signature::parse(pair.cdr())?;
+            let body = Body::try_new(&ctx.operands[1..], ctx.combination.1)?;
             let mut proc = CompoundProcedure::create(
                 ctx.interpreter.new_id(),
                 signature,
-                SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
+                body,
                 ctx.interpreter.environment.capture_lexical_scope(),
-            )?;
+            );
             proc.name = Some(name.clone());
             ctx.interpreter.environment.define(
                 name,
@@ -139,12 +140,13 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
     }
     let signature = Signature::parse(ctx.operands[0].clone())?;
+    let body = Body::try_new(&ctx.operands[1..], ctx.combination.1)?;
     let proc = CompoundProcedure::create(
         ctx.interpreter.new_id(),
         signature,
-        SourceMapped(ctx.combination.0.clone(), ctx.combination.1),
+        body,
         ctx.interpreter.environment.capture_lexical_scope(),
-    )?;
+    );
     Ok(Value::Procedure(Procedure::Compound(proc)).into())
 }
 

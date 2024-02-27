@@ -112,14 +112,25 @@ impl Signature {
     }
 }
 
-type CombinationBody = Vec<SourceValue>;
+#[derive(Debug)]
+pub struct Body(SourceMapped<Vec<SourceValue>>);
+
+impl Body {
+    pub fn try_new(body: &[SourceValue], range: SourceRange) -> Result<Self, RuntimeError> {
+        if body.is_empty() {
+            Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(range))
+        } else {
+            Ok(Body(Vec::from(body).source_mapped(range)))
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct CompoundProcedure {
     pub name: Option<InternedString>,
     id: u32,
     signature: Rc<Signature>,
-    definition: SourceMapped<Rc<CombinationBody>>,
+    body: Rc<Body>,
     captured_lexical_scope: CapturedLexicalScope,
 }
 
@@ -127,17 +138,16 @@ impl CompoundProcedure {
     pub fn create(
         id: u32,
         signature: Signature,
-        definition: SourceMapped<Rc<CombinationBody>>,
+        body: Body,
         captured_lexical_scope: CapturedLexicalScope,
-    ) -> Result<Self, RuntimeError> {
-        get_body(&definition)?;
-        Ok(CompoundProcedure {
+    ) -> Self {
+        CompoundProcedure {
             name: None,
             id,
             signature: Rc::new(signature),
-            definition,
+            body: Rc::new(body),
             captured_lexical_scope,
-        })
+        }
     }
 
     pub fn id(&self) -> u32 {
@@ -162,16 +172,11 @@ impl CompoundProcedure {
             operands,
         })
     }
-
-    fn body(&self) -> &[SourceValue] {
-        // We're unwrapping these because we already validated them upon construction.
-        get_body(&self.definition).unwrap()
-    }
 }
 
 impl Traverser for CompoundProcedure {
     fn traverse(&self, visitor: &Visitor) {
-        visitor.traverse(&self.definition);
+        visitor.traverse(&self.body.0);
         visitor.traverse(&self.captured_lexical_scope);
     }
 }
@@ -189,10 +194,10 @@ impl BoundProcedure {
     pub fn call(self, interpreter: &mut Interpreter) -> ProcedureResult {
         interpreter.environment.push(
             self.procedure.captured_lexical_scope.clone(),
-            self.procedure.definition.1,
+            self.procedure.body.0 .1,
         );
 
-        let body = self.procedure.body();
+        let body = &self.procedure.body.0 .0;
         self.procedure
             .signature
             .bind_args(self.operands, interpreter);
@@ -205,16 +210,5 @@ impl BoundProcedure {
         interpreter.environment.pop();
 
         Ok(result)
-    }
-}
-
-fn get_body(
-    definition: &SourceMapped<Rc<CombinationBody>>,
-) -> Result<&[SourceValue], RuntimeError> {
-    let body = &definition.0[2..];
-    if body.is_empty() {
-        Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(definition.1))
-    } else {
-        Ok(body)
     }
 }
