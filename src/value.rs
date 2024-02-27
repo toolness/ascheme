@@ -25,6 +25,13 @@ impl SourceMapped<Value> {
             Err(RuntimeErrorType::ExpectedPair.source_mapped(self.1))
         }
     }
+
+    pub fn expect_list(&self) -> Result<Rc<Vec<SourceValue>>, RuntimeError> {
+        match self.expect_pair()?.try_as_rc_list() {
+            Some(list) => Ok(list),
+            None => Err(RuntimeErrorType::ExpectedList.source_mapped(self.1)),
+        }
+    }
 }
 
 pub type SourceValue = SourceMapped<Value>;

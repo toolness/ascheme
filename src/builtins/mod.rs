@@ -38,6 +38,7 @@ fn get_builtins() -> Builtins {
     let mut builtins: Builtins = vec![
         ("define", define),
         ("lambda", lambda),
+        ("apply", apply),
         ("quote", quote),
         ("begin", begin),
         ("display", display),
@@ -148,6 +149,17 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
         ctx.interpreter.environment.capture_lexical_scope(),
     );
     Ok(Value::Procedure(Procedure::Compound(proc)).into())
+}
+
+fn apply(ctx: ProcedureContext) -> ProcedureResult {
+    ctx.ensure_operands_len(2)?;
+    let procedure = ctx.interpreter.expect_procedure(&ctx.operands[0])?;
+    let operands = ctx
+        .interpreter
+        .eval_expression(&ctx.operands[1])?
+        .expect_list()?;
+    ctx.interpreter
+        .eval_procedure(procedure, &operands, ctx.operands[0].1, ctx.range)
 }
 
 fn quote(ctx: ProcedureContext) -> ProcedureResult {
@@ -390,5 +402,23 @@ mod tests {
         test_eval_success("(begin 1)", "1");
         test_eval_success("(begin 1 2)", "2");
         test_eval_success("(begin (+ 1 2))", "3");
+    }
+
+    #[test]
+    fn apply_works() {
+        // From R5RS 6.4.
+        test_eval_success("(apply + (list 3 4))", "7");
+
+        // From R5RS 6.4.
+        test_eval_success(
+            "
+            (define compose
+                (lambda (f g)
+                  (lambda args
+                    (f (apply g args)))))
+            ((compose sqrt *) 12 75)
+            ",
+            "30",
+        )
     }
 }

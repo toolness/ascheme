@@ -11,8 +11,15 @@ pub fn get_builtins() -> super::Builtins {
         ("-", subtract),
         ("*", multiply),
         ("/", divide),
+        ("sqrt", sqrt),
         ("remainder", remainder),
     ]
+}
+
+fn sqrt(ctx: ProcedureContext) -> ProcedureResult {
+    ctx.ensure_operands_len(1)?;
+    let number = ctx.interpreter.expect_number(&ctx.operands[0])?;
+    Ok(number.sqrt().into())
 }
 
 fn add(mut ctx: ProcedureContext) -> ProcedureResult {

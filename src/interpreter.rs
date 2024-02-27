@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Deref, rc::Rc, sync::mpsc::Receiver};
+use std::{collections::HashMap, ops::Deref, sync::mpsc::Receiver};
 
 use crate::{
     builtins::{self, add_library_source},
@@ -28,6 +28,7 @@ pub enum RuntimeErrorType {
     ExpectedProcedure,
     ExpectedIdentifier,
     ExpectedPair,
+    ExpectedList,
     WrongNumberOfArguments,
     DuplicateParameter,
     DuplicateVariableInBindings,
@@ -248,7 +249,10 @@ impl Interpreter {
         self.printer.eprintln(self.traceback());
     }
 
-    fn expect_procedure(&mut self, expression: &SourceValue) -> Result<Procedure, RuntimeError> {
+    pub fn expect_procedure(
+        &mut self,
+        expression: &SourceValue,
+    ) -> Result<Procedure, RuntimeError> {
         if let Value::Procedure(procedure) = self.eval_expression(&expression)?.0 {
             Ok(procedure)
         } else {
@@ -256,17 +260,17 @@ impl Interpreter {
         }
     }
 
-    fn eval_procedure(
+    pub fn eval_procedure(
         &mut self,
         procedure: Procedure,
-        combination: SourceMapped<&Rc<Vec<SourceValue>>>,
         operands: &[SourceValue],
-        source_range: SourceRange,
+        operator_source_range: SourceRange,
+        combination_source_range: SourceRange,
     ) -> ProcedureResult {
         if self.stack.len() >= self.max_stack_size {
-            return Err(RuntimeErrorType::StackOverflow.source_mapped(combination.1));
+            return Err(RuntimeErrorType::StackOverflow.source_mapped(combination_source_range));
         }
-        self.stack.push(source_range);
+        self.stack.push(operator_source_range);
         if let Some(ref mut stats) = &mut self.tracked_stats {
             if self.stack.len() > stats.max_call_stack_depth {
                 stats.max_call_stack_depth = self.stack.len()
@@ -275,7 +279,7 @@ impl Interpreter {
         }
         let ctx = ProcedureContext {
             interpreter: self,
-            range: combination.1,
+            range: combination_source_range,
             operands,
         };
         let result = match procedure {
@@ -367,7 +371,7 @@ impl Interpreter {
                         self.source_mapper.trace(&combination.1).join("\n")
                     ));
                 }
-                self.eval_procedure(procedure, combination, operands, operator.1)
+                self.eval_procedure(procedure, operands, operator.1, combination.1)
             }
         }
     }
