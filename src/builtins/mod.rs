@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
@@ -154,12 +156,34 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
 fn apply(ctx: ProcedureContext) -> ProcedureResult {
     ctx.ensure_operands_len(2)?;
     let procedure = ctx.interpreter.expect_procedure(&ctx.operands[0])?;
-    let operands = ctx
-        .interpreter
-        .eval_expression(&ctx.operands[1])?
-        .expect_list()?;
+    let operands = Rc::into_inner(
+        ctx.interpreter
+            .eval_expression(&ctx.operands[1])?
+            .expect_list()?,
+    )
+    .unwrap();
+
+    // TODO: UGH. We are quoting the operands here so that when the procedure tries to evaluate
+    // them, it will just get them as-is, instead of trying to evaluate them. We're going to need
+    // to make a distinction between special forms and procedures, and pass pre-evaluated args
+    // directly into procedures, rather than having procedures just be special forms that always
+    // evaluate themselves.
+    let quoted_operands = operands
+        .into_iter()
+        .map(|value| {
+            let expressions = vec![
+                Value::Symbol(ctx.interpreter.string_interner.intern("quote")).empty_source_map(),
+                value,
+            ];
+            ctx.interpreter
+                .pair_manager
+                .vec_to_list(expressions)
+                .empty_source_map()
+        })
+        .collect::<Vec<_>>();
+
     ctx.interpreter
-        .eval_procedure(procedure, &operands, ctx.operands[0].1, ctx.range)
+        .eval_procedure(procedure, &quoted_operands, ctx.operands[0].1, ctx.range)
 }
 
 fn quote(ctx: ProcedureContext) -> ProcedureResult {
@@ -422,5 +446,6 @@ mod tests {
         );
 
         test_eval_success("(apply + '())", "0");
+        test_eval_success("(apply (lambda (x) x) '((1)))", "(1)");
     }
 }
