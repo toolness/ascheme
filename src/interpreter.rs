@@ -220,6 +220,7 @@ impl Interpreter {
         id
     }
 
+    // TODO: Move this to Value.
     pub fn expect_number(&mut self, expression: &SourceValue) -> Result<f64, RuntimeError> {
         if let Value::Number(number) = self.eval_expression(&expression)?.0 {
             Ok(number)
@@ -249,6 +250,7 @@ impl Interpreter {
         self.printer.eprintln(self.traceback());
     }
 
+    // TODO: Move this to Value.
     pub fn expect_procedure(
         &mut self,
         expression: &SourceValue,
