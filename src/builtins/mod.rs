@@ -164,7 +164,7 @@ fn apply(ctx: ProcedureContext) -> ProcedureResult {
     .unwrap();
 
     // TODO: UGH. We are quoting the operands here so that when the procedure tries to evaluate
-    // them, it will just get them as-is, instead of trying to evaluate them. We're going to need
+    // them, it will just get them as-is, instead of evaluating them. To fix, we're going to need
     // to make a distinction between special forms and procedures, and pass pre-evaluated args
     // directly into procedures, rather than having procedures just be special forms that always
     // evaluate themselves.
