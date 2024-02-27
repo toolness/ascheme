@@ -54,11 +54,12 @@ fn cons(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(pair.into())
 }
 
-fn list(ctx: ProcedureContext) -> ProcedureResult {
+fn list(mut ctx: ProcedureContext) -> ProcedureResult {
+    let operands = ctx.eval_variadic()?;
     Ok(ctx
         .interpreter
         .pair_manager
-        .vec_to_list(ctx.operands.into())
+        .vec_to_list(operands.into())
         .into())
 }
 
@@ -96,5 +97,6 @@ mod tests {
     fn list_works() {
         test_eval_success("(list)", "()");
         test_eval_success("(list 1 2 3)", "(1 2 3)");
+        test_eval_success("(list (+ 1 2))", "(3)");
     }
 }

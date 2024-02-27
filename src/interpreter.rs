@@ -86,6 +86,14 @@ impl<'a> ProcedureContext<'a> {
         ))
     }
 
+    pub fn eval_variadic(&mut self) -> Result<Vec<SourceValue>, RuntimeError> {
+        let mut operands = Vec::with_capacity(self.operands.len());
+        for expr in self.operands.iter() {
+            operands.push(self.interpreter.eval_expression(expr)?);
+        }
+        Ok(operands)
+    }
+
     pub fn undefined(&self) -> ProcedureResult {
         Ok(Value::Undefined.source_mapped(self.range).into())
     }
