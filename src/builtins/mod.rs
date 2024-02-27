@@ -419,6 +419,8 @@ mod tests {
             ((compose sqrt *) 12 75)
             ",
             "30",
-        )
+        );
+
+        test_eval_success("(apply + '())", "0");
     }
 }

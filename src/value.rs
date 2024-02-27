@@ -27,8 +27,8 @@ impl SourceMapped<Value> {
     }
 
     pub fn expect_list(&self) -> Result<Rc<Vec<SourceValue>>, RuntimeError> {
-        match self.expect_pair()?.try_as_rc_list() {
-            Some(list) => Ok(list),
+        match self.try_into_list() {
+            Some(list) => Ok(list.0),
             None => Err(RuntimeErrorType::ExpectedList.source_mapped(self.1)),
         }
     }
