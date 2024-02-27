@@ -57,7 +57,7 @@ fn get_builtins() -> Builtins {
 
 fn _if(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() < 2 || ctx.operands.len() > 3 {
-        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
     let test = ctx.interpreter.eval_expression(&ctx.operands[0])?.0;
     if test.as_bool() {
@@ -76,7 +76,7 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
 
 fn cond(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() == 0 {
-        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
 
     for clause in ctx.operands.iter() {
@@ -117,7 +117,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
         Some(SourceMapped(Value::Pair(pair), range)) => {
             let name = pair.car().expect_identifier()?;
             let signature = Signature::parse(pair.cdr())?;
-            let body = Body::try_new(&ctx.operands[1..], ctx.combination.1)?;
+            let body = Body::try_new(&ctx.operands[1..], ctx.range)?;
             let mut proc = CompoundProcedure::create(
                 ctx.interpreter.new_id(),
                 signature,
@@ -131,16 +131,16 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
             );
             ctx.undefined()
         }
-        _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1)),
+        _ => Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range)),
     }
 }
 
 fn lambda(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() < 2 {
-        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
     let signature = Signature::parse(ctx.operands[0].clone())?;
-    let body = Body::try_new(&ctx.operands[1..], ctx.combination.1)?;
+    let body = Body::try_new(&ctx.operands[1..], ctx.range)?;
     let proc = CompoundProcedure::create(
         ctx.interpreter.new_id(),
         signature,
@@ -154,7 +154,7 @@ fn quote(ctx: ProcedureContext) -> ProcedureResult {
     if ctx.operands.len() == 1 {
         Ok(ctx.operands[0].clone().into())
     } else {
-        Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1))
+        Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range))
     }
 }
 

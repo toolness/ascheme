@@ -50,8 +50,7 @@ fn cdr(mut ctx: ProcedureContext) -> ProcedureResult {
 
 fn cons(mut ctx: ProcedureContext) -> ProcedureResult {
     let (car, cdr) = ctx.eval_binary()?;
-    let pair =
-        Value::Pair(ctx.interpreter.pair_manager.pair(car, cdr)).source_mapped(ctx.combination.1);
+    let pair = Value::Pair(ctx.interpreter.pair_manager.pair(car, cdr)).source_mapped(ctx.range);
     Ok(pair.into())
 }
 

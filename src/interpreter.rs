@@ -59,14 +59,14 @@ impl<T: Into<SourceValue>> From<T> for ProcedureSuccess {
 /// to implement special forms as well as procedures.
 pub struct ProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
-    pub combination: SourceMapped<&'a Rc<Vec<SourceValue>>>,
+    pub range: SourceRange,
     pub operands: &'a [SourceValue],
 }
 
 impl<'a> ProcedureContext<'a> {
     pub fn ensure_operands_len(&self, len: usize) -> Result<(), RuntimeError> {
         if self.operands.len() != len {
-            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.combination.1))
+            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.range))
         } else {
             Ok(())
         }
@@ -86,7 +86,7 @@ impl<'a> ProcedureContext<'a> {
     }
 
     pub fn undefined(&self) -> ProcedureResult {
-        Ok(Value::Undefined.source_mapped(self.combination.1).into())
+        Ok(Value::Undefined.source_mapped(self.range).into())
     }
 }
 
@@ -275,7 +275,7 @@ impl Interpreter {
         }
         let ctx = ProcedureContext {
             interpreter: self,
-            combination,
+            range: combination.1,
             operands,
         };
         let result = match procedure {
@@ -315,7 +315,7 @@ impl Interpreter {
                         }
                         let mut ctx = ProcedureContext {
                             interpreter: self,
-                            combination,
+                            range: combination.1,
                             operands,
                         };
                         let bound_procedure = compound.bind(&mut ctx)?;

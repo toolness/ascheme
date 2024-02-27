@@ -28,7 +28,7 @@ fn parse_bindings(
         .map(|value| value.try_into_list())
         .flatten()
     else {
-        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     };
 
     let mut result = Vec::with_capacity(bindings.0.len());
@@ -56,7 +56,7 @@ fn parse_bindings(
 fn eval_body(ctx: &mut ProcedureContext) -> Result<ProcedureSuccess, RuntimeError> {
     let body = &ctx.operands[1..];
     if body.is_empty() {
-        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.combination.1));
+        return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
     ctx.interpreter.eval_expressions_in_tail_context(body)
 }
@@ -69,7 +69,7 @@ fn _let(mut ctx: ProcedureContext) -> ProcedureResult {
         binding_map.insert(binding.variable, value);
     }
     let scope = ctx.interpreter.environment.capture_lexical_scope();
-    ctx.interpreter.environment.push(scope, ctx.combination.1);
+    ctx.interpreter.environment.push(scope, ctx.range);
     for (variable, value) in binding_map {
         ctx.interpreter.environment.define(variable, value);
     }
@@ -109,7 +109,7 @@ fn let_star(mut ctx: ProcedureContext) -> ProcedureResult {
 fn letrec(mut ctx: ProcedureContext) -> ProcedureResult {
     let bindings = parse_bindings(&mut ctx, false)?;
     let scope = ctx.interpreter.environment.capture_lexical_scope();
-    ctx.interpreter.environment.push(scope, ctx.combination.1);
+    ctx.interpreter.environment.push(scope, ctx.range);
     for binding in bindings.into_iter() {
         let value = ctx.interpreter.eval_expression(&binding.init)?;
         ctx.interpreter.environment.define(binding.variable, value);

@@ -57,7 +57,7 @@ fn print_and_eval(ctx: ProcedureContext) -> ProcedureResult {
 fn assert(mut ctx: ProcedureContext) -> ProcedureResult {
     let value = ctx.eval_unary()?;
     if !value.0.as_bool() {
-        Err(RuntimeErrorType::AssertionFailure.source_mapped(ctx.combination.1))
+        Err(RuntimeErrorType::AssertionFailure.source_mapped(ctx.range))
     } else {
         ctx.undefined()
     }
@@ -105,11 +105,7 @@ fn test_repr(ctx: ProcedureContext) -> ProcedureResult {
 }
 
 fn rust_backtrace(ctx: ProcedureContext) -> ProcedureResult {
-    let location = ctx
-        .interpreter
-        .source_mapper
-        .trace(&ctx.combination.1)
-        .join("\n");
+    let location = ctx.interpreter.source_mapper.trace(&ctx.range).join("\n");
     let backtrace = Backtrace::force_capture();
     ctx.interpreter
         .printer

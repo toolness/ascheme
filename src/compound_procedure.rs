@@ -160,8 +160,7 @@ impl CompoundProcedure {
     }
 
     pub fn bind(self, ctx: &mut ProcedureContext) -> Result<BoundProcedure, RuntimeError> {
-        self.signature
-            .check_arity(ctx.operands.len(), ctx.combination.1)?;
+        self.signature.check_arity(ctx.operands.len(), ctx.range)?;
         let mut operands = Vec::with_capacity(ctx.operands.len());
         for expr in ctx.operands.iter() {
             let value = ctx.interpreter.eval_expression(expr)?;
