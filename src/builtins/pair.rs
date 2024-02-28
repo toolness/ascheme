@@ -1,7 +1,6 @@
 use crate::{
     builtins::Builtin,
-    interpreter::{CallableResult, RuntimeError, SpecialFormContext},
-    pair::Pair,
+    interpreter::{BuiltinProcedureContext, BuiltinProcedureFn, CallableResult},
     source_mapped::SourceMappable,
     value::{SourceValue, Value},
 };
@@ -10,55 +9,51 @@ use super::Builtins;
 
 pub fn get_builtins() -> Builtins {
     vec![
-        // TODO: I think these are all procedures, not special forms.
-        Builtin::SpecialForm("set-car!", set_car),
-        Builtin::SpecialForm("set-cdr!", set_cdr),
-        Builtin::SpecialForm("cons", cons),
-        Builtin::SpecialForm("car", car),
-        Builtin::SpecialForm("cdr", cdr),
-        Builtin::SpecialForm("list", list),
-        Builtin::SpecialForm("pair?", pair),
+        Builtin::Procedure("set-car!", BuiltinProcedureFn::Binary(set_car)),
+        Builtin::Procedure("set-cdr!", BuiltinProcedureFn::Binary(set_cdr)),
+        Builtin::Procedure("cons", BuiltinProcedureFn::Binary(cons)),
+        Builtin::Procedure("car", BuiltinProcedureFn::Unary(car)),
+        Builtin::Procedure("cdr", BuiltinProcedureFn::Unary(cdr)),
+        Builtin::Procedure("list", BuiltinProcedureFn::NullaryVariadic(list)),
+        Builtin::Procedure("pair?", BuiltinProcedureFn::Unary(pair)),
     ]
 }
 
-fn eval_pair_and_value(ctx: &mut SpecialFormContext) -> Result<(Pair, SourceValue), RuntimeError> {
-    ctx.ensure_operands_len(2)?;
-    let pair = ctx
-        .interpreter
-        .eval_expression(&ctx.operands[0])?
-        .expect_pair()?;
-    let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
-    Ok((pair, value))
-}
-
-fn set_car(mut ctx: SpecialFormContext) -> CallableResult {
-    let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
-    pair.set_car(value);
+fn set_car(
+    ctx: BuiltinProcedureContext,
+    pair: &SourceValue,
+    value: &SourceValue,
+) -> CallableResult {
+    let mut pair = pair.expect_pair()?;
+    pair.set_car(value.clone());
     ctx.undefined()
 }
 
-fn set_cdr(mut ctx: SpecialFormContext) -> CallableResult {
-    let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
-    pair.set_cdr(value);
+fn set_cdr(
+    ctx: BuiltinProcedureContext,
+    pair: &SourceValue,
+    value: &SourceValue,
+) -> CallableResult {
+    let mut pair = pair.expect_pair()?;
+    pair.set_cdr(value.clone());
     ctx.undefined()
 }
 
-fn car(mut ctx: SpecialFormContext) -> CallableResult {
-    Ok(ctx.eval_unary()?.expect_pair()?.car().into())
+fn car(_ctx: BuiltinProcedureContext, value: &SourceValue) -> CallableResult {
+    Ok(value.expect_pair()?.car().into())
 }
 
-fn cdr(mut ctx: SpecialFormContext) -> CallableResult {
-    Ok(ctx.eval_unary()?.expect_pair()?.cdr().into())
+fn cdr(_ctx: BuiltinProcedureContext, value: &SourceValue) -> CallableResult {
+    Ok(value.expect_pair()?.cdr().into())
 }
 
-fn cons(mut ctx: SpecialFormContext) -> CallableResult {
-    let (car, cdr) = ctx.eval_binary()?;
-    let pair = Value::Pair(ctx.interpreter.pair_manager.pair(car, cdr)).source_mapped(ctx.range);
+fn cons(ctx: BuiltinProcedureContext, car: &SourceValue, cdr: &SourceValue) -> CallableResult {
+    let pair = Value::Pair(ctx.interpreter.pair_manager.pair(car.clone(), cdr.clone()))
+        .source_mapped(ctx.range);
     Ok(pair.into())
 }
 
-fn list(mut ctx: SpecialFormContext) -> CallableResult {
-    let operands = ctx.eval_variadic()?;
+fn list(ctx: BuiltinProcedureContext, operands: &[SourceValue]) -> CallableResult {
     Ok(ctx
         .interpreter
         .pair_manager
@@ -66,8 +61,7 @@ fn list(mut ctx: SpecialFormContext) -> CallableResult {
         .into())
 }
 
-fn pair(mut ctx: SpecialFormContext) -> CallableResult {
-    let operand = ctx.eval_unary()?;
+fn pair(_ctx: BuiltinProcedureContext, operand: &SourceValue) -> CallableResult {
     Ok(matches!(operand.0, Value::Pair(_)).into())
 }
 

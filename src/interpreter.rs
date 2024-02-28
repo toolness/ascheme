@@ -87,22 +87,6 @@ impl<'a> SpecialFormContext<'a> {
         Ok(self.interpreter.eval_expression(&self.operands[0])?)
     }
 
-    pub fn eval_binary(&mut self) -> Result<(SourceValue, SourceValue), RuntimeError> {
-        self.ensure_operands_len(2)?;
-        Ok((
-            self.interpreter.eval_expression(&self.operands[0])?,
-            self.interpreter.eval_expression(&self.operands[1])?,
-        ))
-    }
-
-    pub fn eval_variadic(&mut self) -> Result<Vec<SourceValue>, RuntimeError> {
-        let mut operands = Vec::with_capacity(self.operands.len());
-        for expr in self.operands.iter() {
-            operands.push(self.interpreter.eval_expression(expr)?);
-        }
-        Ok(operands)
-    }
-
     pub fn undefined(&self) -> CallableResult {
         Ok(Value::Undefined.source_mapped(self.range).into())
     }
