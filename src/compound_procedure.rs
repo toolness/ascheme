@@ -190,23 +190,19 @@ impl BoundProcedure {
 
                 Ok(result)
             }
-            Procedure::Builtin(builtin) => match builtin.func {
-                BuiltinProcedureFn::Unary(func) => (func)(
-                    BuiltinProcedureContext {
-                        interpreter,
-                        range: self.range,
-                    },
-                    &self.operands[0],
-                ),
-                BuiltinProcedureFn::Binary(func) => (func)(
-                    BuiltinProcedureContext {
-                        interpreter,
-                        range: self.range,
-                    },
-                    &self.operands[0],
-                    &self.operands[1],
-                ),
-            },
+            Procedure::Builtin(builtin) => {
+                let ctx = BuiltinProcedureContext {
+                    interpreter,
+                    range: self.range,
+                };
+                match builtin.func {
+                    BuiltinProcedureFn::Nullary(func) => (func)(ctx),
+                    BuiltinProcedureFn::Unary(func) => (func)(ctx, &self.operands[0]),
+                    BuiltinProcedureFn::Binary(func) => {
+                        (func)(ctx, &self.operands[0], &self.operands[1])
+                    }
+                }
+            }
         }
     }
 }

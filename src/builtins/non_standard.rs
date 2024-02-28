@@ -4,7 +4,10 @@ use colored::Colorize;
 
 use crate::{
     builtins::Builtin,
-    interpreter::{CallableResult, RuntimeErrorType, SpecialFormContext},
+    interpreter::{
+        BuiltinProcedureContext, BuiltinProcedureFn, CallableResult, RuntimeErrorType,
+        SpecialFormContext,
+    },
     source_mapped::SourceMappable,
 };
 
@@ -14,8 +17,8 @@ pub fn get_builtins() -> super::Builtins {
     vec![
         // TODO: Some of these should really be procedures.
         Builtin::SpecialForm("rust-backtrace", rust_backtrace),
-        Builtin::SpecialForm("stats", stats),
-        Builtin::SpecialForm("gc", gc),
+        Builtin::Procedure("stats", BuiltinProcedureFn::Nullary(stats)),
+        Builtin::Procedure("gc", BuiltinProcedureFn::Nullary(gc)),
         Builtin::SpecialForm("gc-verbose", gc_verbose),
         Builtin::SpecialForm("test-eq", test_eq),
         Builtin::SpecialForm("test-repr", test_repr),
@@ -25,12 +28,12 @@ pub fn get_builtins() -> super::Builtins {
     ]
 }
 
-fn stats(ctx: SpecialFormContext) -> CallableResult {
+fn stats(ctx: BuiltinProcedureContext) -> CallableResult {
     ctx.interpreter.print_stats();
     ctx.undefined()
 }
 
-fn gc(ctx: SpecialFormContext) -> CallableResult {
+fn gc(ctx: BuiltinProcedureContext) -> CallableResult {
     let objs_found_in_cycles = ctx.interpreter.gc(false);
     Ok((objs_found_in_cycles as f64).into())
 }

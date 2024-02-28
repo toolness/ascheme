@@ -122,6 +122,7 @@ pub struct BuiltinProcedure {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BuiltinProcedureFn {
+    Nullary(fn(BuiltinProcedureContext) -> CallableResult),
     Unary(fn(BuiltinProcedureContext, &SourceValue) -> CallableResult),
     Binary(fn(BuiltinProcedureContext, &SourceValue, &SourceValue) -> CallableResult),
 }
@@ -129,6 +130,7 @@ pub enum BuiltinProcedureFn {
 impl BuiltinProcedure {
     fn is_valid_arity(&self, operands_len: usize) -> bool {
         match self.func {
+            BuiltinProcedureFn::Nullary(_) => operands_len == 0,
             BuiltinProcedureFn::Unary(_) => operands_len == 1,
             BuiltinProcedureFn::Binary(_) => operands_len == 2,
         }
