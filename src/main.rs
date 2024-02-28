@@ -34,6 +34,7 @@ mod source_mapper;
 mod stdio_printer;
 mod string_interner;
 mod tokenizer;
+mod tracked_stats;
 mod value;
 
 #[cfg(test)]
