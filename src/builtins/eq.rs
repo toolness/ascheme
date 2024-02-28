@@ -1,5 +1,7 @@
 use crate::{
-    interpreter::{Callable, CallableContext, CallableResult, Interpreter, RuntimeError},
+    interpreter::{
+        Callable, CallableContext, CallableResult, Interpreter, Procedure, RuntimeError,
+    },
     value::{SourceValue, Value},
 };
 
@@ -38,8 +40,12 @@ pub fn is_eq(
             Value::Callable(Callable::SpecialForm(b)) => a.func == b.func,
             _ => false,
         },
-        Value::Callable(Callable::CompoundProcedure(a)) => match &b.0 {
-            Value::Callable(Callable::CompoundProcedure(b)) => a.id() == b.id(),
+        Value::Callable(Callable::Procedure(Procedure::Builtin(a))) => match &b.0 {
+            Value::Callable(Callable::Procedure(Procedure::Builtin(b))) => a.func == b.func,
+            _ => false,
+        },
+        Value::Callable(Callable::Procedure(Procedure::Compound(a))) => match &b.0 {
+            Value::Callable(Callable::Procedure(Procedure::Compound(b))) => a.id() == b.id(),
             _ => false,
         },
         Value::Pair(a) => match &b.0 {

@@ -4,7 +4,8 @@ use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{
-        Callable, CallableContext, CallableResult, RuntimeErrorType, SpecialForm, SpecialFormFn,
+        Callable, CallableContext, CallableResult, Procedure, ProcedureFn, RuntimeErrorType,
+        SpecialForm,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
@@ -40,7 +41,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
     environment.define(interner.intern("else"), Value::Boolean(true).into());
 }
 
-pub type Builtins = Vec<(&'static str, SpecialFormFn)>;
+pub type Builtins = Vec<(&'static str, ProcedureFn)>;
 
 fn get_builtins() -> Builtins {
     let mut builtins: Builtins = vec![
@@ -115,7 +116,9 @@ fn define(ctx: CallableContext) -> CallableResult {
     match ctx.operands.get(0) {
         Some(SourceMapped(Value::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
-            if let Value::Callable(Callable::CompoundProcedure(compound)) = &mut value.0 {
+            if let Value::Callable(Callable::Procedure(Procedure::Compound(compound))) =
+                &mut value.0
+            {
                 if compound.name.is_none() {
                     compound.name = Some(name.clone());
                 }
@@ -136,7 +139,8 @@ fn define(ctx: CallableContext) -> CallableResult {
             proc.name = Some(name.clone());
             ctx.interpreter.environment.define(
                 name,
-                Value::Callable(Callable::CompoundProcedure(proc)).source_mapped(*range),
+                Value::Callable(Callable::Procedure(Procedure::Compound(proc)))
+                    .source_mapped(*range),
             );
             ctx.undefined()
         }
@@ -156,7 +160,7 @@ fn lambda(ctx: CallableContext) -> CallableResult {
         body,
         ctx.interpreter.environment.capture_lexical_scope(),
     );
-    Ok(Value::Callable(Callable::CompoundProcedure(proc)).into())
+    Ok(Value::Callable(Callable::Procedure(Procedure::Compound(proc))).into())
 }
 
 fn apply(ctx: CallableContext) -> CallableResult {

@@ -101,19 +101,47 @@ impl<'a> CallableContext<'a> {
 
 #[derive(Debug, Clone)]
 pub struct SpecialForm {
-    pub func: SpecialFormFn,
+    pub func: ProcedureFn,
     pub name: InternedString,
+}
+
+#[derive(Debug, Clone)]
+pub struct BuiltinProcedure {
+    pub func: ProcedureFn,
+    pub name: InternedString,
+}
+
+#[derive(Debug, Clone)]
+pub enum Procedure {
+    Compound(CompoundProcedure),
+    Builtin(BuiltinProcedure),
+}
+
+impl Procedure {
+    pub fn name(&self) -> Option<&InternedString> {
+        match self {
+            Procedure::Builtin(builtin) => Some(&builtin.name),
+            Procedure::Compound(compound) => compound.name.as_ref(),
+        }
+    }
+
+    pub fn is_valid_arity(&self, operands_len: usize) -> bool {
+        match self {
+            Procedure::Compound(compound) => compound.signature.is_valid_arity(operands_len),
+            Procedure::Builtin(_) => todo!("CHECK ARITY"),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub enum Callable {
     SpecialForm(SpecialForm),
-    CompoundProcedure(CompoundProcedure),
+    Procedure(Procedure),
 }
 
 pub type CallableResult = Result<CallableSuccess, RuntimeError>;
 
-pub type SpecialFormFn = fn(CallableContext) -> CallableResult;
+pub type ProcedureFn = fn(CallableContext) -> CallableResult;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
@@ -280,7 +308,7 @@ impl Interpreter {
                 };
                 (special_form.func)(ctx)?
             }
-            Callable::CompoundProcedure(compound) => {
+            Callable::Procedure(procedure) => {
                 if self.stack.len() >= self.max_stack_size {
                     return Err(
                         RuntimeErrorType::StackOverflow.source_mapped(combination_source_range)
@@ -291,9 +319,9 @@ impl Interpreter {
                     if self.stack.len() > stats.max_call_stack_depth {
                         stats.max_call_stack_depth = self.stack.len()
                     }
-                    stats.track_call(compound.name.as_ref());
+                    stats.track_call(procedure.name());
                 }
-                let bound = self.bind_procedure(compound, combination_source_range, operands)?;
+                let bound = self.bind_procedure(procedure, combination_source_range, operands)?;
                 let result = bound.call(self)?;
                 // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
                 // afterwards. It's up to the caller to clean things up after an error.
@@ -307,16 +335,22 @@ impl Interpreter {
 
     fn bind_procedure(
         &mut self,
-        procedure: CompoundProcedure,
-        combination_source_range: SourceRange,
+        procedure: Procedure,
+        range: SourceRange,
         operands: &[SourceValue],
     ) -> Result<BoundProcedure, RuntimeError> {
-        let mut ctx = CallableContext {
-            interpreter: self,
-            range: combination_source_range,
-            operands,
-        };
-        procedure.bind(&mut ctx)
+        if !procedure.is_valid_arity(operands.len()) {
+            return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(range));
+        }
+        let mut evaluated_operands = Vec::with_capacity(operands.len());
+        for expr in operands.iter() {
+            let value = self.eval_expression(expr)?;
+            evaluated_operands.push(value);
+        }
+        Ok(BoundProcedure {
+            procedure,
+            operands: evaluated_operands,
+        })
     }
 
     fn try_bind_tail_call_context(
@@ -336,7 +370,7 @@ impl Interpreter {
                 let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 match callable {
-                    Callable::CompoundProcedure(compound) => {
+                    Callable::Procedure(compound) => {
                         if self.tracing {
                             self.printer.println(format!(
                                 "Creating tail call context {}",

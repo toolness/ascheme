@@ -2,7 +2,7 @@ use std::{fmt::Display, rc::Rc};
 
 use crate::{
     gc::{Traverser, Visitor},
-    interpreter::{Callable, RuntimeError, RuntimeErrorType},
+    interpreter::{Callable, Procedure, RuntimeError, RuntimeErrorType},
     mutable_string::MutableString,
     pair::Pair,
     source_mapped::{SourceMappable, SourceMapped},
@@ -90,7 +90,7 @@ impl Traverser for Value {
             Value::Pair(pair) => {
                 visitor.traverse(pair);
             }
-            Value::Callable(Callable::CompoundProcedure(compound)) => {
+            Value::Callable(Callable::Procedure(Procedure::Compound(compound))) => {
                 visitor.traverse(compound);
             }
             _ => {}
@@ -131,7 +131,10 @@ impl Display for Value {
             Value::Callable(Callable::SpecialForm(special_form)) => {
                 write!(f, "#<special form {}>", special_form.name.as_ref())
             }
-            Value::Callable(Callable::CompoundProcedure(compound)) => write!(
+            Value::Callable(Callable::Procedure(Procedure::Builtin(builtin))) => {
+                write!(f, "#<builtin procedure {}>", builtin.name.as_ref())
+            }
+            Value::Callable(Callable::Procedure(Procedure::Compound(compound))) => write!(
                 f,
                 "#<procedure{} #{}>",
                 match &compound.name {

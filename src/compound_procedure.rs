@@ -3,7 +3,7 @@ use std::{collections::HashSet, rc::Rc};
 use crate::{
     environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
-    interpreter::{CallableContext, CallableResult, Interpreter, RuntimeError, RuntimeErrorType},
+    interpreter::{CallableResult, Interpreter, Procedure, RuntimeError, RuntimeErrorType},
     pair::PairVisitedSet,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
@@ -66,16 +66,11 @@ impl Signature {
         }
     }
 
-    fn check_arity(&self, args_len: usize, range: SourceRange) -> Result<(), RuntimeError> {
-        let is_valid = match self {
+    pub fn is_valid_arity(&self, args_len: usize) -> bool {
+        match self {
             Signature::FixedArgs(args) => args_len == args.len(),
             Signature::MinArgs(args, _) => args_len >= args.len(),
             Signature::AnyArgs(_) => true,
-        };
-        if is_valid {
-            Ok(())
-        } else {
-            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(range))
         }
     }
 
@@ -129,7 +124,7 @@ impl Body {
 pub struct CompoundProcedure {
     pub name: Option<InternedString>,
     id: u32,
-    signature: Rc<Signature>,
+    pub signature: Rc<Signature>,
     body: Rc<Body>,
     captured_lexical_scope: CapturedLexicalScope,
 }
@@ -153,19 +148,6 @@ impl CompoundProcedure {
     pub fn id(&self) -> u32 {
         self.id
     }
-
-    pub fn bind(self, ctx: &mut CallableContext) -> Result<BoundProcedure, RuntimeError> {
-        self.signature.check_arity(ctx.operands.len(), ctx.range)?;
-        let mut operands = Vec::with_capacity(ctx.operands.len());
-        for expr in ctx.operands.iter() {
-            let value = ctx.interpreter.eval_expression(expr)?;
-            operands.push(value);
-        }
-        Ok(BoundProcedure {
-            procedure: self,
-            operands,
-        })
-    }
 }
 
 impl Traverser for CompoundProcedure {
@@ -176,33 +158,35 @@ impl Traverser for CompoundProcedure {
 }
 
 pub struct BoundProcedure {
-    procedure: CompoundProcedure,
-    operands: Vec<SourceValue>,
+    pub procedure: Procedure,
+    pub operands: Vec<SourceValue>,
 }
 
 impl BoundProcedure {
     pub fn name(&self) -> Option<&InternedString> {
-        self.procedure.name.as_ref()
+        self.procedure.name()
     }
 
     pub fn call(self, interpreter: &mut Interpreter) -> CallableResult {
-        interpreter.environment.push(
-            self.procedure.captured_lexical_scope.clone(),
-            self.procedure.body.0 .1,
-        );
+        match self.procedure {
+            Procedure::Compound(compound) => {
+                interpreter
+                    .environment
+                    .push(compound.captured_lexical_scope.clone(), compound.body.0 .1);
 
-        let body = &self.procedure.body.0 .0;
-        self.procedure
-            .signature
-            .bind_args(self.operands, interpreter);
+                let body = &compound.body.0 .0;
+                compound.signature.bind_args(self.operands, interpreter);
 
-        let result = interpreter.eval_expressions_in_tail_context(body)?;
+                let result = interpreter.eval_expressions_in_tail_context(body)?;
 
-        // Note that the environment won't have been popped if an error occured above--this is
-        // so we can examine it afterwards, if needed. It's up to the caller to clean things
-        // up after an error.
-        interpreter.environment.pop();
+                // Note that the environment won't have been popped if an error occured above--this is
+                // so we can examine it afterwards, if needed. It's up to the caller to clean things
+                // up after an error.
+                interpreter.environment.pop();
 
-        Ok(result)
+                Ok(result)
+            }
+            Procedure::Builtin(_) => todo!("IMPLEMENT BUILTIN PROC CALL"),
+        }
     }
 }
