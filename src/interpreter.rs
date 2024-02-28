@@ -100,14 +100,14 @@ impl<'a> ProcedureContext<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Builtin {
+pub struct BuiltinProcedure {
     pub func: ProcedureFn,
     pub name: InternedString,
 }
 
 #[derive(Debug, Clone)]
 pub enum Procedure {
-    Builtin(Builtin),
+    Builtin(BuiltinProcedure),
     Compound(CompoundProcedure),
 }
 

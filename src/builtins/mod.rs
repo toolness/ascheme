@@ -4,7 +4,8 @@ use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{
-        Builtin, Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType,
+        BuiltinProcedure, Procedure, ProcedureContext, ProcedureFn, ProcedureResult,
+        RuntimeErrorType,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
@@ -28,7 +29,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
         let interned_name = interner.intern(name);
         environment.define(
             interned_name.clone(),
-            Value::Procedure(Procedure::Builtin(Builtin {
+            Value::Procedure(Procedure::Builtin(BuiltinProcedure {
                 func: builtin,
                 name: interned_name,
             }))
