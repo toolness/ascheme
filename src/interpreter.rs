@@ -52,6 +52,12 @@ impl<T: Into<SourceValue>> From<T> for CallableSuccess {
     }
 }
 
+pub struct BuiltinProcedureContext<'a> {
+    pub interpreter: &'a mut Interpreter,
+    pub range: SourceRange,
+    pub operands: &'a [SourceValue],
+}
+
 /// Encapsulates all the details of a special
 /// form invocation required for evaluation.
 ///
@@ -141,7 +147,7 @@ pub type CallableResult = Result<CallableSuccess, RuntimeError>;
 
 pub type SpecialFormFn = fn(SpecialFormContext) -> CallableResult;
 
-pub type ProcedureFn = fn() -> CallableResult; // TODO FIX THIS
+pub type ProcedureFn = fn(BuiltinProcedureContext) -> CallableResult;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
