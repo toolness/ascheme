@@ -16,3 +16,5 @@
 (test-repr (append '(a (b)) '((c))) '(a (b) (c)))
 (test-repr (append '() 'a) 'a)
 (test-repr (append '(a b) '(c . d)) '(a b c . d))
+
+(test-repr (append '(a b) '(c d) '(e f)) '(a b c d e f))

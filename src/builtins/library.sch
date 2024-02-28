@@ -30,9 +30,13 @@
   (reverse-helper x '())
 )
 
-; TODO: Make this variadic. Also, make it linear iterative.
-(define (append a b)
-  (if (null? a) b
-      (cons (car a) (append (cdr a) b))
+; TODO: Make this linear iterative.
+(define (append a . more-lists)
+  (define (append-two a b)
+    (if (null? a) b
+        (cons (car a) (append-two (cdr a) b))
+    )
   )
+  (if (null? more-lists) a
+      (apply append (cons (append-two a (car more-lists)) (cdr more-lists))))
 )
