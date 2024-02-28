@@ -3,7 +3,9 @@ use std::rc::Rc;
 use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
-    interpreter::{Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType},
+    interpreter::{
+        Builtin, Procedure, ProcedureContext, ProcedureFn, ProcedureResult, RuntimeErrorType,
+    },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
     value::Value,
@@ -26,7 +28,11 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
         let interned_name = interner.intern(name);
         environment.define(
             interned_name.clone(),
-            Value::Procedure(Procedure::Builtin(builtin, interned_name)).into(),
+            Value::Procedure(Procedure::Builtin(Builtin {
+                func: builtin,
+                name: interned_name,
+            }))
+            .into(),
         );
     }
     // TODO: Technically 'else' is just part of how the 'cond' special form is evaluated,

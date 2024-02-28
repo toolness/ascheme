@@ -128,8 +128,8 @@ impl Display for Value {
                 }
             }
             Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),
-            Value::Procedure(Procedure::Builtin(_, name)) => {
-                write!(f, "#<builtin procedure {}>", name.as_ref())
+            Value::Procedure(Procedure::Builtin(builtin)) => {
+                write!(f, "#<builtin procedure {}>", builtin.name.as_ref())
             }
             Value::Procedure(Procedure::Compound(compound)) => write!(
                 f,

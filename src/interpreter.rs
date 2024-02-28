@@ -100,15 +100,21 @@ impl<'a> ProcedureContext<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub struct Builtin {
+    pub func: ProcedureFn,
+    pub name: InternedString,
+}
+
+#[derive(Debug, Clone)]
 pub enum Procedure {
-    Builtin(ProcedureFn, InternedString),
+    Builtin(Builtin),
     Compound(CompoundProcedure),
 }
 
 impl Procedure {
     fn name(&self) -> Option<&InternedString> {
         match self {
-            Procedure::Builtin(_, name) => Some(name),
+            Procedure::Builtin(builtin) => Some(&builtin.name),
             Procedure::Compound(compond) => compond.name.as_ref(),
         }
     }
@@ -293,7 +299,7 @@ impl Interpreter {
             operands,
         };
         let result = match procedure {
-            Procedure::Builtin(builtin, _name) => builtin(ctx)?,
+            Procedure::Builtin(builtin) => (builtin.func)(ctx)?,
             Procedure::Compound(compound) => compound.call(ctx)?,
         };
         // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
