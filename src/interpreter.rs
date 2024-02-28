@@ -386,7 +386,7 @@ impl Interpreter {
                 let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 match callable {
-                    Callable::Procedure(compound) => {
+                    Callable::Procedure(procedure) => {
                         if self.tracing {
                             self.printer.println(format!(
                                 "Creating tail call context {}",
@@ -395,7 +395,7 @@ impl Interpreter {
                         }
                         Ok(Some(TailCallContext {
                             bound_procedure: self.bind_procedure(
-                                compound,
+                                procedure,
                                 combination.1,
                                 operands,
                             )?,
