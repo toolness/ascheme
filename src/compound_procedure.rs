@@ -154,11 +154,6 @@ impl CompoundProcedure {
         self.id
     }
 
-    pub fn call(self, mut ctx: CallableContext) -> CallableResult {
-        let bound_procedure = self.bind(&mut ctx)?;
-        bound_procedure.call(&mut ctx.interpreter)
-    }
-
     pub fn bind(self, ctx: &mut CallableContext) -> Result<BoundProcedure, RuntimeError> {
         self.signature.check_arity(ctx.operands.len(), ctx.range)?;
         let mut operands = Vec::with_capacity(ctx.operands.len());

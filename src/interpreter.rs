@@ -111,15 +111,6 @@ pub enum Callable {
     CompoundProcedure(CompoundProcedure),
 }
 
-impl Callable {
-    fn name(&self) -> Option<&InternedString> {
-        match self {
-            Callable::SpecialForm(special_form) => Some(&special_form.name),
-            Callable::CompoundProcedure(compound) => compound.name.as_ref(),
-        }
-    }
-}
-
 pub type CallableResult = Result<CallableSuccess, RuntimeError>;
 
 pub type SpecialFormFn = fn(CallableContext) -> CallableResult;
@@ -280,30 +271,52 @@ impl Interpreter {
         operator_source_range: SourceRange,
         combination_source_range: SourceRange,
     ) -> CallableResult {
-        if self.stack.len() >= self.max_stack_size {
-            return Err(RuntimeErrorType::StackOverflow.source_mapped(combination_source_range));
-        }
-        self.stack.push(operator_source_range);
-        if let Some(ref mut stats) = &mut self.tracked_stats {
-            if self.stack.len() > stats.max_call_stack_depth {
-                stats.max_call_stack_depth = self.stack.len()
+        let result = match callable {
+            Callable::SpecialForm(special_form) => {
+                let ctx = CallableContext {
+                    interpreter: self,
+                    range: combination_source_range,
+                    operands,
+                };
+                (special_form.func)(ctx)?
             }
-            stats.track_call(callable.name())
-        }
-        let ctx = CallableContext {
+            Callable::CompoundProcedure(compound) => {
+                if self.stack.len() >= self.max_stack_size {
+                    return Err(
+                        RuntimeErrorType::StackOverflow.source_mapped(combination_source_range)
+                    );
+                }
+                self.stack.push(operator_source_range);
+                if let Some(ref mut stats) = &mut self.tracked_stats {
+                    if self.stack.len() > stats.max_call_stack_depth {
+                        stats.max_call_stack_depth = self.stack.len()
+                    }
+                    stats.track_call(compound.name.as_ref());
+                }
+                let bound = self.bind_procedure(compound, combination_source_range, operands)?;
+                let result = bound.call(self)?;
+                // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
+                // afterwards. It's up to the caller to clean things up after an error.
+                self.stack.pop();
+                result
+            }
+        };
+
+        Ok(result)
+    }
+
+    fn bind_procedure(
+        &mut self,
+        procedure: CompoundProcedure,
+        combination_source_range: SourceRange,
+        operands: &[SourceValue],
+    ) -> Result<BoundProcedure, RuntimeError> {
+        let mut ctx = CallableContext {
             interpreter: self,
             range: combination_source_range,
             operands,
         };
-        let result = match callable {
-            Callable::SpecialForm(special_form) => (special_form.func)(ctx)?,
-            Callable::CompoundProcedure(compound) => compound.call(ctx)?,
-        };
-        // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
-        // afterwards. It's up to the caller to clean things up after an error.
-        self.stack.pop();
-
-        Ok(result)
+        procedure.bind(&mut ctx)
     }
 
     fn try_bind_tail_call_context(
@@ -330,13 +343,13 @@ impl Interpreter {
                                 self.source_mapper.trace(&combination.1).join("\n")
                             ))
                         }
-                        let mut ctx = CallableContext {
-                            interpreter: self,
-                            range: combination.1,
-                            operands,
-                        };
-                        let bound_procedure = compound.bind(&mut ctx)?;
-                        Ok(Some(TailCallContext { bound_procedure }))
+                        Ok(Some(TailCallContext {
+                            bound_procedure: self.bind_procedure(
+                                compound,
+                                combination.1,
+                                operands,
+                            )?,
+                        }))
                     }
                     Callable::SpecialForm(_) => Ok(None),
                 }
