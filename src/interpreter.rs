@@ -314,14 +314,14 @@ impl Interpreter {
         operator_source_range: SourceRange,
         combination_source_range: SourceRange,
     ) -> CallableResult {
-        let result = match callable {
+        match callable {
             Callable::SpecialForm(special_form) => {
                 let ctx = SpecialFormContext {
                     interpreter: self,
                     range: combination_source_range,
                     operands,
                 };
-                (special_form.func)(ctx)?
+                (special_form.func)(ctx)
             }
             Callable::Procedure(procedure) => {
                 if self.stack.len() >= self.max_stack_size {
@@ -341,11 +341,9 @@ impl Interpreter {
                 // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
                 // afterwards. It's up to the caller to clean things up after an error.
                 self.stack.pop();
-                result
+                Ok(result)
             }
-        };
-
-        Ok(result)
+        }
     }
 
     fn bind_procedure(
