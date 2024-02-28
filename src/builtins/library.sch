@@ -29,3 +29,10 @@
   )
   (reverse-helper x '())
 )
+
+; TODO: Make this variadic. Also, make it linear iterative.
+(define (append a b)
+  (if (null? a) b
+      (cons (car a) (append (cdr a) b))
+  )
+)
