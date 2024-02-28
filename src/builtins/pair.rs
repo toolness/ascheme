@@ -1,5 +1,5 @@
 use crate::{
-    interpreter::{ProcedureContext, ProcedureResult, RuntimeError},
+    interpreter::{CallableContext, CallableResult, RuntimeError},
     pair::Pair,
     source_mapped::SourceMappable,
     value::{SourceValue, Value},
@@ -19,7 +19,7 @@ pub fn get_builtins() -> Builtins {
     ]
 }
 
-fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue), RuntimeError> {
+fn eval_pair_and_value(ctx: &mut CallableContext) -> Result<(Pair, SourceValue), RuntimeError> {
     ctx.ensure_operands_len(2)?;
     let pair = ctx
         .interpreter
@@ -29,33 +29,33 @@ fn eval_pair_and_value(ctx: &mut ProcedureContext) -> Result<(Pair, SourceValue)
     Ok((pair, value))
 }
 
-fn set_car(mut ctx: ProcedureContext) -> ProcedureResult {
+fn set_car(mut ctx: CallableContext) -> CallableResult {
     let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
     pair.set_car(value);
     ctx.undefined()
 }
 
-fn set_cdr(mut ctx: ProcedureContext) -> ProcedureResult {
+fn set_cdr(mut ctx: CallableContext) -> CallableResult {
     let (mut pair, value) = eval_pair_and_value(&mut ctx)?;
     pair.set_cdr(value);
     ctx.undefined()
 }
 
-fn car(mut ctx: ProcedureContext) -> ProcedureResult {
+fn car(mut ctx: CallableContext) -> CallableResult {
     Ok(ctx.eval_unary()?.expect_pair()?.car().into())
 }
 
-fn cdr(mut ctx: ProcedureContext) -> ProcedureResult {
+fn cdr(mut ctx: CallableContext) -> CallableResult {
     Ok(ctx.eval_unary()?.expect_pair()?.cdr().into())
 }
 
-fn cons(mut ctx: ProcedureContext) -> ProcedureResult {
+fn cons(mut ctx: CallableContext) -> CallableResult {
     let (car, cdr) = ctx.eval_binary()?;
     let pair = Value::Pair(ctx.interpreter.pair_manager.pair(car, cdr)).source_mapped(ctx.range);
     Ok(pair.into())
 }
 
-fn list(mut ctx: ProcedureContext) -> ProcedureResult {
+fn list(mut ctx: CallableContext) -> CallableResult {
     let operands = ctx.eval_variadic()?;
     Ok(ctx
         .interpreter
@@ -64,7 +64,7 @@ fn list(mut ctx: ProcedureContext) -> ProcedureResult {
         .into())
 }
 
-fn pair(mut ctx: ProcedureContext) -> ProcedureResult {
+fn pair(mut ctx: CallableContext) -> CallableResult {
     let operand = ctx.eval_unary()?;
     Ok(matches!(operand.0, Value::Pair(_)).into())
 }

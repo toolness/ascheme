@@ -1,10 +1,10 @@
-use crate::interpreter::{ProcedureContext, ProcedureResult};
+use crate::interpreter::{CallableContext, CallableResult};
 
 pub fn get_builtins() -> super::Builtins {
     vec![("and", and), ("or", or), ("not", not)]
 }
 
-fn and(ctx: ProcedureContext) -> ProcedureResult {
+fn and(ctx: CallableContext) -> CallableResult {
     let mut latest = true.into();
     for (i, operand) in ctx.operands.iter().enumerate() {
         if i == ctx.operands.len() - 1 {
@@ -18,7 +18,7 @@ fn and(ctx: ProcedureContext) -> ProcedureResult {
     Ok(latest.into())
 }
 
-fn or(ctx: ProcedureContext) -> ProcedureResult {
+fn or(ctx: CallableContext) -> CallableResult {
     let mut latest = false.into();
     for (i, operand) in ctx.operands.iter().enumerate() {
         if i == ctx.operands.len() - 1 {
@@ -32,7 +32,7 @@ fn or(ctx: ProcedureContext) -> ProcedureResult {
     Ok(latest.into())
 }
 
-fn not(mut ctx: ProcedureContext) -> ProcedureResult {
+fn not(mut ctx: CallableContext) -> CallableResult {
     let result = ctx.eval_unary()?.0;
     Ok((!result.as_bool()).into())
 }

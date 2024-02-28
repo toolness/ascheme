@@ -4,8 +4,7 @@ use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{
-        BuiltinProcedure, Procedure, ProcedureContext, ProcedureFn, ProcedureResult,
-        RuntimeErrorType,
+        Callable, CallableContext, CallableResult, RuntimeErrorType, SpecialForm, SpecialFormFn,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
@@ -29,7 +28,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
         let interned_name = interner.intern(name);
         environment.define(
             interned_name.clone(),
-            Value::Procedure(Procedure::Builtin(BuiltinProcedure {
+            Value::Callable(Callable::SpecialForm(SpecialForm {
                 func: builtin,
                 name: interned_name,
             }))
@@ -41,7 +40,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
     environment.define(interner.intern("else"), Value::Boolean(true).into());
 }
 
-pub type Builtins = Vec<(&'static str, ProcedureFn)>;
+pub type Builtins = Vec<(&'static str, SpecialFormFn)>;
 
 fn get_builtins() -> Builtins {
     let mut builtins: Builtins = vec![
@@ -65,7 +64,7 @@ fn get_builtins() -> Builtins {
     builtins
 }
 
-fn _if(ctx: ProcedureContext) -> ProcedureResult {
+fn _if(ctx: CallableContext) -> CallableResult {
     if ctx.operands.len() < 2 || ctx.operands.len() > 3 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
@@ -84,7 +83,7 @@ fn _if(ctx: ProcedureContext) -> ProcedureResult {
     }
 }
 
-fn cond(ctx: ProcedureContext) -> ProcedureResult {
+fn cond(ctx: CallableContext) -> CallableResult {
     if ctx.operands.len() == 0 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
@@ -112,11 +111,11 @@ fn cond(ctx: ProcedureContext) -> ProcedureResult {
 
 // TODO: According to R5RS section 5.2, definitions are only allowed at the top level
 // of a program file, and at the beginning of a body. Currently we support it anywhere.
-fn define(ctx: ProcedureContext) -> ProcedureResult {
+fn define(ctx: CallableContext) -> CallableResult {
     match ctx.operands.get(0) {
         Some(SourceMapped(Value::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
-            if let Value::Procedure(Procedure::Compound(compound)) = &mut value.0 {
+            if let Value::Callable(Callable::CompoundProcedure(compound)) = &mut value.0 {
                 if compound.name.is_none() {
                     compound.name = Some(name.clone());
                 }
@@ -137,7 +136,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
             proc.name = Some(name.clone());
             ctx.interpreter.environment.define(
                 name,
-                Value::Procedure(Procedure::Compound(proc)).source_mapped(*range),
+                Value::Callable(Callable::CompoundProcedure(proc)).source_mapped(*range),
             );
             ctx.undefined()
         }
@@ -145,7 +144,7 @@ fn define(ctx: ProcedureContext) -> ProcedureResult {
     }
 }
 
-fn lambda(ctx: ProcedureContext) -> ProcedureResult {
+fn lambda(ctx: CallableContext) -> CallableResult {
     if ctx.operands.len() < 2 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
@@ -157,12 +156,12 @@ fn lambda(ctx: ProcedureContext) -> ProcedureResult {
         body,
         ctx.interpreter.environment.capture_lexical_scope(),
     );
-    Ok(Value::Procedure(Procedure::Compound(proc)).into())
+    Ok(Value::Callable(Callable::CompoundProcedure(proc)).into())
 }
 
-fn apply(ctx: ProcedureContext) -> ProcedureResult {
+fn apply(ctx: CallableContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
-    let procedure = ctx.interpreter.expect_procedure(&ctx.operands[0])?;
+    let callable = ctx.interpreter.expect_callable(&ctx.operands[0])?;
     let operands = Rc::into_inner(
         ctx.interpreter
             .eval_expression(&ctx.operands[1])?
@@ -190,10 +189,10 @@ fn apply(ctx: ProcedureContext) -> ProcedureResult {
         .collect::<Vec<_>>();
 
     ctx.interpreter
-        .eval_procedure(procedure, &quoted_operands, ctx.operands[0].1, ctx.range)
+        .eval_callable(callable, &quoted_operands, ctx.operands[0].1, ctx.range)
 }
 
-fn quote(ctx: ProcedureContext) -> ProcedureResult {
+fn quote(ctx: CallableContext) -> CallableResult {
     if ctx.operands.len() == 1 {
         Ok(ctx.operands[0].clone().into())
     } else {
@@ -201,12 +200,12 @@ fn quote(ctx: ProcedureContext) -> ProcedureResult {
     }
 }
 
-fn begin(ctx: ProcedureContext) -> ProcedureResult {
+fn begin(ctx: CallableContext) -> CallableResult {
     ctx.interpreter
         .eval_expressions_in_tail_context(&ctx.operands)
 }
 
-fn set(ctx: ProcedureContext) -> ProcedureResult {
+fn set(ctx: CallableContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     let identifier = ctx.operands[0].expect_identifier()?;
     let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
@@ -217,7 +216,7 @@ fn set(ctx: ProcedureContext) -> ProcedureResult {
     }
 }
 
-fn display(mut ctx: ProcedureContext) -> ProcedureResult {
+fn display(mut ctx: CallableContext) -> CallableResult {
     let value = ctx.eval_unary()?;
     ctx.interpreter.printer.print(format!("{:#}", value));
     ctx.undefined()

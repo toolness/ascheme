@@ -1,5 +1,5 @@
 use crate::{
-    interpreter::{Interpreter, Procedure, ProcedureContext, ProcedureResult, RuntimeError},
+    interpreter::{Callable, CallableContext, CallableResult, Interpreter, RuntimeError},
     value::{SourceValue, Value},
 };
 
@@ -34,12 +34,12 @@ pub fn is_eq(
             Value::String(b) => a.points_at_same_memory_as(b),
             _ => false,
         },
-        Value::Procedure(Procedure::Builtin(a)) => match &b.0 {
-            Value::Procedure(Procedure::Builtin(b)) => a.func == b.func,
+        Value::Callable(Callable::SpecialForm(a)) => match &b.0 {
+            Value::Callable(Callable::SpecialForm(b)) => a.func == b.func,
             _ => false,
         },
-        Value::Procedure(Procedure::Compound(a)) => match &b.0 {
-            Value::Procedure(Procedure::Compound(b)) => a.id() == b.id(),
+        Value::Callable(Callable::CompoundProcedure(a)) => match &b.0 {
+            Value::Callable(Callable::CompoundProcedure(b)) => a.id() == b.id(),
             _ => false,
         },
         Value::Pair(a) => match &b.0 {
@@ -49,7 +49,7 @@ pub fn is_eq(
     })
 }
 
-fn eq(mut ctx: ProcedureContext) -> ProcedureResult {
+fn eq(mut ctx: CallableContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     Ok(is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])?.into())
 }

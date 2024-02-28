@@ -1,5 +1,5 @@
 use crate::{
-    interpreter::{ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
+    interpreter::{CallableContext, CallableResult, RuntimeError, RuntimeErrorType},
     source_mapped::SourceMappable,
 };
 
@@ -16,13 +16,13 @@ pub fn get_builtins() -> super::Builtins {
     ]
 }
 
-fn sqrt(ctx: ProcedureContext) -> ProcedureResult {
+fn sqrt(ctx: CallableContext) -> CallableResult {
     ctx.ensure_operands_len(1)?;
     let number = ctx.interpreter.expect_number(&ctx.operands[0])?;
     Ok(number.sqrt().into())
 }
 
-fn add(mut ctx: ProcedureContext) -> ProcedureResult {
+fn add(mut ctx: CallableContext) -> CallableResult {
     let mut result = 0.0;
     for number in number_args(&mut ctx)? {
         result += number
@@ -30,7 +30,7 @@ fn add(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-fn subtract(mut ctx: ProcedureContext) -> ProcedureResult {
+fn subtract(mut ctx: CallableContext) -> CallableResult {
     let numbers = number_args(&mut ctx)?;
     if numbers.len() == 0 {
         return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.range));
@@ -45,7 +45,7 @@ fn subtract(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
+fn multiply(mut ctx: CallableContext) -> CallableResult {
     let mut result = 1.0;
     for number in number_args(&mut ctx)? {
         result *= number
@@ -53,7 +53,7 @@ fn multiply(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
+fn divide(mut ctx: CallableContext) -> CallableResult {
     let numbers = number_args(&mut ctx)?;
 
     let divide_two = |a: f64, b: f64| -> Result<f64, RuntimeError> {
@@ -79,7 +79,7 @@ fn divide(mut ctx: ProcedureContext) -> ProcedureResult {
     Ok(result.into())
 }
 
-fn remainder(mut ctx: ProcedureContext) -> ProcedureResult {
+fn remainder(mut ctx: CallableContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     let numbers = number_args(&mut ctx)?;
     Ok((numbers[0] % numbers[1]).into())

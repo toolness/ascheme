@@ -3,7 +3,7 @@ use std::{collections::HashSet, rc::Rc};
 use crate::{
     environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
-    interpreter::{Interpreter, ProcedureContext, ProcedureResult, RuntimeError, RuntimeErrorType},
+    interpreter::{CallableContext, CallableResult, Interpreter, RuntimeError, RuntimeErrorType},
     pair::PairVisitedSet,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
@@ -154,12 +154,12 @@ impl CompoundProcedure {
         self.id
     }
 
-    pub fn call(self, mut ctx: ProcedureContext) -> ProcedureResult {
+    pub fn call(self, mut ctx: CallableContext) -> CallableResult {
         let bound_procedure = self.bind(&mut ctx)?;
         bound_procedure.call(&mut ctx.interpreter)
     }
 
-    pub fn bind(self, ctx: &mut ProcedureContext) -> Result<BoundProcedure, RuntimeError> {
+    pub fn bind(self, ctx: &mut CallableContext) -> Result<BoundProcedure, RuntimeError> {
         self.signature.check_arity(ctx.operands.len(), ctx.range)?;
         let mut operands = Vec::with_capacity(ctx.operands.len());
         for expr in ctx.operands.iter() {
@@ -190,7 +190,7 @@ impl BoundProcedure {
         self.procedure.name.as_ref()
     }
 
-    pub fn call(self, interpreter: &mut Interpreter) -> ProcedureResult {
+    pub fn call(self, interpreter: &mut Interpreter) -> CallableResult {
         interpreter.environment.push(
             self.procedure.captured_lexical_scope.clone(),
             self.procedure.body.0 .1,

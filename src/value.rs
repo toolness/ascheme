@@ -2,7 +2,7 @@ use std::{fmt::Display, rc::Rc};
 
 use crate::{
     gc::{Traverser, Visitor},
-    interpreter::{Procedure, RuntimeError, RuntimeErrorType},
+    interpreter::{Callable, RuntimeError, RuntimeErrorType},
     mutable_string::MutableString,
     pair::Pair,
     source_mapped::{SourceMappable, SourceMapped},
@@ -50,7 +50,7 @@ pub enum Value {
     Symbol(InternedString),
     Boolean(bool),
     String(MutableString),
-    Procedure(Procedure),
+    Callable(Callable),
     Pair(Pair),
 }
 
@@ -90,7 +90,7 @@ impl Traverser for Value {
             Value::Pair(pair) => {
                 visitor.traverse(pair);
             }
-            Value::Procedure(Procedure::Compound(compound)) => {
+            Value::Callable(Callable::CompoundProcedure(compound)) => {
                 visitor.traverse(compound);
             }
             _ => {}
@@ -128,10 +128,10 @@ impl Display for Value {
                 }
             }
             Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),
-            Value::Procedure(Procedure::Builtin(builtin)) => {
-                write!(f, "#<builtin procedure {}>", builtin.name.as_ref())
+            Value::Callable(Callable::SpecialForm(builtin)) => {
+                write!(f, "#<special form {}>", builtin.name.as_ref())
             }
-            Value::Procedure(Procedure::Compound(compound)) => write!(
+            Value::Callable(Callable::CompoundProcedure(compound)) => write!(
                 f,
                 "#<procedure{} #{}>",
                 match &compound.name {

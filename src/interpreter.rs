@@ -25,7 +25,7 @@ pub enum RuntimeErrorType {
     MalformedSpecialForm,
     MalformedBindingList,
     ExpectedNumber,
-    ExpectedProcedure,
+    ExpectedCallable,
     ExpectedIdentifier,
     ExpectedPair,
     ExpectedList,
@@ -46,25 +46,25 @@ impl From<ParseError> for RuntimeError {
     }
 }
 
-impl<T: Into<SourceValue>> From<T> for ProcedureSuccess {
+impl<T: Into<SourceValue>> From<T> for CallableSuccess {
     fn from(value: T) -> Self {
-        ProcedureSuccess::Value(value.into())
+        CallableSuccess::Value(value.into())
     }
 }
 
 /// Encapsulates all the details of a procedure or special
 /// form invocation required for evaluation.
 ///
-/// Note that the name is a bit of a misnomer: it doesn't
-/// actually evaluate its operands, so it can be used
-/// to implement special forms as well as procedures.
-pub struct ProcedureContext<'a> {
+/// This structure doesn't actually evaluate its operands,
+/// so it can be used to implement special forms as well as
+/// procedures.
+pub struct CallableContext<'a> {
     pub interpreter: &'a mut Interpreter,
     pub range: SourceRange,
     pub operands: &'a [SourceValue],
 }
 
-impl<'a> ProcedureContext<'a> {
+impl<'a> CallableContext<'a> {
     pub fn ensure_operands_len(&self, len: usize) -> Result<(), RuntimeError> {
         if self.operands.len() != len {
             Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.range))
@@ -94,47 +94,47 @@ impl<'a> ProcedureContext<'a> {
         Ok(operands)
     }
 
-    pub fn undefined(&self) -> ProcedureResult {
+    pub fn undefined(&self) -> CallableResult {
         Ok(Value::Undefined.source_mapped(self.range).into())
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct BuiltinProcedure {
-    pub func: ProcedureFn,
+pub struct SpecialForm {
+    pub func: SpecialFormFn,
     pub name: InternedString,
 }
 
 #[derive(Debug, Clone)]
-pub enum Procedure {
-    Builtin(BuiltinProcedure),
-    Compound(CompoundProcedure),
+pub enum Callable {
+    SpecialForm(SpecialForm),
+    CompoundProcedure(CompoundProcedure),
 }
 
-impl Procedure {
+impl Callable {
     fn name(&self) -> Option<&InternedString> {
         match self {
-            Procedure::Builtin(builtin) => Some(&builtin.name),
-            Procedure::Compound(compound) => compound.name.as_ref(),
+            Callable::SpecialForm(builtin) => Some(&builtin.name),
+            Callable::CompoundProcedure(compound) => compound.name.as_ref(),
         }
     }
 }
 
-pub type ProcedureResult = Result<ProcedureSuccess, RuntimeError>;
+pub type CallableResult = Result<CallableSuccess, RuntimeError>;
 
-pub type ProcedureFn = fn(ProcedureContext) -> ProcedureResult;
+pub type SpecialFormFn = fn(CallableContext) -> CallableResult;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
 }
 
-pub enum ProcedureSuccess {
+pub enum CallableSuccess {
     Value(SourceValue),
     TailCall(TailCallContext),
 }
 
 #[derive(Default)]
-pub struct TrackedProcedureStats {
+pub struct TrackedCallableStats {
     calls: usize,
     tail_calls: usize,
 }
@@ -142,20 +142,20 @@ pub struct TrackedProcedureStats {
 #[derive(Default)]
 pub struct TrackedStats {
     max_call_stack_depth: usize,
-    procedure_calls: HashMap<InternedString, TrackedProcedureStats>,
+    callable_calls: HashMap<InternedString, TrackedCallableStats>,
 }
 
 impl TrackedStats {
     fn track_tail_call(&mut self, name: Option<&InternedString>) {
         if let Some(name) = name {
-            let stats = self.procedure_calls.entry(name.clone()).or_default();
+            let stats = self.callable_calls.entry(name.clone()).or_default();
             stats.tail_calls += 1;
         }
     }
 
     fn track_call(&mut self, name: Option<&InternedString>) {
         if let Some(name) = name {
-            let stats = self.procedure_calls.entry(name.clone()).or_default();
+            let stats = self.callable_calls.entry(name.clone()).or_default();
             stats.calls += 1;
         }
     }
@@ -165,7 +165,7 @@ impl TrackedStats {
         lines.push(format!("{:40} {:8} {:12}", "Name", "Calls", "Tail calls"));
         lines.push("-".repeat(60));
         let mut table_lines = self
-            .procedure_calls
+            .callable_calls
             .iter()
             .map(|(name, stats)| {
                 format!(
@@ -265,24 +265,21 @@ impl Interpreter {
     }
 
     // TODO: Move this to Value.
-    pub fn expect_procedure(
-        &mut self,
-        expression: &SourceValue,
-    ) -> Result<Procedure, RuntimeError> {
-        if let Value::Procedure(procedure) = self.eval_expression(&expression)?.0 {
-            Ok(procedure)
+    pub fn expect_callable(&mut self, expression: &SourceValue) -> Result<Callable, RuntimeError> {
+        if let Value::Callable(callable) = self.eval_expression(&expression)?.0 {
+            Ok(callable)
         } else {
-            Err(RuntimeErrorType::ExpectedProcedure.source_mapped(expression.1))
+            Err(RuntimeErrorType::ExpectedCallable.source_mapped(expression.1))
         }
     }
 
-    pub fn eval_procedure(
+    pub fn eval_callable(
         &mut self,
-        procedure: Procedure,
+        callable: Callable,
         operands: &[SourceValue],
         operator_source_range: SourceRange,
         combination_source_range: SourceRange,
-    ) -> ProcedureResult {
+    ) -> CallableResult {
         if self.stack.len() >= self.max_stack_size {
             return Err(RuntimeErrorType::StackOverflow.source_mapped(combination_source_range));
         }
@@ -291,16 +288,16 @@ impl Interpreter {
             if self.stack.len() > stats.max_call_stack_depth {
                 stats.max_call_stack_depth = self.stack.len()
             }
-            stats.track_call(procedure.name())
+            stats.track_call(callable.name())
         }
-        let ctx = ProcedureContext {
+        let ctx = CallableContext {
             interpreter: self,
             range: combination_source_range,
             operands,
         };
-        let result = match procedure {
-            Procedure::Builtin(builtin) => (builtin.func)(ctx)?,
-            Procedure::Compound(compound) => compound.call(ctx)?,
+        let result = match callable {
+            Callable::SpecialForm(builtin) => (builtin.func)(ctx)?,
+            Callable::CompoundProcedure(compound) => compound.call(ctx)?,
         };
         // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
         // afterwards. It's up to the caller to clean things up after an error.
@@ -322,18 +319,18 @@ impl Interpreter {
                 };
                 // Unwrap b/c it's from a pair, guaranteed not to be an empty list.
                 let operator = expressions.get(0).unwrap();
-                let procedure = self.expect_procedure(operator)?;
+                let callable = self.expect_callable(operator)?;
                 let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
-                match procedure {
-                    Procedure::Compound(compound) => {
+                match callable {
+                    Callable::CompoundProcedure(compound) => {
                         if self.tracing {
                             self.printer.println(format!(
                                 "Creating tail call context {}",
                                 self.source_mapper.trace(&combination.1).join("\n")
                             ))
                         }
-                        let mut ctx = ProcedureContext {
+                        let mut ctx = CallableContext {
                             interpreter: self,
                             range: combination.1,
                             operands,
@@ -341,24 +338,24 @@ impl Interpreter {
                         let bound_procedure = compound.bind(&mut ctx)?;
                         Ok(Some(TailCallContext { bound_procedure }))
                     }
-                    _ => Ok(None),
+                    Callable::SpecialForm(_) => Ok(None),
                 }
             }
             _ => Ok(None),
         }
     }
 
-    pub fn eval_expression_in_tail_context(&mut self, expression: &SourceValue) -> ProcedureResult {
+    pub fn eval_expression_in_tail_context(&mut self, expression: &SourceValue) -> CallableResult {
         if let Some(tail_call_context) = self.try_bind_tail_call_context(expression)? {
-            Ok(ProcedureSuccess::TailCall(tail_call_context))
+            Ok(CallableSuccess::TailCall(tail_call_context))
         } else {
             self.lazy_eval_expression(expression)
         }
     }
 
-    fn lazy_eval_expression(&mut self, expression: &SourceValue) -> ProcedureResult {
+    fn lazy_eval_expression(&mut self, expression: &SourceValue) -> CallableResult {
         match &expression.0 {
-            Value::EmptyList | Value::Procedure(_) => {
+            Value::EmptyList | Value::Callable(_) => {
                 Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1))
             }
             Value::Undefined => Ok(Value::Undefined.into()),
@@ -379,7 +376,7 @@ impl Interpreter {
                 };
                 // Unwrap b/c it's from a pair, guaranteed not to be an empty list.
                 let operator = expressions.get(0).unwrap();
-                let procedure = self.expect_procedure(operator)?;
+                let callable = self.expect_callable(operator)?;
                 let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 if self.tracing {
@@ -388,7 +385,7 @@ impl Interpreter {
                         self.source_mapper.trace(&combination.1).join("\n")
                     ));
                 }
-                self.eval_procedure(procedure, operands, operator.1, combination.1)
+                self.eval_callable(callable, operands, operator.1, combination.1)
             }
         }
     }
@@ -405,8 +402,8 @@ impl Interpreter {
                 }
             }
             match result {
-                ProcedureSuccess::Value(value) => return Ok(value),
-                ProcedureSuccess::TailCall(tail_call_context) => {
+                CallableSuccess::Value(value) => return Ok(value),
+                CallableSuccess::TailCall(tail_call_context) => {
                     if let Some(ref mut stats) = &mut self.tracked_stats {
                         stats.track_tail_call(tail_call_context.bound_procedure.name())
                     }
@@ -419,7 +416,7 @@ impl Interpreter {
     pub fn eval_expressions_in_tail_context(
         &mut self,
         expressions: &[SourceValue],
-    ) -> Result<ProcedureSuccess, RuntimeError> {
+    ) -> Result<CallableSuccess, RuntimeError> {
         if expressions.len() == 0 {
             return Ok(Value::Undefined.into());
         }
