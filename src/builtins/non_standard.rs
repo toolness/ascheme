@@ -9,20 +9,23 @@ use crate::{
         SpecialFormContext,
     },
     source_mapped::SourceMappable,
+    value::SourceValue,
 };
 
 use super::eq::is_eq;
 
 pub fn get_builtins() -> super::Builtins {
     vec![
-        // TODO: Some of these should really be procedures.
-        Builtin::SpecialForm("rust-backtrace", rust_backtrace),
+        Builtin::Procedure(
+            "rust-backtrace",
+            BuiltinProcedureFn::Nullary(rust_backtrace),
+        ),
         Builtin::Procedure("stats", BuiltinProcedureFn::Nullary(stats)),
         Builtin::Procedure("gc", BuiltinProcedureFn::Nullary(gc)),
-        Builtin::SpecialForm("gc-verbose", gc_verbose),
+        Builtin::Procedure("gc-verbose", BuiltinProcedureFn::Nullary(gc_verbose)),
         Builtin::SpecialForm("test-eq", test_eq),
         Builtin::SpecialForm("test-repr", test_repr),
-        Builtin::SpecialForm("assert", assert),
+        Builtin::Procedure("assert", BuiltinProcedureFn::Unary(assert)),
         Builtin::SpecialForm("print-and-eval", print_and_eval),
         Builtin::SpecialForm("track-stats", track_stats),
     ]
@@ -38,7 +41,7 @@ fn gc(ctx: BuiltinProcedureContext) -> CallableResult {
     Ok((objs_found_in_cycles as f64).into())
 }
 
-fn gc_verbose(ctx: SpecialFormContext) -> CallableResult {
+fn gc_verbose(ctx: BuiltinProcedureContext) -> CallableResult {
     let objs_found_in_cycles = ctx.interpreter.gc(true);
     Ok((objs_found_in_cycles as f64).into())
 }
@@ -59,8 +62,7 @@ fn print_and_eval(ctx: SpecialFormContext) -> CallableResult {
     ctx.undefined()
 }
 
-fn assert(mut ctx: SpecialFormContext) -> CallableResult {
-    let value = ctx.eval_unary()?;
+fn assert(ctx: BuiltinProcedureContext, value: &SourceValue) -> CallableResult {
     if !value.0.as_bool() {
         Err(RuntimeErrorType::AssertionFailure.source_mapped(ctx.range))
     } else {
@@ -111,14 +113,13 @@ fn test_repr(ctx: SpecialFormContext) -> CallableResult {
     ctx.undefined()
 }
 
-fn rust_backtrace(ctx: SpecialFormContext) -> CallableResult {
+fn rust_backtrace(ctx: BuiltinProcedureContext) -> CallableResult {
     let location = ctx.interpreter.source_mapper.trace(&ctx.range).join("\n");
     let backtrace = Backtrace::force_capture();
     ctx.interpreter
         .printer
         .println(format!("Rust backtrace at {location}\n{backtrace}"));
-    ctx.interpreter
-        .eval_expressions_in_tail_context(ctx.operands)
+    ctx.undefined()
 }
 
 fn track_stats(mut ctx: SpecialFormContext) -> CallableResult {
