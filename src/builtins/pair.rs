@@ -15,6 +15,7 @@ pub fn get_builtins() -> Builtins {
         ("car", car),
         ("cdr", cdr),
         ("list", list),
+        ("pair?", pair),
     ]
 }
 
@@ -63,6 +64,11 @@ fn list(mut ctx: ProcedureContext) -> ProcedureResult {
         .into())
 }
 
+fn pair(mut ctx: ProcedureContext) -> ProcedureResult {
+    let operand = ctx.eval_unary()?;
+    Ok(matches!(operand.0, Value::Pair(_)).into())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test_util::test_eval_success;
@@ -98,5 +104,13 @@ mod tests {
         test_eval_success("(list)", "()");
         test_eval_success("(list 1 2 3)", "(1 2 3)");
         test_eval_success("(list (+ 1 2))", "(3)");
+    }
+
+    #[test]
+    fn pair_works() {
+        test_eval_success("(pair? 1)", "#f");
+        test_eval_success("(pair? '())", "#f");
+        test_eval_success("(pair? '(1 . 2))", "#t");
+        test_eval_success("(pair? '(1 2))", "#t");
     }
 }
