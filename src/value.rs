@@ -34,6 +34,14 @@ impl SourceMapped<Value> {
         }
     }
 
+    pub fn expect_procedure(&self) -> Result<Procedure, RuntimeError> {
+        if let Value::Callable(Callable::Procedure(procedure)) = &self.0 {
+            Ok(procedure.clone())
+        } else {
+            Err(RuntimeErrorType::ExpectedProcedure.source_mapped(self.1))
+        }
+    }
+
     pub fn expect_list(&self) -> Result<Rc<Vec<SourceValue>>, RuntimeError> {
         match self.try_into_list() {
             Some(list) => Ok(list.0),

@@ -26,6 +26,7 @@ pub enum RuntimeErrorType {
     MalformedBindingList,
     ExpectedNumber,
     ExpectedCallable,
+    ExpectedProcedure,
     ExpectedIdentifier,
     ExpectedPair,
     ExpectedList,
@@ -298,8 +299,7 @@ impl Interpreter {
         self.printer.eprintln(self.traceback());
     }
 
-    // TODO: Move this to Value.
-    pub fn expect_callable(&mut self, expression: &SourceValue) -> Result<Callable, RuntimeError> {
+    fn expect_callable(&mut self, expression: &SourceValue) -> Result<Callable, RuntimeError> {
         if let Value::Callable(callable) = self.eval_expression(&expression)?.0 {
             Ok(callable)
         } else {
@@ -307,7 +307,7 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_callable(
+    fn eval_callable(
         &mut self,
         callable: Callable,
         operands: &[SourceValue],
@@ -336,7 +336,8 @@ impl Interpreter {
                     }
                     stats.track_call(procedure.name());
                 }
-                let bound = self.bind_procedure(procedure, combination_source_range, operands)?;
+                let bound =
+                    self.bind_procedure(procedure, combination_source_range, operands, true)?;
                 let result = bound.call(self)?;
                 // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
                 // afterwards. It's up to the caller to clean things up after an error.
@@ -351,13 +352,18 @@ impl Interpreter {
         procedure: Procedure,
         range: SourceRange,
         operands: &[SourceValue],
+        eval_operands: bool,
     ) -> Result<BoundProcedure, RuntimeError> {
         if !procedure.is_valid_arity(operands.len()) {
             return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(range));
         }
         let mut evaluated_operands = Vec::with_capacity(operands.len());
         for expr in operands.iter() {
-            let value = self.eval_expression(expr)?;
+            let value = if eval_operands {
+                self.eval_expression(expr)?
+            } else {
+                expr.clone()
+            };
             evaluated_operands.push(value);
         }
         Ok(BoundProcedure {
@@ -384,26 +390,35 @@ impl Interpreter {
                 let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 match callable {
-                    Callable::Procedure(procedure) => {
-                        if self.tracing {
-                            self.printer.println(format!(
-                                "Creating tail call context {}",
-                                self.source_mapper.trace(&combination.1).join("\n")
-                            ))
-                        }
-                        Ok(Some(TailCallContext {
-                            bound_procedure: self.bind_procedure(
-                                procedure,
-                                combination.1,
-                                operands,
-                            )?,
-                        }))
-                    }
+                    Callable::Procedure(procedure) => Ok(Some(self.bind_tail_call_context(
+                        procedure,
+                        combination.1,
+                        operands,
+                        true,
+                    )?)),
                     Callable::SpecialForm(_) => Ok(None),
                 }
             }
             _ => Ok(None),
         }
+    }
+
+    pub fn bind_tail_call_context(
+        &mut self,
+        procedure: Procedure,
+        range: SourceRange,
+        operands: &[SourceValue],
+        eval_operands: bool,
+    ) -> Result<TailCallContext, RuntimeError> {
+        if self.tracing {
+            self.printer.println(format!(
+                "Creating tail call context {}",
+                self.source_mapper.trace(&range).join("\n")
+            ))
+        }
+        Ok(TailCallContext {
+            bound_procedure: self.bind_procedure(procedure, range, operands, eval_operands)?,
+        })
     }
 
     pub fn eval_expression_in_tail_context(&mut self, expression: &SourceValue) -> CallableResult {

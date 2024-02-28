@@ -1,11 +1,10 @@
-use std::rc::Rc;
-
 use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{
         BuiltinProcedure, BuiltinProcedureContext, BuiltinProcedureFn, Callable, CallableResult,
-        Procedure, RuntimeErrorType, SpecialForm, SpecialFormContext, SpecialFormFn,
+        CallableSuccess, Procedure, RuntimeErrorType, SpecialForm, SpecialFormContext,
+        SpecialFormFn,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
@@ -63,7 +62,7 @@ fn get_builtins() -> Builtins {
     let mut builtins: Builtins = vec![
         Builtin::SpecialForm("define", define),
         Builtin::SpecialForm("lambda", lambda),
-        Builtin::SpecialForm("apply", apply),
+        Builtin::Procedure("apply", BuiltinProcedureFn::Binary(apply)),
         Builtin::SpecialForm("quote", quote),
         Builtin::SpecialForm("begin", begin),
         Builtin::Procedure("display", BuiltinProcedureFn::Unary(display)),
@@ -179,37 +178,13 @@ fn lambda(ctx: SpecialFormContext) -> CallableResult {
     Ok(Value::Callable(Callable::Procedure(Procedure::Compound(proc))).into())
 }
 
-fn apply(ctx: SpecialFormContext) -> CallableResult {
-    ctx.ensure_operands_len(2)?;
-    let callable = ctx.interpreter.expect_callable(&ctx.operands[0])?;
-    let operands = Rc::into_inner(
+fn apply(ctx: BuiltinProcedureContext, func: &SourceValue, args: &SourceValue) -> CallableResult {
+    let procedure = func.expect_procedure()?;
+    let args = args.expect_list()?;
+    Ok(CallableSuccess::TailCall(
         ctx.interpreter
-            .eval_expression(&ctx.operands[1])?
-            .expect_list()?,
-    )
-    .unwrap();
-
-    // TODO: UGH. We are quoting the operands here so that when the procedure tries to evaluate
-    // them, it will just get them as-is, instead of evaluating them. To fix, we're going to need
-    // to make a distinction between special forms and procedures, and pass pre-evaluated args
-    // directly into procedures, rather than having procedures just be special forms that always
-    // evaluate themselves.
-    let quoted_operands = operands
-        .into_iter()
-        .map(|value| {
-            let expressions = vec![
-                Value::Symbol(ctx.interpreter.string_interner.intern("quote")).empty_source_map(),
-                value,
-            ];
-            ctx.interpreter
-                .pair_manager
-                .vec_to_list(expressions)
-                .empty_source_map()
-        })
-        .collect::<Vec<_>>();
-
-    ctx.interpreter
-        .eval_callable(callable, &quoted_operands, ctx.operands[0].1, ctx.range)
+            .bind_tail_call_context(procedure, ctx.range, &args, false)?,
+    ))
 }
 
 fn quote(ctx: SpecialFormContext) -> CallableResult {
