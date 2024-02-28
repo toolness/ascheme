@@ -114,7 +114,7 @@ pub enum Callable {
 impl Callable {
     fn name(&self) -> Option<&InternedString> {
         match self {
-            Callable::SpecialForm(builtin) => Some(&builtin.name),
+            Callable::SpecialForm(special_form) => Some(&special_form.name),
             Callable::CompoundProcedure(compound) => compound.name.as_ref(),
         }
     }
@@ -296,7 +296,7 @@ impl Interpreter {
             operands,
         };
         let result = match callable {
-            Callable::SpecialForm(builtin) => (builtin.func)(ctx)?,
+            Callable::SpecialForm(special_form) => (special_form.func)(ctx)?,
             Callable::CompoundProcedure(compound) => compound.call(ctx)?,
         };
         // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace

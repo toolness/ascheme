@@ -128,8 +128,8 @@ impl Display for Value {
                 }
             }
             Value::Boolean(boolean) => write!(f, "{}", if *boolean { "#t" } else { "#f" }),
-            Value::Callable(Callable::SpecialForm(builtin)) => {
-                write!(f, "#<special form {}>", builtin.name.as_ref())
+            Value::Callable(Callable::SpecialForm(special_form)) => {
+                write!(f, "#<special form {}>", special_form.name.as_ref())
             }
             Value::Callable(Callable::CompoundProcedure(compound)) => write!(
                 f,
