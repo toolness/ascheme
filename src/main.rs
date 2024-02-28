@@ -141,6 +141,7 @@ fn main() {
         let contents = read_to_string(&filename).unwrap();
         let source_id = interpreter.source_mapper.add(filename, contents);
         let success = evaluate(&mut interpreter, source_id);
+        interpreter.printer.print_buffered_output();
         if !args.interactive {
             process::exit(if success { 0 } else { 1 });
         }
