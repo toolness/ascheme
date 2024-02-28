@@ -1,4 +1,5 @@
 use crate::{
+    builtins::Builtin,
     interpreter::{
         Callable, CallableResult, Interpreter, Procedure, RuntimeError, SpecialFormContext,
     },
@@ -6,7 +7,10 @@ use crate::{
 };
 
 pub fn get_builtins() -> super::Builtins {
-    vec![("eq?", eq)]
+    vec![
+        // TODO: EQ IS A PROCEDURE, NOT A SPECIAL FORM
+        Builtin::SpecialForm("eq?", eq),
+    ]
 }
 
 pub fn is_eq(

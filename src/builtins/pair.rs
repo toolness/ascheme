@@ -1,4 +1,5 @@
 use crate::{
+    builtins::Builtin,
     interpreter::{CallableResult, RuntimeError, SpecialFormContext},
     pair::Pair,
     source_mapped::SourceMappable,
@@ -9,13 +10,14 @@ use super::Builtins;
 
 pub fn get_builtins() -> Builtins {
     vec![
-        ("set-car!", set_car),
-        ("set-cdr!", set_cdr),
-        ("cons", cons),
-        ("car", car),
-        ("cdr", cdr),
-        ("list", list),
-        ("pair?", pair),
+        // TODO: I think these are all procedures, not special forms.
+        Builtin::SpecialForm("set-car!", set_car),
+        Builtin::SpecialForm("set-cdr!", set_cdr),
+        Builtin::SpecialForm("cons", cons),
+        Builtin::SpecialForm("car", car),
+        Builtin::SpecialForm("cdr", cdr),
+        Builtin::SpecialForm("list", list),
+        Builtin::SpecialForm("pair?", pair),
     ]
 }
 

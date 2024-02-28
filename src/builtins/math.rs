@@ -1,4 +1,5 @@
 use crate::{
+    builtins::Builtin,
     interpreter::{CallableResult, RuntimeError, RuntimeErrorType, SpecialFormContext},
     source_mapped::SourceMappable,
 };
@@ -7,12 +8,13 @@ use super::util::number_args;
 
 pub fn get_builtins() -> super::Builtins {
     vec![
-        ("+", add),
-        ("-", subtract),
-        ("*", multiply),
-        ("/", divide),
-        ("sqrt", sqrt),
-        ("remainder", remainder),
+        // TODO: THESE ARE ALL PROCEDURES, NOT SPECIAL FORMS
+        Builtin::SpecialForm("+", add),
+        Builtin::SpecialForm("-", subtract),
+        Builtin::SpecialForm("*", multiply),
+        Builtin::SpecialForm("/", divide),
+        Builtin::SpecialForm("sqrt", sqrt),
+        Builtin::SpecialForm("remainder", remainder),
     ]
 }
 

@@ -4,8 +4,8 @@ use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{
-        Callable, CallableResult, Procedure, RuntimeErrorType, SpecialForm, SpecialFormContext,
-        SpecialFormFn,
+        BuiltinProcedure, BuiltinProcedureContext, Callable, CallableResult, Procedure,
+        ProcedureFn, RuntimeErrorType, SpecialForm, SpecialFormContext, SpecialFormFn,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
@@ -25,35 +25,51 @@ mod util;
 pub use library::add_library_source;
 
 pub fn populate_environment(environment: &mut Environment, interner: &mut StringInterner) {
-    for (name, builtin) in get_builtins() {
-        let interned_name = interner.intern(name);
-        environment.define(
-            interned_name.clone(),
-            Value::Callable(Callable::SpecialForm(SpecialForm {
-                func: builtin,
-                name: interned_name,
-            }))
-            .into(),
-        );
+    for builtin in get_builtins() {
+        match builtin {
+            Builtin::SpecialForm(name, func) => {
+                let name = interner.intern(name);
+                environment.define(
+                    name.clone(),
+                    Value::Callable(Callable::SpecialForm(SpecialForm { func, name })).into(),
+                );
+            }
+            Builtin::Procedure(name, func) => {
+                let name = interner.intern(name);
+                environment.define(
+                    name.clone(),
+                    Value::Callable(Callable::Procedure(Procedure::Builtin(BuiltinProcedure {
+                        func,
+                        name,
+                    })))
+                    .into(),
+                );
+            }
+        }
     }
     // TODO: Technically 'else' is just part of how the 'cond' special form is evaluated,
     // but just aliasing it to 'true' is easier for now.
     environment.define(interner.intern("else"), Value::Boolean(true).into());
 }
 
-pub type Builtins = Vec<(&'static str, SpecialFormFn)>;
+pub enum Builtin {
+    SpecialForm(&'static str, SpecialFormFn),
+    Procedure(&'static str, ProcedureFn),
+}
+
+pub type Builtins = Vec<Builtin>;
 
 fn get_builtins() -> Builtins {
     let mut builtins: Builtins = vec![
-        ("define", define),
-        ("lambda", lambda),
-        ("apply", apply),
-        ("quote", quote),
-        ("begin", begin),
-        ("display", display),
-        ("if", _if),
-        ("cond", cond),
-        ("set!", set),
+        Builtin::SpecialForm("define", define),
+        Builtin::SpecialForm("lambda", lambda),
+        Builtin::SpecialForm("apply", apply),
+        Builtin::SpecialForm("quote", quote),
+        Builtin::SpecialForm("begin", begin),
+        Builtin::Procedure("display", display),
+        Builtin::SpecialForm("if", _if),
+        Builtin::SpecialForm("cond", cond),
+        Builtin::SpecialForm("set!", set),
     ];
     builtins.extend(math::get_builtins());
     builtins.extend(eq::get_builtins());
@@ -220,8 +236,8 @@ fn set(ctx: SpecialFormContext) -> CallableResult {
     }
 }
 
-fn display(mut ctx: SpecialFormContext) -> CallableResult {
-    let value = ctx.eval_unary()?;
+fn display(mut ctx: BuiltinProcedureContext) -> CallableResult {
+    let value = ctx.unary_arg()?;
     ctx.interpreter.printer.print(format!("{:#}", value));
     ctx.undefined()
 }

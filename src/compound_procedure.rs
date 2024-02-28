@@ -3,7 +3,10 @@ use std::{collections::HashSet, rc::Rc};
 use crate::{
     environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
-    interpreter::{CallableResult, Interpreter, Procedure, RuntimeError, RuntimeErrorType},
+    interpreter::{
+        BuiltinProcedureContext, CallableResult, Interpreter, Procedure, RuntimeError,
+        RuntimeErrorType,
+    },
     pair::PairVisitedSet,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
@@ -160,6 +163,7 @@ impl Traverser for CompoundProcedure {
 pub struct BoundProcedure {
     pub procedure: Procedure,
     pub operands: Vec<SourceValue>,
+    pub range: SourceRange,
 }
 
 impl BoundProcedure {
@@ -186,7 +190,14 @@ impl BoundProcedure {
 
                 Ok(result)
             }
-            Procedure::Builtin(_) => todo!("IMPLEMENT BUILTIN PROC CALL"),
+            Procedure::Builtin(builtin) => {
+                let result = (builtin.func)(BuiltinProcedureContext {
+                    interpreter,
+                    range: self.range,
+                    operands: &self.operands,
+                })?;
+                Ok(result)
+            }
         }
     }
 }

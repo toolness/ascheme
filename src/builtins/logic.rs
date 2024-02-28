@@ -1,7 +1,14 @@
-use crate::interpreter::{CallableResult, SpecialFormContext};
+use crate::{
+    builtins::Builtin,
+    interpreter::{CallableResult, SpecialFormContext},
+};
 
 pub fn get_builtins() -> super::Builtins {
-    vec![("and", and), ("or", or), ("not", not)]
+    vec![
+        Builtin::SpecialForm("and", and),
+        Builtin::SpecialForm("or", or),
+        Builtin::SpecialForm("not", not),
+    ]
 }
 
 fn and(ctx: SpecialFormContext) -> CallableResult {

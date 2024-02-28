@@ -58,6 +58,25 @@ pub struct BuiltinProcedureContext<'a> {
     pub operands: &'a [SourceValue],
 }
 
+impl<'a> BuiltinProcedureContext<'a> {
+    pub fn ensure_operands_len(&self, len: usize) -> Result<(), RuntimeError> {
+        if self.operands.len() != len {
+            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.range))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn unary_arg(&mut self) -> Result<SourceValue, RuntimeError> {
+        self.ensure_operands_len(1)?;
+        Ok((&self.operands[0]).clone())
+    }
+
+    pub fn undefined(&self) -> CallableResult {
+        Ok(Value::Undefined.source_mapped(self.range).into())
+    }
+}
+
 /// Encapsulates all the details of a special
 /// form invocation required for evaluation.
 ///
@@ -115,6 +134,14 @@ pub struct BuiltinProcedure {
     pub name: InternedString,
 }
 
+impl BuiltinProcedure {
+    fn is_valid_arity(&self, _operands_len: usize) -> bool {
+        // TODO: For now all builtin procedures are assumed to be variadic
+        // with no minimum args, but we should fix this.
+        true
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Procedure {
     Compound(CompoundProcedure),
@@ -132,7 +159,7 @@ impl Procedure {
     pub fn is_valid_arity(&self, operands_len: usize) -> bool {
         match self {
             Procedure::Compound(compound) => compound.signature.is_valid_arity(operands_len),
-            Procedure::Builtin(_) => todo!("CHECK ARITY"),
+            Procedure::Builtin(builtin) => builtin.is_valid_arity(operands_len),
         }
     }
 }
@@ -356,6 +383,7 @@ impl Interpreter {
         Ok(BoundProcedure {
             procedure,
             operands: evaluated_operands,
+            range,
         })
     }
 

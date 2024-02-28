@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
+    builtins::Builtin,
     interpreter::{
         CallableResult, CallableSuccess, RuntimeError, RuntimeErrorType, SpecialFormContext,
     },
@@ -10,7 +11,11 @@ use crate::{
 };
 
 pub fn get_builtins() -> super::Builtins {
-    vec![("let", _let), ("let*", let_star), ("letrec", letrec)]
+    vec![
+        Builtin::SpecialForm("let", _let),
+        Builtin::SpecialForm("let*", let_star),
+        Builtin::SpecialForm("letrec", letrec),
+    ]
 }
 
 struct LetBinding {

@@ -1,16 +1,20 @@
 use std::f64::INFINITY;
 
-use crate::interpreter::{CallableResult, SpecialFormContext};
+use crate::{
+    builtins::Builtin,
+    interpreter::{CallableResult, SpecialFormContext},
+};
 
 use super::util::number_args;
 
 pub fn get_builtins() -> super::Builtins {
     vec![
-        ("<", less_than),
-        ("<=", less_than_or_equal_to),
-        (">", greater_than),
-        (">=", greater_than_or_equal_to),
-        ("=", numeric_eq),
+        // TODO: These are all procedures, not special forms.
+        Builtin::SpecialForm("<", less_than),
+        Builtin::SpecialForm("<=", less_than_or_equal_to),
+        Builtin::SpecialForm(">", greater_than),
+        Builtin::SpecialForm(">=", greater_than_or_equal_to),
+        Builtin::SpecialForm("=", numeric_eq),
     ]
 }
 

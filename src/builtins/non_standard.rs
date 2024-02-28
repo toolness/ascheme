@@ -3,6 +3,7 @@ use std::backtrace::Backtrace;
 use colored::Colorize;
 
 use crate::{
+    builtins::Builtin,
     interpreter::{CallableResult, RuntimeErrorType, SpecialFormContext},
     source_mapped::SourceMappable,
 };
@@ -11,15 +12,16 @@ use super::eq::is_eq;
 
 pub fn get_builtins() -> super::Builtins {
     vec![
-        ("rust-backtrace", rust_backtrace),
-        ("stats", stats),
-        ("gc", gc),
-        ("gc-verbose", gc_verbose),
-        ("test-eq", test_eq),
-        ("test-repr", test_repr),
-        ("assert", assert),
-        ("print-and-eval", print_and_eval),
-        ("track-stats", track_stats),
+        // TODO: Some of these should really be procedures.
+        Builtin::SpecialForm("rust-backtrace", rust_backtrace),
+        Builtin::SpecialForm("stats", stats),
+        Builtin::SpecialForm("gc", gc),
+        Builtin::SpecialForm("gc-verbose", gc_verbose),
+        Builtin::SpecialForm("test-eq", test_eq),
+        Builtin::SpecialForm("test-repr", test_repr),
+        Builtin::SpecialForm("assert", assert),
+        Builtin::SpecialForm("print-and-eval", print_and_eval),
+        Builtin::SpecialForm("track-stats", track_stats),
     ]
 }
 
