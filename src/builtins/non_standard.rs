@@ -4,11 +4,9 @@ use colored::Colorize;
 
 use crate::{
     builtins::Builtin,
-    interpreter::{
-        BuiltinProcedureContext, BuiltinProcedureFn, CallableResult, RuntimeErrorType,
-        SpecialFormContext,
-    },
+    interpreter::{BuiltinProcedureContext, BuiltinProcedureFn, CallableResult, RuntimeErrorType},
     source_mapped::SourceMappable,
+    special_form::SpecialFormContext,
     value::SourceValue,
 };
 

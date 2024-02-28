@@ -10,6 +10,7 @@ use crate::{
     parser::{parse, ParseError, ParseErrorType},
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     source_mapper::{SourceId, SourceMapper},
+    special_form::{SpecialForm, SpecialFormContext},
     stdio_printer::StdioPrinter,
     string_interner::{InternedString, StringInterner},
     tracked_stats::TrackedStats,
@@ -63,41 +64,6 @@ impl<'a> BuiltinProcedureContext<'a> {
     pub fn undefined(&self) -> CallableResult {
         Ok(Value::Undefined.source_mapped(self.range).into())
     }
-}
-
-/// Encapsulates all the details of a special
-/// form invocation required for evaluation.
-///
-/// This structure doesn't actually evaluate its operands.
-pub struct SpecialFormContext<'a> {
-    pub interpreter: &'a mut Interpreter,
-    pub range: SourceRange,
-    pub operands: &'a [SourceValue],
-}
-
-impl<'a> SpecialFormContext<'a> {
-    pub fn ensure_operands_len(&self, len: usize) -> Result<(), RuntimeError> {
-        if self.operands.len() != len {
-            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.range))
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn eval_unary(&mut self) -> Result<SourceValue, RuntimeError> {
-        self.ensure_operands_len(1)?;
-        Ok(self.interpreter.eval_expression(&self.operands[0])?)
-    }
-
-    pub fn undefined(&self) -> CallableResult {
-        Ok(Value::Undefined.source_mapped(self.range).into())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SpecialForm {
-    pub func: SpecialFormFn,
-    pub name: InternedString,
 }
 
 #[derive(Debug, Clone)]
@@ -166,8 +132,6 @@ pub enum Callable {
 }
 
 pub type CallableResult = Result<CallableSuccess, RuntimeError>;
-
-pub type SpecialFormFn = fn(SpecialFormContext) -> CallableResult;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,

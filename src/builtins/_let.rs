@@ -2,10 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     builtins::Builtin,
-    interpreter::{
-        CallableResult, CallableSuccess, RuntimeError, RuntimeErrorType, SpecialFormContext,
-    },
+    interpreter::{CallableResult, CallableSuccess, RuntimeError, RuntimeErrorType},
     source_mapped::SourceMappable,
+    special_form::SpecialFormContext,
     string_interner::InternedString,
     value::SourceValue,
 };

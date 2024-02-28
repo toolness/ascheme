@@ -1,8 +1,7 @@
 use crate::{
     builtins::Builtin,
-    interpreter::{
-        BuiltinProcedureContext, BuiltinProcedureFn, CallableResult, SpecialFormContext,
-    },
+    interpreter::{BuiltinProcedureContext, BuiltinProcedureFn, CallableResult},
+    special_form::SpecialFormContext,
     value::SourceValue,
 };
 

@@ -3,10 +3,10 @@ use crate::{
     environment::Environment,
     interpreter::{
         BuiltinProcedure, BuiltinProcedureContext, BuiltinProcedureFn, Callable, CallableResult,
-        CallableSuccess, Procedure, RuntimeErrorType, SpecialForm, SpecialFormContext,
-        SpecialFormFn,
+        CallableSuccess, Procedure, RuntimeErrorType,
     },
     source_mapped::{SourceMappable, SourceMapped},
+    special_form::{SpecialForm, SpecialFormContext, SpecialFormFn},
     string_interner::StringInterner,
     value::{SourceValue, Value},
 };
