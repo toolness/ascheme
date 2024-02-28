@@ -1,13 +1,16 @@
 use crate::{
     builtins::Builtin,
-    interpreter::{CallableResult, SpecialFormContext},
+    interpreter::{
+        BuiltinProcedureContext, BuiltinProcedureFn, CallableResult, SpecialFormContext,
+    },
+    value::SourceValue,
 };
 
 pub fn get_builtins() -> super::Builtins {
     vec![
         Builtin::SpecialForm("and", and),
         Builtin::SpecialForm("or", or),
-        Builtin::SpecialForm("not", not),
+        Builtin::Procedure("not", BuiltinProcedureFn::Unary(not)),
     ]
 }
 
@@ -39,9 +42,8 @@ fn or(ctx: SpecialFormContext) -> CallableResult {
     Ok(latest.into())
 }
 
-fn not(mut ctx: SpecialFormContext) -> CallableResult {
-    let result = ctx.eval_unary()?.0;
-    Ok((!result.as_bool()).into())
+fn not(_ctx: BuiltinProcedureContext, operand: &SourceValue) -> CallableResult {
+    Ok((!operand.0.as_bool()).into())
 }
 
 #[cfg(test)]
