@@ -115,7 +115,7 @@ impl Procedure {
     fn name(&self) -> Option<&InternedString> {
         match self {
             Procedure::Builtin(builtin) => Some(&builtin.name),
-            Procedure::Compound(compond) => compond.name.as_ref(),
+            Procedure::Compound(compound) => compound.name.as_ref(),
         }
     }
 }
