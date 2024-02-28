@@ -4,8 +4,8 @@ use crate::{
     environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
     interpreter::{
-        BuiltinProcedureContext, BuiltinProcedureFn, CallableResult, Interpreter, Procedure,
-        RuntimeError, RuntimeErrorType,
+        BuiltinProcedureContext, CallableResult, Interpreter, Procedure, RuntimeError,
+        RuntimeErrorType,
     },
     pair::PairVisitedSet,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
@@ -195,13 +195,7 @@ impl BoundProcedure {
                     interpreter,
                     range: self.range,
                 };
-                match builtin.func {
-                    BuiltinProcedureFn::Nullary(func) => (func)(ctx),
-                    BuiltinProcedureFn::Unary(func) => (func)(ctx, &self.operands[0]),
-                    BuiltinProcedureFn::Binary(func) => {
-                        (func)(ctx, &self.operands[0], &self.operands[1])
-                    }
-                }
+                builtin.call(ctx, self.operands)
             }
         }
     }

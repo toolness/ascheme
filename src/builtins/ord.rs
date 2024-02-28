@@ -2,25 +2,33 @@ use std::f64::INFINITY;
 
 use crate::{
     builtins::Builtin,
-    interpreter::{CallableResult, SpecialFormContext},
+    interpreter::{BuiltinProcedureContext, BuiltinProcedureFn, CallableResult},
+    value::SourceValue,
 };
 
 use super::util::number_args;
 
 pub fn get_builtins() -> super::Builtins {
     vec![
-        // TODO: These are all procedures, not special forms.
-        Builtin::SpecialForm("<", less_than),
-        Builtin::SpecialForm("<=", less_than_or_equal_to),
-        Builtin::SpecialForm(">", greater_than),
-        Builtin::SpecialForm(">=", greater_than_or_equal_to),
-        Builtin::SpecialForm("=", numeric_eq),
+        // These are based on try.scheme.org's operators, not all Scheme interpreters
+        // work like this.
+        Builtin::Procedure("<", BuiltinProcedureFn::NullaryVariadic(less_than)),
+        Builtin::Procedure(
+            "<=",
+            BuiltinProcedureFn::NullaryVariadic(less_than_or_equal_to),
+        ),
+        Builtin::Procedure(">", BuiltinProcedureFn::NullaryVariadic(greater_than)),
+        Builtin::Procedure(
+            ">=",
+            BuiltinProcedureFn::NullaryVariadic(greater_than_or_equal_to),
+        ),
+        Builtin::Procedure("=", BuiltinProcedureFn::NullaryVariadic(numeric_eq)),
     ]
 }
 
-fn less_than(mut ctx: SpecialFormContext) -> CallableResult {
+fn less_than(_ctx: BuiltinProcedureContext, operands: &[SourceValue]) -> CallableResult {
     let mut latest: f64 = -INFINITY;
-    for number in number_args(&mut ctx)? {
+    for number in number_args(operands)? {
         if number <= latest {
             return Ok(false.into());
         }
@@ -29,9 +37,12 @@ fn less_than(mut ctx: SpecialFormContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn less_than_or_equal_to(mut ctx: SpecialFormContext) -> CallableResult {
+fn less_than_or_equal_to(
+    _ctx: BuiltinProcedureContext,
+    operands: &[SourceValue],
+) -> CallableResult {
     let mut latest: f64 = -INFINITY;
-    for number in number_args(&mut ctx)? {
+    for number in number_args(operands)? {
         if number < latest {
             return Ok(false.into());
         }
@@ -40,9 +51,9 @@ fn less_than_or_equal_to(mut ctx: SpecialFormContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn greater_than(mut ctx: SpecialFormContext) -> CallableResult {
+fn greater_than(_ctx: BuiltinProcedureContext, operands: &[SourceValue]) -> CallableResult {
     let mut latest: f64 = INFINITY;
-    for number in number_args(&mut ctx)? {
+    for number in number_args(operands)? {
         if number >= latest {
             return Ok(false.into());
         }
@@ -51,9 +62,12 @@ fn greater_than(mut ctx: SpecialFormContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn greater_than_or_equal_to(mut ctx: SpecialFormContext) -> CallableResult {
+fn greater_than_or_equal_to(
+    _ctx: BuiltinProcedureContext,
+    operands: &[SourceValue],
+) -> CallableResult {
     let mut latest: f64 = INFINITY;
-    for number in number_args(&mut ctx)? {
+    for number in number_args(operands)? {
         if number > latest {
             return Ok(false.into());
         }
@@ -62,8 +76,8 @@ fn greater_than_or_equal_to(mut ctx: SpecialFormContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn numeric_eq(mut ctx: SpecialFormContext) -> CallableResult {
-    let numbers = number_args(&mut ctx)?;
+fn numeric_eq(_ctx: BuiltinProcedureContext, operands: &[SourceValue]) -> CallableResult {
+    let numbers = number_args(operands)?;
     if numbers.len() < 2 {
         Ok(true.into())
     } else {

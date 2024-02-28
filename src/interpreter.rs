@@ -125,6 +125,8 @@ pub enum BuiltinProcedureFn {
     Nullary(fn(BuiltinProcedureContext) -> CallableResult),
     Unary(fn(BuiltinProcedureContext, &SourceValue) -> CallableResult),
     Binary(fn(BuiltinProcedureContext, &SourceValue, &SourceValue) -> CallableResult),
+    NullaryVariadic(fn(BuiltinProcedureContext, &[SourceValue]) -> CallableResult),
+    UnaryVariadic(fn(BuiltinProcedureContext, &SourceValue, &[SourceValue]) -> CallableResult),
 }
 
 impl BuiltinProcedure {
@@ -133,6 +135,18 @@ impl BuiltinProcedure {
             BuiltinProcedureFn::Nullary(_) => operands_len == 0,
             BuiltinProcedureFn::Unary(_) => operands_len == 1,
             BuiltinProcedureFn::Binary(_) => operands_len == 2,
+            BuiltinProcedureFn::NullaryVariadic(_) => true,
+            BuiltinProcedureFn::UnaryVariadic(_) => operands_len >= 1,
+        }
+    }
+
+    pub fn call(&self, ctx: BuiltinProcedureContext, operands: Vec<SourceValue>) -> CallableResult {
+        match self.func {
+            BuiltinProcedureFn::Nullary(func) => (func)(ctx),
+            BuiltinProcedureFn::Unary(func) => (func)(ctx, &operands[0]),
+            BuiltinProcedureFn::Binary(func) => (func)(ctx, &operands[0], &operands[1]),
+            BuiltinProcedureFn::NullaryVariadic(func) => (func)(ctx, &operands[..]),
+            BuiltinProcedureFn::UnaryVariadic(func) => (func)(ctx, &operands[0], &operands[1..]),
         }
     }
 }
@@ -277,15 +291,6 @@ impl Interpreter {
         let id = self.next_id;
         self.next_id += 1;
         id
-    }
-
-    // TODO: Move this to Value.
-    pub fn expect_number(&mut self, expression: &SourceValue) -> Result<f64, RuntimeError> {
-        if let Value::Number(number) = self.eval_expression(&expression)?.0 {
-            Ok(number)
-        } else {
-            Err(RuntimeErrorType::ExpectedNumber.source_mapped(expression.1))
-        }
     }
 
     pub fn print_stats(&self) {

@@ -1,9 +1,9 @@
-use crate::interpreter::{RuntimeError, SpecialFormContext};
+use crate::{interpreter::RuntimeError, value::SourceValue};
 
-pub fn number_args(ctx: &mut SpecialFormContext) -> Result<Vec<f64>, RuntimeError> {
-    let mut numbers = Vec::with_capacity(ctx.operands.len());
-    for expr in ctx.operands.iter() {
-        numbers.push(ctx.interpreter.expect_number(expr)?);
+pub fn number_args(operands: &[SourceValue]) -> Result<Vec<f64>, RuntimeError> {
+    let mut numbers = Vec::with_capacity(operands.len());
+    for operand in operands.iter() {
+        numbers.push(operand.expect_number()?);
     }
     Ok(numbers)
 }

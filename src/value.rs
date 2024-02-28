@@ -18,6 +18,14 @@ impl SourceMapped<Value> {
         }
     }
 
+    pub fn expect_number(&self) -> Result<f64, RuntimeError> {
+        if let Value::Number(number) = self.0 {
+            Ok(number)
+        } else {
+            Err(RuntimeErrorType::ExpectedNumber.source_mapped(self.1))
+        }
+    }
+
     pub fn expect_pair(&self) -> Result<Pair, RuntimeError> {
         if let Value::Pair(pair) = &self.0 {
             Ok(pair.clone())

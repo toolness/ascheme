@@ -1,62 +1,70 @@
 use crate::{
     builtins::Builtin,
-    interpreter::{CallableResult, RuntimeError, RuntimeErrorType, SpecialFormContext},
+    interpreter::{
+        BuiltinProcedureContext, BuiltinProcedureFn, CallableResult, RuntimeError, RuntimeErrorType,
+    },
     source_mapped::SourceMappable,
+    value::SourceValue,
 };
 
 use super::util::number_args;
 
 pub fn get_builtins() -> super::Builtins {
     vec![
-        // TODO: THESE ARE ALL PROCEDURES, NOT SPECIAL FORMS
-        Builtin::SpecialForm("+", add),
-        Builtin::SpecialForm("-", subtract),
-        Builtin::SpecialForm("*", multiply),
-        Builtin::SpecialForm("/", divide),
-        Builtin::SpecialForm("sqrt", sqrt),
-        Builtin::SpecialForm("remainder", remainder),
+        Builtin::Procedure("+", BuiltinProcedureFn::NullaryVariadic(add)),
+        Builtin::Procedure("-", BuiltinProcedureFn::UnaryVariadic(subtract)),
+        Builtin::Procedure("*", BuiltinProcedureFn::NullaryVariadic(multiply)),
+        Builtin::Procedure("/", BuiltinProcedureFn::UnaryVariadic(divide)),
+        Builtin::Procedure("sqrt", BuiltinProcedureFn::Unary(sqrt)),
+        Builtin::Procedure("remainder", BuiltinProcedureFn::Binary(remainder)),
     ]
 }
 
-fn sqrt(ctx: SpecialFormContext) -> CallableResult {
-    ctx.ensure_operands_len(1)?;
-    let number = ctx.interpreter.expect_number(&ctx.operands[0])?;
+fn sqrt(_ctx: BuiltinProcedureContext, value: &SourceValue) -> CallableResult {
+    let number = value.expect_number()?;
     Ok(number.sqrt().into())
 }
 
-fn add(mut ctx: SpecialFormContext) -> CallableResult {
+fn add(_ctx: BuiltinProcedureContext, operands: &[SourceValue]) -> CallableResult {
     let mut result = 0.0;
-    for number in number_args(&mut ctx)? {
+    for number in number_args(operands)? {
         result += number
     }
     Ok(result.into())
 }
 
-fn subtract(mut ctx: SpecialFormContext) -> CallableResult {
-    let numbers = number_args(&mut ctx)?;
-    if numbers.len() == 0 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.range));
-    }
-    let mut result = numbers[0];
-    if numbers.len() == 1 {
+fn subtract(
+    _ctx: BuiltinProcedureContext,
+    first: &SourceValue,
+    rest: &[SourceValue],
+) -> CallableResult {
+    let first = first.expect_number()?;
+    let rest = number_args(rest)?;
+    let mut result = first;
+    if rest.is_empty() {
         return Ok((-result).into());
     }
-    for number in &numbers[1..] {
+    for number in &rest {
         result -= number
     }
     Ok(result.into())
 }
 
-fn multiply(mut ctx: SpecialFormContext) -> CallableResult {
+fn multiply(_ctx: BuiltinProcedureContext, operands: &[SourceValue]) -> CallableResult {
     let mut result = 1.0;
-    for number in number_args(&mut ctx)? {
+    for number in number_args(operands)? {
         result *= number
     }
     Ok(result.into())
 }
 
-fn divide(mut ctx: SpecialFormContext) -> CallableResult {
-    let numbers = number_args(&mut ctx)?;
+fn divide(
+    ctx: BuiltinProcedureContext,
+    first: &SourceValue,
+    rest: &[SourceValue],
+) -> CallableResult {
+    let first = first.expect_number()?;
+    let rest = number_args(rest)?;
 
     let divide_two = |a: f64, b: f64| -> Result<f64, RuntimeError> {
         if b == 0.0 {
@@ -66,25 +74,20 @@ fn divide(mut ctx: SpecialFormContext) -> CallableResult {
         Ok(a / b)
     };
 
-    if numbers.len() == 0 {
-        return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(ctx.range));
-    }
     // Why are scheme's math operators so weird? This is how tryscheme.org's behaves, at least,
     // and I find it baffling.
-    if numbers.len() == 1 {
-        return Ok(divide_two(1.0, numbers[0])?.into());
+    if rest.is_empty() {
+        return Ok(divide_two(1.0, first)?.into());
     }
-    let mut result = numbers[0];
-    for &number in &numbers[1..] {
+    let mut result = first;
+    for &number in &rest {
         result = divide_two(result, number)?;
     }
     Ok(result.into())
 }
 
-fn remainder(mut ctx: SpecialFormContext) -> CallableResult {
-    ctx.ensure_operands_len(2)?;
-    let numbers = number_args(&mut ctx)?;
-    Ok((numbers[0] % numbers[1]).into())
+fn remainder(_ctx: BuiltinProcedureContext, a: &SourceValue, b: &SourceValue) -> CallableResult {
+    Ok((a.expect_number()? % b.expect_number()?).into())
 }
 
 #[cfg(test)]
