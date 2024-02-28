@@ -19,3 +19,13 @@
         (else (filter predicate (cdr x)))
   )
 )
+
+(define (reverse x)
+  (define (reverse-helper x result)
+    (if (null? x)
+      result
+      (reverse-helper (cdr x) (cons (car x) result))
+    )
+  )
+  (reverse-helper x '())
+)
