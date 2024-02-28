@@ -65,12 +65,14 @@ fn assert(mut ctx: SpecialFormContext) -> CallableResult {
     }
 }
 
-fn test_eq(mut ctx: SpecialFormContext) -> CallableResult {
+fn test_eq(ctx: SpecialFormContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     let operand_0_repr = ctx.operands[0].to_string();
     let operand_1_repr = ctx.operands[1].to_string();
+    let a = ctx.interpreter.eval_expression(&ctx.operands[0])?;
+    let b = ctx.interpreter.eval_expression(&ctx.operands[1])?;
 
-    let msg = if is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])? {
+    let msg = if is_eq(&a, &b)? {
         "OK".green()
     } else {
         ctx.interpreter.failed_tests += 1;

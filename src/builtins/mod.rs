@@ -4,12 +4,12 @@ use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{
-        BuiltinProcedure, BuiltinProcedureContext, Callable, CallableResult, Procedure,
-        ProcedureFn, RuntimeErrorType, SpecialForm, SpecialFormContext, SpecialFormFn,
+        BuiltinProcedure, BuiltinProcedureContext, BuiltinProcedureFn, Callable, CallableResult,
+        Procedure, RuntimeErrorType, SpecialForm, SpecialFormContext, SpecialFormFn,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
-    value::Value,
+    value::{SourceValue, Value},
 };
 
 mod _let;
@@ -54,7 +54,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
 
 pub enum Builtin {
     SpecialForm(&'static str, SpecialFormFn),
-    Procedure(&'static str, ProcedureFn),
+    Procedure(&'static str, BuiltinProcedureFn),
 }
 
 pub type Builtins = Vec<Builtin>;
@@ -66,7 +66,7 @@ fn get_builtins() -> Builtins {
         Builtin::SpecialForm("apply", apply),
         Builtin::SpecialForm("quote", quote),
         Builtin::SpecialForm("begin", begin),
-        Builtin::Procedure("display", display),
+        Builtin::Procedure("display", BuiltinProcedureFn::Unary(display)),
         Builtin::SpecialForm("if", _if),
         Builtin::SpecialForm("cond", cond),
         Builtin::SpecialForm("set!", set),
@@ -236,9 +236,8 @@ fn set(ctx: SpecialFormContext) -> CallableResult {
     }
 }
 
-fn display(mut ctx: BuiltinProcedureContext) -> CallableResult {
-    let value = ctx.unary_arg()?;
-    ctx.interpreter.printer.print(format!("{:#}", value));
+fn display(ctx: BuiltinProcedureContext, arg: &SourceValue) -> CallableResult {
+    ctx.interpreter.printer.print(format!("{:#}", arg));
     ctx.undefined()
 }
 

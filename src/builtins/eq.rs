@@ -1,39 +1,30 @@
 use crate::{
     builtins::Builtin,
     interpreter::{
-        Callable, CallableResult, Interpreter, Procedure, RuntimeError, SpecialFormContext,
+        BuiltinProcedureContext, BuiltinProcedureFn, Callable, CallableResult, Procedure,
+        RuntimeError,
     },
     value::{SourceValue, Value},
 };
 
 pub fn get_builtins() -> super::Builtins {
-    vec![
-        // TODO: EQ IS A PROCEDURE, NOT A SPECIAL FORM
-        Builtin::SpecialForm("eq?", eq),
-    ]
+    vec![Builtin::Procedure("eq?", BuiltinProcedureFn::Binary(eq))]
 }
 
-pub fn is_eq(
-    interpreter: &mut Interpreter,
-    a: &SourceValue,
-    b: &SourceValue,
-) -> Result<bool, RuntimeError> {
-    let a = interpreter.eval_expression(&a)?;
-    let b = interpreter.eval_expression(&b)?;
-
-    Ok(match a.0 {
+pub fn is_eq(a: &SourceValue, b: &SourceValue) -> Result<bool, RuntimeError> {
+    Ok(match &a.0 {
         Value::Undefined => matches!(b.0, Value::Undefined),
         Value::EmptyList => matches!(b.0, Value::EmptyList),
         Value::Number(a) => match b.0 {
-            Value::Number(b) => a == b,
+            Value::Number(b) => a == &b,
             _ => false,
         },
         Value::Symbol(a) => match &b.0 {
-            Value::Symbol(b) => &a == b,
+            Value::Symbol(b) => a == b,
             _ => false,
         },
         Value::Boolean(a) => match b.0 {
-            Value::Boolean(b) => a == b,
+            Value::Boolean(b) => a == &b,
             _ => false,
         },
         Value::String(a) => match &b.0 {
@@ -59,9 +50,8 @@ pub fn is_eq(
     })
 }
 
-fn eq(mut ctx: SpecialFormContext) -> CallableResult {
-    ctx.ensure_operands_len(2)?;
-    Ok(is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])?.into())
+fn eq(_ctx: BuiltinProcedureContext, a: &SourceValue, b: &SourceValue) -> CallableResult {
+    Ok(is_eq(a, b)?.into())
 }
 
 #[cfg(test)]

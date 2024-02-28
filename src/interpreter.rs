@@ -55,23 +55,9 @@ impl<T: Into<SourceValue>> From<T> for CallableSuccess {
 pub struct BuiltinProcedureContext<'a> {
     pub interpreter: &'a mut Interpreter,
     pub range: SourceRange,
-    pub operands: &'a [SourceValue],
 }
 
 impl<'a> BuiltinProcedureContext<'a> {
-    pub fn ensure_operands_len(&self, len: usize) -> Result<(), RuntimeError> {
-        if self.operands.len() != len {
-            Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.range))
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn unary_arg(&mut self) -> Result<SourceValue, RuntimeError> {
-        self.ensure_operands_len(1)?;
-        Ok((&self.operands[0]).clone())
-    }
-
     pub fn undefined(&self) -> CallableResult {
         Ok(Value::Undefined.source_mapped(self.range).into())
     }
@@ -130,15 +116,22 @@ pub struct SpecialForm {
 
 #[derive(Debug, Clone)]
 pub struct BuiltinProcedure {
-    pub func: ProcedureFn,
+    pub func: BuiltinProcedureFn,
     pub name: InternedString,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum BuiltinProcedureFn {
+    Unary(fn(BuiltinProcedureContext, &SourceValue) -> CallableResult),
+    Binary(fn(BuiltinProcedureContext, &SourceValue, &SourceValue) -> CallableResult),
+}
+
 impl BuiltinProcedure {
-    fn is_valid_arity(&self, _operands_len: usize) -> bool {
-        // TODO: For now all builtin procedures are assumed to be variadic
-        // with no minimum args, but we should fix this.
-        true
+    fn is_valid_arity(&self, operands_len: usize) -> bool {
+        match self.func {
+            BuiltinProcedureFn::Unary(_) => operands_len == 1,
+            BuiltinProcedureFn::Binary(_) => operands_len == 2,
+        }
     }
 }
 
@@ -173,8 +166,6 @@ pub enum Callable {
 pub type CallableResult = Result<CallableSuccess, RuntimeError>;
 
 pub type SpecialFormFn = fn(SpecialFormContext) -> CallableResult;
-
-pub type ProcedureFn = fn(BuiltinProcedureContext) -> CallableResult;
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
