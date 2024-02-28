@@ -52,19 +52,17 @@ impl<T: Into<SourceValue>> From<T> for CallableSuccess {
     }
 }
 
-/// Encapsulates all the details of a procedure or special
+/// Encapsulates all the details of a special
 /// form invocation required for evaluation.
 ///
-/// This structure doesn't actually evaluate its operands,
-/// so it can be used to implement special forms as well as
-/// procedures.
-pub struct CallableContext<'a> {
+/// This structure doesn't actually evaluate its operands.
+pub struct SpecialFormContext<'a> {
     pub interpreter: &'a mut Interpreter,
     pub range: SourceRange,
     pub operands: &'a [SourceValue],
 }
 
-impl<'a> CallableContext<'a> {
+impl<'a> SpecialFormContext<'a> {
     pub fn ensure_operands_len(&self, len: usize) -> Result<(), RuntimeError> {
         if self.operands.len() != len {
             Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(self.range))
@@ -101,7 +99,7 @@ impl<'a> CallableContext<'a> {
 
 #[derive(Debug, Clone)]
 pub struct SpecialForm {
-    pub func: ProcedureFn,
+    pub func: SpecialFormFn,
     pub name: InternedString,
 }
 
@@ -141,7 +139,9 @@ pub enum Callable {
 
 pub type CallableResult = Result<CallableSuccess, RuntimeError>;
 
-pub type ProcedureFn = fn(CallableContext) -> CallableResult;
+pub type SpecialFormFn = fn(SpecialFormContext) -> CallableResult;
+
+pub type ProcedureFn = fn() -> CallableResult; // TODO FIX THIS
 
 pub struct TailCallContext {
     bound_procedure: BoundProcedure,
@@ -301,7 +301,7 @@ impl Interpreter {
     ) -> CallableResult {
         let result = match callable {
             Callable::SpecialForm(special_form) => {
-                let ctx = CallableContext {
+                let ctx = SpecialFormContext {
                     interpreter: self,
                     range: combination_source_range,
                     operands,

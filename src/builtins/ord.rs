@@ -1,6 +1,6 @@
 use std::f64::INFINITY;
 
-use crate::interpreter::{CallableContext, CallableResult};
+use crate::interpreter::{CallableResult, SpecialFormContext};
 
 use super::util::number_args;
 
@@ -14,7 +14,7 @@ pub fn get_builtins() -> super::Builtins {
     ]
 }
 
-fn less_than(mut ctx: CallableContext) -> CallableResult {
+fn less_than(mut ctx: SpecialFormContext) -> CallableResult {
     let mut latest: f64 = -INFINITY;
     for number in number_args(&mut ctx)? {
         if number <= latest {
@@ -25,7 +25,7 @@ fn less_than(mut ctx: CallableContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn less_than_or_equal_to(mut ctx: CallableContext) -> CallableResult {
+fn less_than_or_equal_to(mut ctx: SpecialFormContext) -> CallableResult {
     let mut latest: f64 = -INFINITY;
     for number in number_args(&mut ctx)? {
         if number < latest {
@@ -36,7 +36,7 @@ fn less_than_or_equal_to(mut ctx: CallableContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn greater_than(mut ctx: CallableContext) -> CallableResult {
+fn greater_than(mut ctx: SpecialFormContext) -> CallableResult {
     let mut latest: f64 = INFINITY;
     for number in number_args(&mut ctx)? {
         if number >= latest {
@@ -47,7 +47,7 @@ fn greater_than(mut ctx: CallableContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn greater_than_or_equal_to(mut ctx: CallableContext) -> CallableResult {
+fn greater_than_or_equal_to(mut ctx: SpecialFormContext) -> CallableResult {
     let mut latest: f64 = INFINITY;
     for number in number_args(&mut ctx)? {
         if number > latest {
@@ -58,7 +58,7 @@ fn greater_than_or_equal_to(mut ctx: CallableContext) -> CallableResult {
     Ok(true.into())
 }
 
-fn numeric_eq(mut ctx: CallableContext) -> CallableResult {
+fn numeric_eq(mut ctx: SpecialFormContext) -> CallableResult {
     let numbers = number_args(&mut ctx)?;
     if numbers.len() < 2 {
         Ok(true.into())

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     interpreter::{
-        CallableContext, CallableResult, CallableSuccess, RuntimeError, RuntimeErrorType,
+        CallableResult, CallableSuccess, RuntimeError, RuntimeErrorType, SpecialFormContext,
     },
     source_mapped::SourceMappable,
     string_interner::InternedString,
@@ -19,7 +19,7 @@ struct LetBinding {
 }
 
 fn parse_bindings(
-    ctx: &mut CallableContext,
+    ctx: &mut SpecialFormContext,
     allow_duplicates: bool,
 ) -> Result<Vec<LetBinding>, RuntimeError> {
     let Some(bindings) = ctx
@@ -53,7 +53,7 @@ fn parse_bindings(
     Ok(result)
 }
 
-fn eval_body(ctx: &mut CallableContext) -> Result<CallableSuccess, RuntimeError> {
+fn eval_body(ctx: &mut SpecialFormContext) -> Result<CallableSuccess, RuntimeError> {
     let body = &ctx.operands[1..];
     if body.is_empty() {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
@@ -61,7 +61,7 @@ fn eval_body(ctx: &mut CallableContext) -> Result<CallableSuccess, RuntimeError>
     ctx.interpreter.eval_expressions_in_tail_context(body)
 }
 
-fn _let(mut ctx: CallableContext) -> CallableResult {
+fn _let(mut ctx: SpecialFormContext) -> CallableResult {
     let bindings = parse_bindings(&mut ctx, false)?;
     let mut binding_map = HashMap::new();
     for binding in bindings.into_iter() {
@@ -84,7 +84,7 @@ fn _let(mut ctx: CallableContext) -> CallableResult {
     Ok(result)
 }
 
-fn let_star(mut ctx: CallableContext) -> CallableResult {
+fn let_star(mut ctx: SpecialFormContext) -> CallableResult {
     let bindings = parse_bindings(&mut ctx, true)?;
     let num_bindings = bindings.len();
     for binding in bindings.into_iter() {
@@ -106,7 +106,7 @@ fn let_star(mut ctx: CallableContext) -> CallableResult {
     Ok(result)
 }
 
-fn letrec(mut ctx: CallableContext) -> CallableResult {
+fn letrec(mut ctx: SpecialFormContext) -> CallableResult {
     let bindings = parse_bindings(&mut ctx, false)?;
     let scope = ctx.interpreter.environment.capture_lexical_scope();
     ctx.interpreter.environment.push(scope, ctx.range);

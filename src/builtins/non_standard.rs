@@ -3,7 +3,7 @@ use std::backtrace::Backtrace;
 use colored::Colorize;
 
 use crate::{
-    interpreter::{CallableContext, CallableResult, RuntimeErrorType},
+    interpreter::{CallableResult, RuntimeErrorType, SpecialFormContext},
     source_mapped::SourceMappable,
 };
 
@@ -23,22 +23,22 @@ pub fn get_builtins() -> super::Builtins {
     ]
 }
 
-fn stats(ctx: CallableContext) -> CallableResult {
+fn stats(ctx: SpecialFormContext) -> CallableResult {
     ctx.interpreter.print_stats();
     ctx.undefined()
 }
 
-fn gc(ctx: CallableContext) -> CallableResult {
+fn gc(ctx: SpecialFormContext) -> CallableResult {
     let objs_found_in_cycles = ctx.interpreter.gc(false);
     Ok((objs_found_in_cycles as f64).into())
 }
 
-fn gc_verbose(ctx: CallableContext) -> CallableResult {
+fn gc_verbose(ctx: SpecialFormContext) -> CallableResult {
     let objs_found_in_cycles = ctx.interpreter.gc(true);
     Ok((objs_found_in_cycles as f64).into())
 }
 
-fn print_and_eval(ctx: CallableContext) -> CallableResult {
+fn print_and_eval(ctx: SpecialFormContext) -> CallableResult {
     for (i, operand) in ctx.operands.iter().enumerate() {
         let operand_repr = operand.to_string();
         let value = ctx.interpreter.eval_expression(&operand)?;
@@ -54,7 +54,7 @@ fn print_and_eval(ctx: CallableContext) -> CallableResult {
     ctx.undefined()
 }
 
-fn assert(mut ctx: CallableContext) -> CallableResult {
+fn assert(mut ctx: SpecialFormContext) -> CallableResult {
     let value = ctx.eval_unary()?;
     if !value.0.as_bool() {
         Err(RuntimeErrorType::AssertionFailure.source_mapped(ctx.range))
@@ -63,7 +63,7 @@ fn assert(mut ctx: CallableContext) -> CallableResult {
     }
 }
 
-fn test_eq(mut ctx: CallableContext) -> CallableResult {
+fn test_eq(mut ctx: SpecialFormContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     let operand_0_repr = ctx.operands[0].to_string();
     let operand_1_repr = ctx.operands[1].to_string();
@@ -82,7 +82,7 @@ fn test_eq(mut ctx: CallableContext) -> CallableResult {
     ctx.undefined()
 }
 
-fn test_repr(ctx: CallableContext) -> CallableResult {
+fn test_repr(ctx: SpecialFormContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     let operand_0_repr = ctx.operands[0].to_string();
     let operand_0_value = ctx.interpreter.eval_expression(&ctx.operands[0])?;
@@ -104,7 +104,7 @@ fn test_repr(ctx: CallableContext) -> CallableResult {
     ctx.undefined()
 }
 
-fn rust_backtrace(ctx: CallableContext) -> CallableResult {
+fn rust_backtrace(ctx: SpecialFormContext) -> CallableResult {
     let location = ctx.interpreter.source_mapper.trace(&ctx.range).join("\n");
     let backtrace = Backtrace::force_capture();
     ctx.interpreter
@@ -114,7 +114,7 @@ fn rust_backtrace(ctx: CallableContext) -> CallableResult {
         .eval_expressions_in_tail_context(ctx.operands)
 }
 
-fn track_stats(mut ctx: CallableContext) -> CallableResult {
+fn track_stats(mut ctx: SpecialFormContext) -> CallableResult {
     ctx.ensure_operands_len(1)?;
     let repr = ctx.operands[0].to_string();
     ctx.interpreter.start_tracking_stats();

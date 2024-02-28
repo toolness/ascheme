@@ -4,8 +4,8 @@ use crate::{
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
     interpreter::{
-        Callable, CallableContext, CallableResult, Procedure, ProcedureFn, RuntimeErrorType,
-        SpecialForm,
+        Callable, CallableResult, Procedure, RuntimeErrorType, SpecialForm, SpecialFormContext,
+        SpecialFormFn,
     },
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::StringInterner,
@@ -41,7 +41,7 @@ pub fn populate_environment(environment: &mut Environment, interner: &mut String
     environment.define(interner.intern("else"), Value::Boolean(true).into());
 }
 
-pub type Builtins = Vec<(&'static str, ProcedureFn)>;
+pub type Builtins = Vec<(&'static str, SpecialFormFn)>;
 
 fn get_builtins() -> Builtins {
     let mut builtins: Builtins = vec![
@@ -65,7 +65,7 @@ fn get_builtins() -> Builtins {
     builtins
 }
 
-fn _if(ctx: CallableContext) -> CallableResult {
+fn _if(ctx: SpecialFormContext) -> CallableResult {
     if ctx.operands.len() < 2 || ctx.operands.len() > 3 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
@@ -84,7 +84,7 @@ fn _if(ctx: CallableContext) -> CallableResult {
     }
 }
 
-fn cond(ctx: CallableContext) -> CallableResult {
+fn cond(ctx: SpecialFormContext) -> CallableResult {
     if ctx.operands.len() == 0 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
@@ -112,7 +112,7 @@ fn cond(ctx: CallableContext) -> CallableResult {
 
 // TODO: According to R5RS section 5.2, definitions are only allowed at the top level
 // of a program file, and at the beginning of a body. Currently we support it anywhere.
-fn define(ctx: CallableContext) -> CallableResult {
+fn define(ctx: SpecialFormContext) -> CallableResult {
     match ctx.operands.get(0) {
         Some(SourceMapped(Value::Symbol(name), ..)) => {
             let mut value = ctx.interpreter.eval_expressions(&ctx.operands[1..])?;
@@ -148,7 +148,7 @@ fn define(ctx: CallableContext) -> CallableResult {
     }
 }
 
-fn lambda(ctx: CallableContext) -> CallableResult {
+fn lambda(ctx: SpecialFormContext) -> CallableResult {
     if ctx.operands.len() < 2 {
         return Err(RuntimeErrorType::MalformedSpecialForm.source_mapped(ctx.range));
     }
@@ -163,7 +163,7 @@ fn lambda(ctx: CallableContext) -> CallableResult {
     Ok(Value::Callable(Callable::Procedure(Procedure::Compound(proc))).into())
 }
 
-fn apply(ctx: CallableContext) -> CallableResult {
+fn apply(ctx: SpecialFormContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     let callable = ctx.interpreter.expect_callable(&ctx.operands[0])?;
     let operands = Rc::into_inner(
@@ -196,7 +196,7 @@ fn apply(ctx: CallableContext) -> CallableResult {
         .eval_callable(callable, &quoted_operands, ctx.operands[0].1, ctx.range)
 }
 
-fn quote(ctx: CallableContext) -> CallableResult {
+fn quote(ctx: SpecialFormContext) -> CallableResult {
     if ctx.operands.len() == 1 {
         Ok(ctx.operands[0].clone().into())
     } else {
@@ -204,12 +204,12 @@ fn quote(ctx: CallableContext) -> CallableResult {
     }
 }
 
-fn begin(ctx: CallableContext) -> CallableResult {
+fn begin(ctx: SpecialFormContext) -> CallableResult {
     ctx.interpreter
         .eval_expressions_in_tail_context(&ctx.operands)
 }
 
-fn set(ctx: CallableContext) -> CallableResult {
+fn set(ctx: SpecialFormContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     let identifier = ctx.operands[0].expect_identifier()?;
     let value = ctx.interpreter.eval_expression(&ctx.operands[1])?;
@@ -220,7 +220,7 @@ fn set(ctx: CallableContext) -> CallableResult {
     }
 }
 
-fn display(mut ctx: CallableContext) -> CallableResult {
+fn display(mut ctx: SpecialFormContext) -> CallableResult {
     let value = ctx.eval_unary()?;
     ctx.interpreter.printer.print(format!("{:#}", value));
     ctx.undefined()

@@ -1,6 +1,6 @@
 use crate::{
     interpreter::{
-        Callable, CallableContext, CallableResult, Interpreter, Procedure, RuntimeError,
+        Callable, CallableResult, Interpreter, Procedure, RuntimeError, SpecialFormContext,
     },
     value::{SourceValue, Value},
 };
@@ -55,7 +55,7 @@ pub fn is_eq(
     })
 }
 
-fn eq(mut ctx: CallableContext) -> CallableResult {
+fn eq(mut ctx: SpecialFormContext) -> CallableResult {
     ctx.ensure_operands_len(2)?;
     Ok(is_eq(&mut ctx.interpreter, &ctx.operands[0], &ctx.operands[1])?.into())
 }
