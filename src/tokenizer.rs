@@ -21,6 +21,7 @@ pub enum TokenType {
     Dot,
     Apostrophe,
     String,
+    Undefined,
 }
 
 pub type Token = SourceMapped<TokenType>;
@@ -95,13 +96,29 @@ impl<'a> Tokenizer<'a> {
 
     fn try_accept_sharp(&mut self) -> Option<Result<TokenType, TokenizeErrorType>> {
         if self.accept_char('#') {
-            if self.accept_char('t') {
-                Some(Ok(TokenType::Boolean(true)))
-            } else if self.accept_char('f') {
-                Some(Ok(TokenType::Boolean(false)))
-            } else {
-                Some(Err(TokenizeErrorType::UnexpectedCharacter))
+            let mut chars = vec![];
+            loop {
+                if let Some(&(pos, next_char)) = self.chars.peek() {
+                    if is_ident_char(next_char) {
+                        self.chars.next();
+                        self.curr_pos = pos + next_char.len_utf8();
+                        chars.push(next_char);
+                        continue;
+                    }
+                }
+                break;
             }
+            let value: String = chars.into_iter().collect();
+            let token = match value.as_str() {
+                "t" => TokenType::Boolean(true),
+                "f" => TokenType::Boolean(false),
+
+                // This isn't documented in R5RS, but it's how try.scheme.org works...
+                "!void" => TokenType::Undefined,
+
+                _ => return Some(Err(TokenizeErrorType::UnexpectedCharacter)),
+            };
+            Some(Ok(token))
         } else {
             None
         }

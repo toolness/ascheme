@@ -352,9 +352,10 @@ impl Interpreter {
 
     fn lazy_eval_expression(&mut self, expression: &SourceValue) -> ProcedureResult {
         match &expression.0 {
-            Value::EmptyList | Value::Undefined | Value::Procedure(_) => {
+            Value::EmptyList | Value::Procedure(_) => {
                 Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1))
             }
+            Value::Undefined => Ok(Value::Undefined.into()),
             Value::Number(number) => Ok(Value::Number(*number).into()),
             Value::Boolean(boolean) => Ok(Value::Boolean(*boolean).into()),
             Value::String(string) => Ok(Value::String(string.clone()).into()),
@@ -546,6 +547,11 @@ mod tests {
     fn booleans_work() {
         test_eval_success("#t", "#t");
         test_eval_success("#f", "#f");
+    }
+
+    #[test]
+    fn undefined_works() {
+        test_eval_success("#!void", "");
     }
 
     #[test]

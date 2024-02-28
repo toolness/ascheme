@@ -125,6 +125,7 @@ impl<'a> Parser<'a> {
                 Err(ParseErrorType::Unexpected(TokenType::Dot).source_mapped(token.1))
             }
             TokenType::Boolean(boolean) => Ok(Value::Boolean(boolean).source_mapped(token.1)),
+            TokenType::Undefined => Ok(Value::Undefined.source_mapped(token.1)),
             TokenType::Number => match token.source(&self.string).parse::<f64>() {
                 Ok(number) => Ok(Value::Number(number).source_mapped(token.1)),
                 Err(_) => Err(ParseErrorType::InvalidNumber.source_mapped(token.1)),
