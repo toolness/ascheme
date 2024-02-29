@@ -1,17 +1,16 @@
 use std::{ops::Deref, sync::mpsc::Receiver};
 
 use crate::{
-    bound_procedure::BoundProcedure,
     builtins::{self, add_library_source},
+    callable::{Callable, CallableResult, CallableSuccess, TailCallContext},
     environment::Environment,
     gc::Visitor,
     gc_rooted::GCRootManager,
     pair::PairManager,
     parser::{parse, ParseError, ParseErrorType},
-    procedure::Procedure,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     source_mapper::{SourceId, SourceMapper},
-    special_form::{SpecialForm, SpecialFormContext},
+    special_form::SpecialFormContext,
     stdio_printer::StdioPrinter,
     string_interner::{InternedString, StringInterner},
     tracked_stats::TrackedStats,
@@ -48,29 +47,6 @@ impl From<ParseError> for RuntimeError {
     fn from(value: ParseError) -> Self {
         RuntimeErrorType::Parse(value.0).source_mapped(value.1)
     }
-}
-
-impl<T: Into<SourceValue>> From<T> for CallableSuccess {
-    fn from(value: T) -> Self {
-        CallableSuccess::Value(value.into())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Callable {
-    SpecialForm(SpecialForm),
-    Procedure(Procedure),
-}
-
-pub type CallableResult = Result<CallableSuccess, RuntimeError>;
-
-pub struct TailCallContext {
-    pub bound_procedure: BoundProcedure,
-}
-
-pub enum CallableSuccess {
-    Value(SourceValue),
-    TailCall(TailCallContext),
 }
 
 pub struct Interpreter {

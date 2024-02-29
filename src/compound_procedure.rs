@@ -1,9 +1,10 @@
 use std::{collections::HashSet, rc::Rc};
 
 use crate::{
+    callable::CallableResult,
     environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
-    interpreter::{CallableResult, Interpreter, RuntimeError, RuntimeErrorType},
+    interpreter::{Interpreter, RuntimeError, RuntimeErrorType},
     pair::PairVisitedSet,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,

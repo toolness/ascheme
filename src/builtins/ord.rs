@@ -3,7 +3,7 @@ use std::f64::INFINITY;
 use crate::{
     builtin_procedure::{BuiltinProcedureContext, BuiltinProcedureFn},
     builtins::Builtin,
-    interpreter::CallableResult,
+    callable::CallableResult,
     value::SourceValue,
 };
 

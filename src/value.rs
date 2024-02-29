@@ -1,8 +1,9 @@
 use std::{fmt::Display, rc::Rc};
 
 use crate::{
+    callable::Callable,
     gc::{Traverser, Visitor},
-    interpreter::{Callable, RuntimeError, RuntimeErrorType},
+    interpreter::{RuntimeError, RuntimeErrorType},
     mutable_string::MutableString,
     pair::Pair,
     procedure::Procedure,

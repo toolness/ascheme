@@ -1,8 +1,9 @@
 use crate::{
     builtin_procedure::{BuiltinProcedure, BuiltinProcedureContext, BuiltinProcedureFn},
+    callable::{Callable, CallableResult, CallableSuccess, TailCallContext},
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
-    interpreter::{Callable, CallableResult, CallableSuccess, RuntimeErrorType, TailCallContext},
+    interpreter::RuntimeErrorType,
     procedure::Procedure,
     source_mapped::{SourceMappable, SourceMapped},
     special_form::{SpecialForm, SpecialFormContext, SpecialFormFn},

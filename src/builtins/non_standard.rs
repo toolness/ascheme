@@ -5,7 +5,8 @@ use colored::Colorize;
 use crate::{
     builtin_procedure::{BuiltinProcedureContext, BuiltinProcedureFn},
     builtins::Builtin,
-    interpreter::{CallableResult, RuntimeErrorType},
+    callable::CallableResult,
+    interpreter::RuntimeErrorType,
     source_mapped::SourceMappable,
     special_form::SpecialFormContext,
     value::SourceValue,

@@ -1,5 +1,6 @@
 use crate::{
-    interpreter::{CallableResult, Interpreter},
+    callable::CallableResult,
+    interpreter::Interpreter,
     source_mapped::{SourceMappable, SourceRange},
     string_interner::InternedString,
     value::{SourceValue, Value},

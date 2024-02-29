@@ -1,5 +1,6 @@
 use crate::{
-    interpreter::{CallableResult, Interpreter, RuntimeError, RuntimeErrorType},
+    callable::CallableResult,
+    interpreter::{Interpreter, RuntimeError, RuntimeErrorType},
     source_mapped::{SourceMappable, SourceRange},
     string_interner::InternedString,
     value::{SourceValue, Value},

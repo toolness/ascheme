@@ -1,9 +1,6 @@
 use crate::{
-    builtin_procedure::BuiltinProcedureContext,
-    interpreter::{CallableResult, Interpreter},
-    procedure::Procedure,
-    source_mapped::SourceRange,
-    string_interner::InternedString,
+    builtin_procedure::BuiltinProcedureContext, callable::CallableResult, interpreter::Interpreter,
+    procedure::Procedure, source_mapped::SourceRange, string_interner::InternedString,
     value::SourceValue,
 };
 

@@ -22,6 +22,7 @@ use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 mod bound_procedure;
 mod builtin_procedure;
 mod builtins;
+mod callable;
 mod compound_procedure;
 mod environment;
 mod gc;

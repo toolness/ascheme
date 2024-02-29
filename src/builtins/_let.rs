@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     builtins::Builtin,
-    interpreter::{CallableResult, CallableSuccess, RuntimeError, RuntimeErrorType},
+    callable::{CallableResult, CallableSuccess},
+    interpreter::{RuntimeError, RuntimeErrorType},
     source_mapped::SourceMappable,
     special_form::SpecialFormContext,
     string_interner::InternedString,
