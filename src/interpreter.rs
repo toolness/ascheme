@@ -169,8 +169,6 @@ impl Interpreter {
     ) -> Result<Option<TailCallContext>, RuntimeError> {
         match &expression.0 {
             Value::Pair(pair) => {
-                // TODO: A lot of this is duplicated from eval_expression, it'd be nice to consolidate
-                // somehow.
                 let Some(expressions) = pair.try_as_rc_list() else {
                     return Err(RuntimeErrorType::MalformedExpression.source_mapped(expression.1));
                 };
