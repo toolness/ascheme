@@ -2,14 +2,13 @@ use std::{ops::Deref, sync::mpsc::Receiver};
 
 use crate::{
     bound_procedure::BoundProcedure,
-    builtin_procedure::BuiltinProcedure,
     builtins::{self, add_library_source},
-    compound_procedure::CompoundProcedure,
     environment::Environment,
     gc::Visitor,
     gc_rooted::GCRootManager,
     pair::PairManager,
     parser::{parse, ParseError, ParseErrorType},
+    procedure::Procedure,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     source_mapper::{SourceId, SourceMapper},
     special_form::{SpecialForm, SpecialFormContext},
@@ -54,28 +53,6 @@ impl From<ParseError> for RuntimeError {
 impl<T: Into<SourceValue>> From<T> for CallableSuccess {
     fn from(value: T) -> Self {
         CallableSuccess::Value(value.into())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Procedure {
-    Compound(CompoundProcedure),
-    Builtin(BuiltinProcedure),
-}
-
-impl Procedure {
-    pub fn name(&self) -> Option<&InternedString> {
-        match self {
-            Procedure::Builtin(builtin) => Some(&builtin.name),
-            Procedure::Compound(compound) => compound.name.as_ref(),
-        }
-    }
-
-    pub fn is_valid_arity(&self, operands_len: usize) -> bool {
-        match self {
-            Procedure::Compound(compound) => compound.signature.is_valid_arity(operands_len),
-            Procedure::Builtin(builtin) => builtin.is_valid_arity(operands_len),
-        }
     }
 }
 

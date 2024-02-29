@@ -2,9 +2,10 @@ use std::{fmt::Display, rc::Rc};
 
 use crate::{
     gc::{Traverser, Visitor},
-    interpreter::{Callable, Procedure, RuntimeError, RuntimeErrorType},
+    interpreter::{Callable, RuntimeError, RuntimeErrorType},
     mutable_string::MutableString,
     pair::Pair,
+    procedure::Procedure,
     source_mapped::{SourceMappable, SourceMapped},
     string_interner::InternedString,
 };

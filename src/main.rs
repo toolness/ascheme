@@ -31,6 +31,7 @@ mod mutable_string;
 mod object_tracker;
 mod pair;
 mod parser;
+mod procedure;
 mod source_mapped;
 mod source_mapper;
 mod special_form;
