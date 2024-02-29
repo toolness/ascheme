@@ -1,9 +1,7 @@
 use crate::{
+    builtin_procedure::{BuiltinProcedureContext, BuiltinProcedureFn},
     builtins::Builtin,
-    interpreter::{
-        BuiltinProcedureContext, BuiltinProcedureFn, Callable, CallableResult, Procedure,
-        RuntimeError,
-    },
+    interpreter::{Callable, CallableResult, Procedure, RuntimeError},
     value::{SourceValue, Value},
 };
 

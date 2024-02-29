@@ -19,6 +19,8 @@ use rustyline::completion::Completer;
 use rustyline::error::ReadlineError;
 use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 
+mod bound_procedure;
+mod builtin_procedure;
 mod builtins;
 mod compound_procedure;
 mod environment;

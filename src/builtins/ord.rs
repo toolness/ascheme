@@ -1,8 +1,9 @@
 use std::f64::INFINITY;
 
 use crate::{
+    builtin_procedure::{BuiltinProcedureContext, BuiltinProcedureFn},
     builtins::Builtin,
-    interpreter::{BuiltinProcedureContext, BuiltinProcedureFn, CallableResult},
+    interpreter::CallableResult,
     value::SourceValue,
 };
 

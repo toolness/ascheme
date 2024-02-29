@@ -3,10 +3,7 @@ use std::{collections::HashSet, rc::Rc};
 use crate::{
     environment::CapturedLexicalScope,
     gc::{Traverser, Visitor},
-    interpreter::{
-        BuiltinProcedureContext, CallableResult, Interpreter, Procedure, RuntimeError,
-        RuntimeErrorType,
-    },
+    interpreter::{CallableResult, Interpreter, RuntimeError, RuntimeErrorType},
     pair::PairVisitedSet,
     source_mapped::{SourceMappable, SourceMapped, SourceRange},
     string_interner::InternedString,
@@ -151,52 +148,33 @@ impl CompoundProcedure {
     pub fn id(&self) -> u32 {
         self.id
     }
+
+    pub fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        operands: Vec<SourceValue>,
+    ) -> CallableResult {
+        interpreter
+            .environment
+            .push(self.captured_lexical_scope.clone(), self.body.0 .1);
+
+        let body = &self.body.0 .0;
+        self.signature.bind_args(operands, interpreter);
+
+        let result = interpreter.eval_expressions_in_tail_context(body)?;
+
+        // Note that the environment won't have been popped if an error occured above--this is
+        // so we can examine it afterwards, if needed. It's up to the caller to clean things
+        // up after an error.
+        interpreter.environment.pop();
+
+        Ok(result)
+    }
 }
 
 impl Traverser for CompoundProcedure {
     fn traverse(&self, visitor: &Visitor) {
         visitor.traverse(&self.body.0);
         visitor.traverse(&self.captured_lexical_scope);
-    }
-}
-
-pub struct BoundProcedure {
-    pub procedure: Procedure,
-    pub operands: Vec<SourceValue>,
-    pub range: SourceRange,
-}
-
-impl BoundProcedure {
-    pub fn name(&self) -> Option<&InternedString> {
-        self.procedure.name()
-    }
-
-    pub fn call(self, interpreter: &mut Interpreter) -> CallableResult {
-        match self.procedure {
-            Procedure::Compound(compound) => {
-                interpreter
-                    .environment
-                    .push(compound.captured_lexical_scope.clone(), compound.body.0 .1);
-
-                let body = &compound.body.0 .0;
-                compound.signature.bind_args(self.operands, interpreter);
-
-                let result = interpreter.eval_expressions_in_tail_context(body)?;
-
-                // Note that the environment won't have been popped if an error occured above--this is
-                // so we can examine it afterwards, if needed. It's up to the caller to clean things
-                // up after an error.
-                interpreter.environment.pop();
-
-                Ok(result)
-            }
-            Procedure::Builtin(builtin) => {
-                let ctx = BuiltinProcedureContext {
-                    interpreter,
-                    range: self.range,
-                };
-                builtin.call(ctx, self.operands)
-            }
-        }
     }
 }
