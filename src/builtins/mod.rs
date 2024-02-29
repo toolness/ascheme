@@ -2,7 +2,7 @@ use crate::{
     builtin_procedure::{BuiltinProcedure, BuiltinProcedureContext, BuiltinProcedureFn},
     compound_procedure::{Body, CompoundProcedure, Signature},
     environment::Environment,
-    interpreter::{Callable, CallableResult, CallableSuccess, RuntimeErrorType},
+    interpreter::{Callable, CallableResult, CallableSuccess, RuntimeErrorType, TailCallContext},
     procedure::Procedure,
     source_mapped::{SourceMappable, SourceMapped},
     special_form::{SpecialForm, SpecialFormContext, SpecialFormFn},
@@ -180,10 +180,9 @@ fn lambda(ctx: SpecialFormContext) -> CallableResult {
 fn apply(ctx: BuiltinProcedureContext, func: &SourceValue, args: &SourceValue) -> CallableResult {
     let procedure = func.expect_procedure()?;
     let args = args.expect_list()?;
-    Ok(CallableSuccess::TailCall(
-        ctx.interpreter
-            .bind_tail_call_context(procedure, ctx.range, &args, false)?,
-    ))
+    Ok(CallableSuccess::TailCall(TailCallContext {
+        bound_procedure: procedure.bind(ctx.range, &args)?,
+    }))
 }
 
 fn quote(ctx: SpecialFormContext) -> CallableResult {

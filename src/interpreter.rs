@@ -65,7 +65,7 @@ pub enum Callable {
 pub type CallableResult = Result<CallableSuccess, RuntimeError>;
 
 pub struct TailCallContext {
-    bound_procedure: BoundProcedure,
+    pub bound_procedure: BoundProcedure,
 }
 
 pub enum CallableSuccess {
@@ -177,8 +177,7 @@ impl Interpreter {
                     stats.update_call_stack_depth(self.stack.len());
                     stats.track_call(procedure.name());
                 }
-                let bound =
-                    self.bind_procedure(procedure, combination_source_range, operands, true)?;
+                let bound = procedure.eval_and_bind(self, combination_source_range, operands)?;
                 let result = bound.call(self)?;
                 // Note that the stack won't unwind if an error occured above--this is so we can get a stack trace
                 // afterwards. It's up to the caller to clean things up after an error.
@@ -186,32 +185,6 @@ impl Interpreter {
                 Ok(result)
             }
         }
-    }
-
-    fn bind_procedure(
-        &mut self,
-        procedure: Procedure,
-        range: SourceRange,
-        operands: &[SourceValue],
-        eval_operands: bool,
-    ) -> Result<BoundProcedure, RuntimeError> {
-        if !procedure.is_valid_arity(operands.len()) {
-            return Err(RuntimeErrorType::WrongNumberOfArguments.source_mapped(range));
-        }
-        let mut evaluated_operands = Vec::with_capacity(operands.len());
-        for expr in operands.iter() {
-            let value = if eval_operands {
-                self.eval_expression(expr)?
-            } else {
-                expr.clone()
-            };
-            evaluated_operands.push(value);
-        }
-        Ok(BoundProcedure {
-            procedure,
-            operands: evaluated_operands,
-            range,
-        })
     }
 
     fn try_bind_tail_call_context(
@@ -231,35 +204,14 @@ impl Interpreter {
                 let combination = SourceMapped(&expressions, expression.1);
                 let operands = &expressions[1..];
                 match callable {
-                    Callable::Procedure(procedure) => Ok(Some(self.bind_tail_call_context(
-                        procedure,
-                        combination.1,
-                        operands,
-                        true,
-                    )?)),
+                    Callable::Procedure(procedure) => Ok(Some(TailCallContext {
+                        bound_procedure: procedure.eval_and_bind(self, combination.1, operands)?,
+                    })),
                     Callable::SpecialForm(_) => Ok(None),
                 }
             }
             _ => Ok(None),
         }
-    }
-
-    pub fn bind_tail_call_context(
-        &mut self,
-        procedure: Procedure,
-        range: SourceRange,
-        operands: &[SourceValue],
-        eval_operands: bool,
-    ) -> Result<TailCallContext, RuntimeError> {
-        if self.tracing {
-            self.printer.println(format!(
-                "Creating tail call context {}",
-                self.source_mapper.trace(&range).join("\n")
-            ))
-        }
-        Ok(TailCallContext {
-            bound_procedure: self.bind_procedure(procedure, range, operands, eval_operands)?,
-        })
     }
 
     pub fn eval_expression_in_tail_context(&mut self, expression: &SourceValue) -> CallableResult {
@@ -298,7 +250,7 @@ impl Interpreter {
                 let operands = &expressions[1..];
                 if self.tracing {
                     self.printer.println(format!(
-                        "Evaluating {}",
+                        "Evaluating callable {}",
                         self.source_mapper.trace(&combination.1).join("\n")
                     ));
                 }
@@ -323,6 +275,14 @@ impl Interpreter {
                 CallableSuccess::TailCall(tail_call_context) => {
                     if let Some(ref mut stats) = &mut self.tracked_stats {
                         stats.track_tail_call(tail_call_context.bound_procedure.name())
+                    }
+                    if self.tracing {
+                        self.printer.println(format!(
+                            "Evaluating tail call {}",
+                            self.source_mapper
+                                .trace(&tail_call_context.bound_procedure.range)
+                                .join("\n")
+                        ));
                     }
                     result = tail_call_context.bound_procedure.call(self)?;
                 }
