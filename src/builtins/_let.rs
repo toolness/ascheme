@@ -261,7 +261,7 @@ mod tests {
           (even? 88))
         ",
             "#t",
-        )
+        );
     }
 
     #[test]
@@ -310,5 +310,11 @@ mod tests {
             "(let boop ((x 1) (x 2)) x)",
             RuntimeErrorType::DuplicateVariableInBindings,
         );
+    }
+
+    #[test]
+    fn named_let_does_not_pollute_scope() {
+        let mut interpreter = test_eval_success("(let boop ((x 1)) x)", "1");
+        assert!(interpreter.get("boop").is_none());
     }
 }

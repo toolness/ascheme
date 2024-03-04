@@ -2,8 +2,16 @@ use std::fs::read_to_string;
 
 use crate::{
     interpreter::{Interpreter, RuntimeErrorType},
-    value::Value,
+    value::{SourceValue, Value},
 };
+
+pub struct TestInterpreter(Interpreter);
+
+impl TestInterpreter {
+    pub fn get(&mut self, name: &'static str) -> Option<SourceValue> {
+        self.0.environment.get(&self.0.string_interner.intern(name))
+    }
+}
 
 pub fn eval_test_file(filename: &str) {
     let mut interpreter = Interpreter::new();
@@ -23,7 +31,7 @@ pub fn eval_test_file(filename: &str) {
     }
 }
 
-pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
+pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) -> TestInterpreter {
     let mut interpreter = Interpreter::new();
     interpreter.printer.disable_autoflush = true;
     for (i, &(code, expected_value)) in code_and_expected_values.iter().enumerate() {
@@ -47,10 +55,11 @@ pub fn test_eval_successes(code_and_expected_values: &[(&str, &str)]) {
             }
         }
     }
+    TestInterpreter(interpreter)
 }
 
-pub fn test_eval_success(code: &'static str, expected_value: &'static str) {
-    test_eval_successes(&[(code, expected_value)]);
+pub fn test_eval_success(code: &'static str, expected_value: &'static str) -> TestInterpreter {
+    test_eval_successes(&[(code, expected_value)])
 }
 
 pub fn test_eval_err(code: &'static str, expected_err: RuntimeErrorType) {
