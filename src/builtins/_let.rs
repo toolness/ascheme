@@ -80,6 +80,9 @@ fn named_let(mut ctx: SpecialFormContext, variable: &InternedString) -> Callable
     }
     let signature: Signature = arg_names.into();
     let body = Body::try_new(&ctx.operands[2..], ctx.range)?;
+
+    // This is a bit convoluted: we want to create a new scope that contains the name
+    // of the let, so it can call itself recursively.
     ctx.interpreter.environment.push_inherited(ctx.range);
     let scope = ctx.interpreter.environment.capture_lexical_scope();
     let mut compound_procedure =
@@ -91,6 +94,7 @@ fn named_let(mut ctx: SpecialFormContext, variable: &InternedString) -> Callable
         Value::Callable(Callable::Procedure(proc.clone())).source_mapped(ctx.range),
     );
     ctx.interpreter.environment.pop();
+
     Ok(CallableSuccess::TailCall(TailCallContext {
         bound_procedure: proc.eval_and_bind(
             &mut ctx.interpreter,
