@@ -80,7 +80,7 @@ fn named_let(mut ctx: SpecialFormContext, variable: &InternedString) -> Callable
     }
     let signature: Signature = arg_names.into();
     let body = Body::try_new(&ctx.operands[2..], ctx.range)?;
-    ctx.interpreter.environment.push(ctx.range);
+    ctx.interpreter.environment.push_inherited(ctx.range);
     let scope = ctx.interpreter.environment.capture_lexical_scope();
     let mut compound_procedure =
         CompoundProcedure::create(ctx.interpreter.new_id(), signature, body, scope);
@@ -110,7 +110,7 @@ fn _let(mut ctx: SpecialFormContext) -> CallableResult {
         let value = ctx.interpreter.eval_expression(&binding.init)?;
         binding_map.insert(binding.variable.0, value);
     }
-    ctx.interpreter.environment.push(ctx.range);
+    ctx.interpreter.environment.push_inherited(ctx.range);
     for (variable, value) in binding_map {
         ctx.interpreter.environment.define(variable, value);
     }
@@ -130,7 +130,7 @@ fn let_star(mut ctx: SpecialFormContext) -> CallableResult {
     let num_bindings = bindings.len();
     for binding in bindings.into_iter() {
         let value = ctx.interpreter.eval_expression(&binding.init)?;
-        ctx.interpreter.environment.push(binding.init.1);
+        ctx.interpreter.environment.push_inherited(binding.init.1);
         ctx.interpreter
             .environment
             .define(binding.variable.0, value);
@@ -150,7 +150,7 @@ fn let_star(mut ctx: SpecialFormContext) -> CallableResult {
 
 fn letrec(mut ctx: SpecialFormContext) -> CallableResult {
     let bindings = parse_bindings(&mut ctx, false, 0)?;
-    ctx.interpreter.environment.push(ctx.range);
+    ctx.interpreter.environment.push_inherited(ctx.range);
     for binding in bindings.into_iter() {
         let value = ctx.interpreter.eval_expression(&binding.init)?;
         ctx.interpreter

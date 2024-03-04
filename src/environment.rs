@@ -113,7 +113,7 @@ impl Environment {
     }
 
     /// Activate a new lexical scope that inherits from the current one.
-    pub fn push(&mut self, source_range: SourceRange) {
+    pub fn push_inherited(&mut self, source_range: SourceRange) {
         let scope = self.capture_lexical_scope();
         self.push_captured(scope, source_range);
     }
