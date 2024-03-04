@@ -39,6 +39,10 @@ impl Scope {
                 .map_or(false, |parent| parent.0.change(identifier, value))
         }
     }
+
+    fn define(&self, identifier: InternedString, value: SourceValue) {
+        self.bindings.borrow_mut().insert(identifier, value);
+    }
 }
 
 impl CycleBreaker for Scope {
@@ -155,9 +159,9 @@ impl Environment {
     /// current scope--it will *not* modify an existing binding in a parent lexical scope.
     pub fn define(&mut self, identifier: InternedString, value: SourceValue) {
         if let Some(scope) = self.lexical_scopes.last_mut() {
-            scope.0.bindings.borrow_mut().insert(identifier, value);
+            scope.0.define(identifier, value);
         } else {
-            self.globals.bindings.borrow_mut().insert(identifier, value);
+            self.globals.define(identifier, value);
         }
     }
 
