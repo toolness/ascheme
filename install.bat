@@ -1,1 +1,1 @@
-cargo install --path=. --force
+cargo install --path=. --force --offline
