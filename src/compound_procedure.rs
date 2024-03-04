@@ -21,6 +21,12 @@ pub enum Signature {
     AnyArgs(SourceMapped<InternedString>),
 }
 
+impl From<Vec<SourceMapped<InternedString>>> for Signature {
+    fn from(value: Vec<SourceMapped<InternedString>>) -> Self {
+        Signature::FixedArgs(value)
+    }
+}
+
 impl Signature {
     pub fn parse(value: SourceValue) -> Result<Self, RuntimeError> {
         match value.0 {
@@ -118,6 +124,12 @@ impl Body {
         } else {
             Ok(Body(Vec::from(body).source_mapped(range)))
         }
+    }
+}
+
+impl AsRef<[SourceValue]> for Body {
+    fn as_ref(&self) -> &[SourceValue] {
+        self.0 .0.as_ref()
     }
 }
 
