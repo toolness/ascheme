@@ -169,7 +169,7 @@ impl CompoundProcedure {
     ) -> CallableResult {
         interpreter
             .environment
-            .push(self.captured_lexical_scope.clone(), self.body.0 .1);
+            .push_captured(self.captured_lexical_scope.clone(), self.body.0 .1);
 
         let body = &self.body.0 .0;
         self.signature.bind_args(operands, interpreter);

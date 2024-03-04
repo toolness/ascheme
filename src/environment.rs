@@ -108,7 +108,12 @@ impl Environment {
         CapturedLexicalScope(self.lexical_scopes.last().cloned())
     }
 
-    pub fn push(&mut self, scope: CapturedLexicalScope, source_range: SourceRange) {
+    pub fn push(&mut self, source_range: SourceRange) {
+        let scope = self.capture_lexical_scope();
+        self.push_captured(scope, source_range);
+    }
+
+    pub fn push_captured(&mut self, scope: CapturedLexicalScope, source_range: SourceRange) {
         let mut new_scope = Scope::default();
         new_scope.parent = scope.0;
         let tracked_scope = self.tracker.track(new_scope.source_mapped(source_range));
