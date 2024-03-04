@@ -112,11 +112,13 @@ impl Environment {
         CapturedLexicalScope(self.lexical_scopes.last().cloned())
     }
 
+    /// Activate a new lexical scope that inherits from the current one.
     pub fn push(&mut self, source_range: SourceRange) {
         let scope = self.capture_lexical_scope();
         self.push_captured(scope, source_range);
     }
 
+    /// Activate a new lexical scope that inherits from the given captured scope.
     pub fn push_captured(&mut self, scope: CapturedLexicalScope, source_range: SourceRange) {
         let mut new_scope = Scope::default();
         new_scope.parent = scope.0;
@@ -124,6 +126,8 @@ impl Environment {
         self.lexical_scopes.push(tracked_scope);
     }
 
+    /// Deactivate the current lexical scope, activating whatever lexical scope
+    /// was active before it.
     pub fn pop(&mut self) {
         self.lexical_scopes.pop();
     }
