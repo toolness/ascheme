@@ -218,6 +218,12 @@ mod tests {
     }
 
     #[test]
+    fn let_does_not_pollute_scope() {
+        let mut interpreter = test_eval_success("(let ((x 1)) x)", "1");
+        assert!(interpreter.get("x").is_none());
+    }
+
+    #[test]
     fn let_star_works() {
         // Note that duplicates are OK!
         test_eval_success("(let* ((x 1) (x 2)) x)", "2");
@@ -241,6 +247,12 @@ mod tests {
         test_eval_err("(let* ((x 1 2)) x)", RuntimeErrorType::MalformedBindingList);
         test_eval_err("(let* ((x 1)))", RuntimeErrorType::MalformedSpecialForm);
         test_eval_err("(let* ((1 1)) x)", RuntimeErrorType::ExpectedIdentifier);
+    }
+
+    #[test]
+    fn let_star_does_not_pollute_scope() {
+        let mut interpreter = test_eval_success("(let* ((x 1)) x)", "1");
+        assert!(interpreter.get("x").is_none());
     }
 
     #[test]
@@ -281,6 +293,12 @@ mod tests {
     }
 
     #[test]
+    fn letrec_does_not_pollute_scope() {
+        let mut interpreter = test_eval_success("(letrec ((x 1)) x)", "1");
+        assert!(interpreter.get("x").is_none());
+    }
+
+    #[test]
     fn named_let_works() {
         test_eval_success(
             "
@@ -316,5 +334,6 @@ mod tests {
     fn named_let_does_not_pollute_scope() {
         let mut interpreter = test_eval_success("(let boop ((x 1)) x)", "1");
         assert!(interpreter.get("boop").is_none());
+        assert!(interpreter.get("x").is_none());
     }
 }
